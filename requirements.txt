@@ -1,26 +1,22 @@
-# MISPL Agent v2 — Dépendances Python
+# MISPL Agent v3 — Dépendances Python
 # Installer : pip install -r requirements.txt
 
 # ── RAG & Vectorstore ──────────────────────────────────────────────────────────
 chromadb>=0.5.0
-rank-bm25>=0.2.2                        # BM25 pour recherche hybride (nouveau)
+rank-bm25>=0.2.2                        # BM25 pour recherche hybride
 sentence-transformers>=3.0.0            # Embeddings locaux offline
-beautifulsoup4>=4.12.0
-lxml>=5.0.0                             # Parser HTML plus robuste que html.parser
-chardet>=5.2.0                          # Détection automatique d'encodage (nouveau)
+PyYAML>=6.0.0                           # Parsing frontmatter YAML des fiches KB
+nltk>=3.9.0                             # Stemmer SnowballStemmer("french") pour BM25
 
 # ── LLM via OpenRouter (API compatible OpenAI) ────────────────────────────────
 openai>=1.50.0                          # Client OpenAI — compatible OpenRouter
 
 # ── Interface ─────────────────────────────────────────────────────────────────
-streamlit>=1.40.0                       # Interface web (remplace Docker/Chainlit)
+streamlit>=1.40.0                       # Interface web
 
 # ── Utilitaires ───────────────────────────────────────────────────────────────
 python-dotenv>=1.0.0                    # Chargement .env
-tqdm>=4.66.0                            # Progress bar build vectorstore
-
-# ── Optionnel : embeddings OpenAI (meilleure qualité sémantique) ───────────────
-# openai>=1.50.0
+tqdm>=4.66.0                            # Progress bar ingestion
 
 # ── Dev & Tests ───────────────────────────────────────────────────────────────
 pytest>=8.0.0

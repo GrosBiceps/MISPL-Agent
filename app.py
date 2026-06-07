@@ -333,7 +333,7 @@ st.markdown("""
       Assistant MISPL
     </div>
     <div style="font-size:.84rem;color:#64748b">
-      Posez vos questions en francais — reponses sourcees depuis la documentation GLIMS officielle.
+      Posez vos questions en francais — reponses sourcees depuis une base de connaissances MISPL constituee manuellement et enrichie de scripts de production valides du laboratoire.
     </div>
   </div>
 </div>

@@ -46,12 +46,35 @@ def _normalize(text: str) -> str:
     return unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode()
 
 
+# Stemmer français — initialisé une seule fois (lazy, thread-safe)
+_FR_STEMMER = None
+
+def _get_stemmer():
+    """Charge SnowballStemmer("french") une seule fois depuis NLTK (absent → désactivé)."""
+    global _FR_STEMMER
+    if _FR_STEMMER is None:
+        try:
+            from nltk.stem import SnowballStemmer
+            _FR_STEMMER = SnowballStemmer("french")
+        except ImportError:
+            _FR_STEMMER = False
+    return _FR_STEMMER if _FR_STEMMER is not False else None
+
+
+def _is_fr_word(word: str) -> bool:
+    """Mot FR pur : alpha, lowercase, len>=4. Protège les identifiants MISPL du stemmer."""
+    return len(word) >= 4 and word.isalpha() and word == word.lower() and not re.search(r"[0-9]", word)
+
+
 def _tokenize(text: str) -> list[str]:
     """
-    Tokenise pour BM25 : préserve PascalCase + dé-accentue pour cross-matching FR/EN.
+    Tokenise pour BM25 : préserve PascalCase + dé-accentue + stemming FR sélectif.
     'GetSiteAttribute' → ['getsiteattribute', 'get', 'site', 'attribute']
-    'chaîne' → ['chaine', 'chaine']  (accentué + ascii)
+    'ajouter' → ['ajouter', 'ajout']  (stemmé)
+    'chaîne' → ['chaine', 'chaine']  (dé-accentué)
+    Les identifiants MISPL (PascalCase) ne sont PAS stemmés.
     """
+    stemmer = _get_stemmer()
     tokens = []
     for word in re.findall(r"[A-Za-z0-9À-ɏ_\-]+", text):
         lower = word.lower()
@@ -66,6 +89,14 @@ def _tokenize(text: str) -> list[str]:
                 pl = p.lower()
                 tokens.append(pl)
                 tokens.append(_normalize(pl))
+                if stemmer and _is_fr_word(pl):
+                    st = stemmer.stem(pl)
+                    if st != pl:
+                        tokens.append(st)
+        elif stemmer and _is_fr_word(ascii_lower):
+            st = stemmer.stem(ascii_lower)
+            if st != ascii_lower:
+                tokens.append(st)
     return tokens
 
 
@@ -266,6 +297,47 @@ _FN_SYNONYMS: dict[str, list[str]] = {
     "DiagnosisCode":          ["diagnosis code diagnostique icd cim systeme"],
     # BloodBag (bbag.htm)
     "BloodBagCreateOrder":    ["bloodbag createorder dossier transfusion sang poche"],
+    # ── Fonctions KB v3 ─────────────────────────────────────────────────────
+    "MicrobiologicHistory":   ["objet historique microbiologique bacteries germes antecedents microbiologie"],
+    "BuildHistoryGraph":      ["graphique historique xml resultat evolution courbe"],
+    "AttributePeriod":        ["duree attribut objet jours actif periode"],
+    "PatientData":            ["donnees patient liste attributs format"],
+    "PersonData":             ["donnees personne patient attributs"],
+    "TariffResultExt":        ["tarification cotation resultat nomenclature NGAP NABM"],
+    "BloodSelectionDiscontinuation": ["discontinuation sang poche incompatible annuler selection"],
+    "BloodSelectionPromotion":       ["promouvoir selection sang compatible valider poche"],
+    "GetDilutionCode":               ["code dilution diluer echantillon"],
+    "HLAAntibody":            ["anticorps hla immunologie rejection greffe"],
+    "HLAAntigen":             ["antigene hla typage immunologique"],
+    "RhesusPhenoType":        ["phenotype rhesus groupe sanguin transfusion"],
+    "GetEncountersList":      ["liste hospitalisations visites ouvertes patient"],
+    "GetMedicalRecordKB":     ["dossier medical groupe sanguin antecedent"],
+    "OtherAntigens":          ["autres antigenes groupe sanguin phenotype"],
+    "RelationsOverview":      ["relations patient famille liens parentaux"],
+    "PutTag":                 ["inserer tag modifier cle valeur liste taguee"],
+    "RangeLabel":             ["tranche intervalle label classe valeur numerique"],
+    "RemoveEntry":            ["supprimer element liste position compter"],
+    "KnownIdentification":    ["identification connue externe id source date validite"],
+    "TourMnemonicList":       ["liste tournees collecte correspondant pattern"],
+    "GetDepartment":          ["recuperer departement discipline laboratoire mnemonic"],
+    "GetProvision":           ["disposition provision laboratoire departement analyseur"],
+    "IsolationTestCount":     ["compter tests isolement microbiologie"],
+    "GetSequence":            ["sequence isolement type microbiologie"],
+    "VerificationPassed":     ["verification pretransfusionnelle passe effectuee ok"],
+    "SetStatusValidated":     ["valider examen pathologie validation finale"],
+    "ChangeResponsible":      ["changer responsable pathologiste biologiste"],
+    "RegisterNonconformity":  ["enregistrer creer nc non-conformite contexte type"],
+    "AskChoice":              ["demander choix dialog boite liste selection obligatoire"],
+    "AskString":              ["demander texte saisie utilisateur champ"],
+    "AskYesNo":               ["demander oui non confirmation dialog"],
+    "GetRole":                ["recuperer role garde biologiste sc_role mnemonic envoyer mail role"],
+    "RoleSendMail":           ["envoyer mail role garde biologiste tous utilisateurs GetRole SendMail alerte"],
+    # Peek/Poke renforcés
+    "PeekCharacter":       ["lire variable partagee chaine shared string peek PeekCharacter peek character variable string partagee biologiste garde"],
+    "PokeCharacter":       ["ecrire variable partagee chaine shared string poke PokeCharacter poke character variable string partagee biologiste garde"],
+    "PeekDate":            ["lire variable partagee date PeekDate peek date shared"],
+    "PeekInteger":         ["lire variable partagee entier PeekInteger peek integer shared"],
+    "PokeInteger":         ["ecrire variable partagee entier PokeInteger poke integer shared"],
 }
 
 
@@ -663,16 +735,27 @@ _INTENT_EXPANSIONS_NORM = [
 ]
 
 
+def _fuzzy_trigger_match(trigger: str, query_norm: str, min_len: int = 6) -> bool:
+    """Matching flou : substring exact + préfixe 80% (absorbe troncatures/fautes finales)."""
+    if trigger in query_norm:
+        return True
+    if len(trigger) >= min_len:
+        prefix_len = max(min_len, int(len(trigger) * 0.8))
+        if trigger[:prefix_len] in query_norm:
+            return True
+    return False
+
+
 def _expand_query(query: str) -> str:
     """
     Enrichit la requête avec des tokens MISPL techniques inférés de l'intent utilisateur.
-    Résout le gap vocabulaire entre questions FR naturelles et termes techniques MISPL.
+    Substring exact + fuzzy prefix (80%). Pas d'appel LLM : latence nulle, déterministe.
     Ex: "créer une demande d'analyse" → ajoute "Order.AddRequest AddRequest RequestList..."
     """
     q_norm = _normalize(query.lower().replace("-", " "))
     additions: list[str] = []
     for triggers, expansion in _INTENT_EXPANSIONS_NORM:
-        if any(t in q_norm for t in triggers):
+        if any(_fuzzy_trigger_match(t, q_norm) for t in triggers):
             additions.append(expansion)
     if additions:
         return query + " " + " ".join(additions)
@@ -878,19 +961,17 @@ class MISPLRetriever:
             if len(rrf_docs) >= k * 2:  # récupérer plus pour le tri suivant
                 break
 
-        # Boost pondéré (pas reclassement binaire) :
-        # +0.05 si chunk appartient à une catégorie MISPL pure (function_name ou catégorie connue)
-        # +0.02 si chunk a des exemples
-        # Garde le score RRF comme base → évite d'écraser un bon chunk générique
+        # Boost multiplicatif post-RRF (préserve la distribution ordinale RRF) :
+        #   ×1.12 function_name · ×1.08 catégorie MISPL pure · ×1.04 exemples de code
         for doc in rrf_docs:
-            bonus = 0.0
+            multiplier = 1.0
             if doc.get("function_name"):
-                bonus += 0.05
+                multiplier *= 1.12
             if doc.get("category") in _MISPL_PURE_CATEGORIES:
-                bonus += 0.05
+                multiplier *= 1.08
             if doc.get("has_examples"):
-                bonus += 0.02
-            doc["score"] = doc["score"] + bonus
+                multiplier *= 1.04
+            doc["score"] = doc["score"] * multiplier
         rrf_docs.sort(key=lambda d: d["score"], reverse=True)
 
         # Fusionner : exact_docs en tête, puis RRF

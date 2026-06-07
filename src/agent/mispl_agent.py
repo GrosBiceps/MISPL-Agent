@@ -119,9 +119,20 @@ _COT_SIGNATURES = (
     "to answer", "to solve", "to address", "the question is", "the query",
     "based on the", "looking at doc", "from the doc", "from doc",
     "hmm,", "hmm ", "well,", "actually,", "essentially,",
+    # Raisonnement long nemotron-120b (CoT étendu)
+    "but wait,", "re-read", "re read", "so i need", "let me re",
+    "the docs", "the provided docs", "the provided documentation",
+    "per the user", "per the instruction", "according to the instruction",
+    "since the docs", "since there", "since no", "since the provided",
+    "in this case,", "in this context,", "this is a bit", "this is tricky",
+    "conflicting.", "conflict", "however,", "but since", "but looking",
+    "but that seems", "but the absolute", "but per", "but if",
+    "check the exact", "check if", "re-check", "reconsider",
+    "strictly based", "strictly follow", "strictly speaking",
     # Français — certains modèles raisonnent en FR
     "d'accord,", "voyons", "je dois", "je vais", "tout d'abord",
     "l'utilisateur", "la question est", "en fait,", "d'abord,",
+    "il faut verifier", "il faut vérifier", "regardons",
 )
 
 def _strip_chain_of_thought(response: str) -> str:
@@ -153,14 +164,11 @@ def _strip_chain_of_thought(response: str) -> str:
     if any(sig in preamble_lower for sig in _COT_SIGNATURES):
         return response[earliest:].lstrip()
 
-    # Stratégie 2 : preamble > 200 chars et ne commence pas par un marqueur structuré
-    # → coupe inconditionnelle si le preamble est long (raisonnement silencieux long)
+    # Stratégie 2 : preamble > 150 chars → coupe inconditionnelle
+    # Tout preamble long avant ## Contexte GLIMS EST du raisonnement
     stripped_preamble = preamble.strip()
-    if len(stripped_preamble) > 200:
-        first_word = stripped_preamble[:30].lower()
-        # Ne couper que si le début ne ressemble pas à une réponse directe
-        if not any(first_word.startswith(m.lower()[:10]) for m in _ANSWER_MARKERS):
-            return response[earliest:].lstrip()
+    if len(stripped_preamble) > 150:
+        return response[earliest:].lstrip()
 
     return response
 
