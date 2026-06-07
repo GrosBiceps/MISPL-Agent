@@ -1,0 +1,1981 @@
+{
+  "prsn": {
+    "title": "Person",
+    "functions": {
+      "AfterBirth": {
+        "sig": "Person After Birth()",
+        "desc": "En cas d'une personne 'foetus' qui après la naissance est également enregistrée dans GLIMS comme une personne 'née' (faisant référence au foetus), cette fonction MISPL permet de naviguer à la personne"
+      },
+      "AntigenAntibody": {
+        "sig": "Person Antigen Antigen Antibody(Mnemonic Antigen Mnemonic)",
+        "desc": "Récupère l'identifiant de l'enregistrement indiquant la présence ou l'absence (chez la personne) d'un antigène spécifié. Cet enregistrement contient également l'avis de typage."
+      },
+      "AntigenByNumber": {
+        "sig": "Person Antigen Antigen By Number(Positive Integer Number)",
+        "desc": "Récupère le n-ième enregistrement antigène de la personne, où 'n' est le paramètre. Triage en fonction du numéro séquence défini dans la table 'Antigène'."
+      },
+      "AvailableBloodBagByNumber": {
+        "sig": "Blood Bag Available Blood Bag By Number(Mnemonic Product Mnemonic,Logical Autologous,Blood Bag Status Status,Positive Integer Number)",
+        "desc": "Récupère la n-ième poche de sang actuellement disponible (état 'initial') pour cette personne."
+      },
+      "BloodForPersonAvailable": {
+        "sig": "Logical Blood For Person Available(Mnemonic Product Mnemonic,Logical Autologous,Mnemonic Department Mnemonic,Blood Bag Status Status)",
+        "desc": "Récupère TRUE quand au moins une poche de sang est disponible (état 'Initial') pour la personne."
+      },
+      "CalculateMedidocCaseNumber": {
+        "sig": "String Calculate Medidoc Case Number()",
+        "desc": "Fonction MISPL qui calcule le numéro medidoc du patient."
+      },
+      "CheckNationalNumber": {
+        "sig": "String Check National Number(String Matriculation,Integer Matriculation Type)",
+        "desc": "Vérifie la validité du numéro national du personne"
+      },
+      "Encounter": {
+        "sig": "Encounter Encounter(Institution Institution,Date Time Encounter Time)",
+        "desc": "Récupère un identifiant de visite qui correspond aux paramètres 'Institution' et 'EncounterTime'. Quand plusieurs visites répondent aux critères, la visite avec la date début la plus récente est récup"
+      },
+      "ExtendedBirthDate": {
+        "sig": "String Extended Birth Date(String Format)",
+        "desc": "Récupérer la date de naissance étendue d'une personne en tenant compte du champ Person.BirthDateStatus ('DoB status'). Exemple: 00/02/1994 quand le jour est inconnu."
+      },
+      "GetAntibody": {
+        "sig": "Logical Get Antibody(String Antigen Mnemonic)",
+        "desc": ""
+      },
+      "GetAntigen": {
+        "sig": "Logical Get Antigen(String Antigen Mnemonic)",
+        "desc": "Le but de cette méthode consiste à vérifier la précence d'un antigène donné chez une personne. Une personne peut avoir un grand nombre d'antigènes. Afin d'utiliser la présence ou absence d'un antigène"
+      },
+      "GetEncounter": {
+        "sig": "Encounter Get Encounter(Mnemonic Institution,Mnemonic Type,Residence Type Residence Type,Date Time Reference Time,Integer History Index)",
+        "desc": "Cherche une visite qui répond aux critères spécifiés. Récupère la visite ou la valeur inconnue quand aucune visite correspondante n'est trouvée."
+      },
+      "GetEncountersList": {
+        "sig": "String Get Encounters List()",
+        "desc": "This returns a list of all open Person Encounters"
+      },
+      "GetMedicalRecord": {
+        "sig": "Person Medical Record Get Medical Record()",
+        "desc": ""
+      },
+      "GetTypingAdvice": {
+        "sig": "Logical Get Typing Advice(String Blood Bag Internal Id,String Antigen Mnemonic)",
+        "desc": "Cette fonction MISPL pourrait servir à consulter d'éventuel conseil pour la transfusion."
+      },
+      "HLAAntibody": {
+        "sig": "Person HLAAntibody HLAAntibody(Mnemonic Antibody Mnemonic)",
+        "desc": "Récupère l'enregistrement anticorps HLA de la personne pour un anticorps spécifié."
+      },
+      "HLAAntibodyByNumber": {
+        "sig": "Person HLAAntibody HLAAntibody By Number(Positive Integer Number)",
+        "desc": "Récupère le n-ième enregistrement anticorps HLA de la personne, où 'n' sert de paramètre."
+      },
+      "HLAAntigen": {
+        "sig": "Person HLAAntigen HLAAntigen(Mnemonic Antigen Mnemonic)",
+        "desc": "Récupère l'enregistrement antigène HLA de la personne pour l'antigène spécifié."
+      },
+      "HLAAntigenByNumber": {
+        "sig": "Person HLAAntigen HLAAntigen By Number(Positive Integer Number)",
+        "desc": "Récupère le n-ième enregistrement antigène HLA de la personne, où 'n' sert de paramètre."
+      },
+      "Hospitalized": {
+        "sig": "Logical Hospitalized(Date Time Target Time)",
+        "desc": "Vérifie si - à la date/heure spécifiée - il y avait pour la personne une visite active de type 'hospitalisé' (une visite dont la nature connaît le type de résidence 'Hospitalisé'). Quand la 'date cibl"
+      },
+      "OtherAntigens": {
+        "sig": "String Other Antigens()",
+        "desc": "Deux fonctions MISPL sont disponibles sur la table Personne: RhesusPhenoType & OtherAntigens.Ces fonctions produiront un string formaté de manière suivante: <MnémoniqueAntigène>+/-<espace>. Il y aura "
+      },
+      "Relation": {
+        "sig": "Person Relation Relation(String Type,Positive Integer Number)",
+        "desc": "Récupère le n-ième enregistrement relation de la personne, où 'n' sert de paramètre. Il est également possible d'imposer une restriction en fonction du type de relation. En cas de plusieurs enregistre"
+      },
+      "RelationsOverview": {
+        "sig": "String Relations Overview(Mnemonic Text Mnemonic,String Type,Logical Recursive)",
+        "desc": "Récupère un texte rédigé en répétant le module de texte spécifié (basé sur 'Person') pour chaque personne apparentée à la personne originale.Triage en fonction du type de relation, puis alphabétiqueme"
+      },
+      "RhesusPhenoType": {
+        "sig": "String Rhesus Pheno Type()",
+        "desc": "Deux fonctions MISPL sont disponibles sur la table Personne: RhesusPhenoType & OtherAntigens.Ces fonctions produiront un string formaté de manière suivante: <MnémoniqueAntigène>+/-<espace>. Il y aura "
+      },
+      "SetAntibody": {
+        "sig": "Active Logical Set Antibody(String Antigen Mnemonic,Logical Presence)",
+        "desc": "Afin de prendre en compte les anticorps d'une personne lors d'une transfusion, il est nécessaire de pouvoir les stocker. Cette fonction sert à tracer la présence ou l'absence d'un anticorps. En cas de"
+      },
+      "SetAntigen": {
+        "sig": "Active Logical Set Antigen(String Antigen Mnemonic,Logical Presence)",
+        "desc": "Afin de prendre en compte les antigènes d'une personne lors d'une transfusion, il est nécessaire de pouvoir les stocker. Cette fonction sert à tracer la présence ou absence d'un antigène. En cas de pr"
+      },
+      "SetHLAAntibodyPresence": {
+        "sig": "Active Logical Set HLAAntibody Presence(Mnemonic Antibody Name,Date The Date,Logical Presence)",
+        "desc": ""
+      },
+      "SetHLAAntibodyRValue": {
+        "sig": "Active Logical Set HLAAntibody RValue(Mnemonic Antibody Name,Date The Date,Positive Fractional RValue)",
+        "desc": ""
+      },
+      "SetHLAAntigenPresence": {
+        "sig": "Active Logical Set HLAAntigen Presence(Mnemonic Antigen Name,Logical Presence)",
+        "desc": "Définir la présence (YES) ou l'absence (NO) de l'antigène HLA spécifié ou l'effacer en spécifiant '?' pour le paramètre 'Presence'."
+      },
+      "SetMedicalRecord": {
+        "sig": "Active Logical Set Medical Record(String Field Name,String Field Value)",
+        "desc": "Permet de renseigner ou modifier les champs du dossier médical d'une personne."
+      },
+      "SetTypingAdvice": {
+        "sig": "Active Logical Set Typing Advice(Mnemonic Antigen Mnemonic,Logical Value)",
+        "desc": "Met le champ 'Avis de typage' au niveau de la table 'Antigène personne' à la valeur spécifiée (pour cette personne et cet antigène). Quand l'enregistrement 'Antigène personne' n'existe pas encore et l"
+      },
+      "Stay": {
+        "sig": "Stay Stay(Date Time Target Time)",
+        "desc": "Cette fonction récupère le séjour actuel de la personne. Remarque: quand le patient est transféré, cette fonction récupérera le nouveau séjour. Afin de l'éviter, veuillez consulter l'utilisation de la"
+      },
+      "Stays": {
+        "sig": "String Stays()",
+        "desc": "This returns a String list of all open Stays of a Person"
+      }
+    }
+  },
+  "obj": {
+    "title": "Object",
+    "functions": {
+      "Age": {
+        "sig": "String Age(Date Reference Date)",
+        "desc": "Cette fonction récupère l'âge de l'objet sous la forme d'une chaîne de caractères. Le format varie selon l'âge."
+      },
+      "AgeInDays": {
+        "sig": "Fractional Age In Days(Date Reference Date)",
+        "desc": "Cette fonction récupère l'âge de l'objet en jours. Le type de données est 'fractional'. En revanche, la valeur récupérée arrondie sera toujours un nombre entier."
+      },
+      "AgeInMonths": {
+        "sig": "Fractional Age In Months(Date Reference Date)",
+        "desc": "Cette fonction récupère l'âge de l'objet en mois. Le nombre de jours restant pour le dernier mois incomplet est divisé par 30,5."
+      },
+      "AgeInYears": {
+        "sig": "Fractional Age In Years(Date Reference Date)",
+        "desc": "Cette fonction récupère l'âge de l'objet en années. Le nombre de jours restant pour la dernière année incomplète sera divisée par 365,25."
+      },
+      "Animal": {
+        "sig": "Animal Animal()",
+        "desc": ""
+      },
+      "AttributeList": {
+        "sig": "String Attribute List(Date Time Reference Time,String Flag List,Positive Integer Minimal Severity,Logical Flags Only,Logical Use Mnemonics,String Delimiter)",
+        "desc": "Récupère une liste délimitée d'attributs d'objet qui sont actifs à l'heure de référence indiquée. Les mnémoniques ou noms d'attribut sont suivis par une indication de la durée de l'état actif de l'att"
+      },
+      "AttributePeriod": {
+        "sig": "Positive Integer Attribute Period(Mnemonic Attribute Mnemonic,Date Reference Date)",
+        "desc": "Returns the number of days the attribute is/was applicable for the specified object, at the specified reference date.If no date is specified, the current date (today) is assumed.If there is no attribu"
+      },
+      "BirthDate": {
+        "sig": "Date Birth Date()",
+        "desc": "Cette fonction récupère la date de naissance de l'objet, n'importe s'il s'agit d'une personne ou un animal."
+      },
+      "BloodSelectionByNumber": {
+        "sig": "Blood Selection Blood Selection By Number(Mnemonic Product Mnemonic,Blood Selection Status Minimal Status,Blood Selection Status Maximal Status,Positive Integer Number)",
+        "desc": ""
+      },
+      "BuildHistoryGraph": {
+        "sig": "String Build History Graph(String Tagged Parameter List)",
+        "desc": "Cette fonction génère un graphique historique de résultats précédents pour l'objet actuel au format XML. Cette chaîne XML peut servir à afficher des graphiques historiques sur comptes-rendus Word."
+      },
+      "CheckDiagnosisCodeCompatibility": {
+        "sig": "String Check Diagnosis Code Compatibility(Diagnosis Code Diagnosis Code,Date Reference Date,Logical Mustbe Billable)",
+        "desc": "Checks if the specified diagnosis code is compatible (german KBV attributes Sex, Age, ...) with the object.returns empty string when oke else an error text."
+      },
+      "ClearAttribute": {
+        "sig": "Active Logical Clear Attribute(Mnemonic Attribute Mnemonic,Date End Date)",
+        "desc": "This function does not actually clear the object attribute but allows specifying an end date (second parameter)."
+      },
+      "DeclaredType": {
+        "sig": "Object Type Declared Type()",
+        "desc": "For \"UnknownObject\", this function will return the value as stored in uobj_PreliminaryType.For regular object records, this function returns the value stored in Object.Type.A value of {&ObjectTypeUnkn"
+      },
+      "DeleteAttribute": {
+        "sig": "Active Logical Delete Attribute(Mnemonic Attribute Mnemonic,Date End Date)",
+        "desc": "Cette fonction doit être utilisée avec précaution car elle permet d'effacer l'attribut d'objet !!La fonction efface tout historique d'attribut pour un attribut d'objet spécifié qui était actif au mome"
+      },
+      "FindMostRecentBilledBillingCode": {
+        "sig": "Billing Item Find Most Recent Billed Billing Code(String Billing Code,Date Start Date,Date End Date)",
+        "desc": "Cette méthode récupère l'enregistrement élément de cotation qui correspond à la date la plus récente à laquelle le code de cotation spécifié était facturé pour cet objet."
+      },
+      "GetBloodBag": {
+        "sig": "Blood Bag Get Blood Bag(String Blood Product Mnemonic,Integer History Index,Date Time Minimal Backwards Time,Date Time Maximal Backwards Time)",
+        "desc": "L'historique de transfusions de sang consiste en informations sur les poches de sang auparavant administrées au patient. On pourrait par exemple ajouter cette information à la feuille de données. Les "
+      },
+      "GetCheckedOutBag": {
+        "sig": "Blood Bag Get Checked Out Bag(String Blood Product Mnemonic,Integer History Index,Date Time Minimal Backwards Time,Date Time Maximal Backwards Time)",
+        "desc": "Cette méthode permet de récupérer des poches de sang émises qui ne sont pas encore administrées. On pourrait par exemple ajouter ces informations à la feuille de données. Les poches de sang émises son"
+      },
+      "GetData": {
+        "sig": "String Get Data(String Attribute List)",
+        "desc": "Récupère une liste des attributs d'un objet demandés séparés par virgules."
+      },
+      "GetDiagnosis": {
+        "sig": "Diagnosis Get Diagnosis(Diagnosis Previous,String Code)",
+        "desc": "Récupère le diagnostic suivant faisant référence à l'objet actuel. Le diagnostic le plus récent sera récupéré en premier."
+      },
+      "GetLastBillingItemByReceiptDate": {
+        "sig": "Billing Item Get Last Billing Item By Receipt Date(String Billing Code,Date Start Date,Date End Date)",
+        "desc": "Cette méthode récupère l'enregistrement élément de cotation qui correspond à la date (date de tarification = date externe facture) la plus récente à laquelle le code cotation spécifié était facturé po"
+      },
+      "GetLocusResult": {
+        "sig": "Locus Result Get Locus Result(String Locus Name,Locus Result Status Minimal Status,Integer Minimal Severity,Integer Index)",
+        "desc": "Returns a reference to a specific locus result of the object"
+      },
+      "GetPhoneLog": {
+        "sig": "Phone Log Get Phone Log(Phone Log Previous,Logical Phoned)",
+        "desc": "La fonction MISPL Object.GetPhoneLog permet de récupérer les enregistrements journal téléphonique d'un objet."
+      },
+      "GetResult": {
+        "sig": "Result Get Result(Mnemonic Property Mnemonic,String Imposed Result,Positive Integer Index,Date Time Reference Time)",
+        "desc": "Cherche un résultat spécifique d'un objet qui répond aux critères renseignés. Les résultats validés seront pris en compte. Les autres seront ignorés."
+      },
+      "GetVariantResult": {
+        "sig": "Variant Result Get Variant Result(String Variant Name,Variant Result Status Minimal Status,Integer Minimal Severity,Integer Minimal Classification,Variant Retest Status Retest Status,Integer Index)",
+        "desc": "Returns a reference to a specific variant result of the object"
+      },
+      "HasExternalInfo": {
+        "sig": "Logical Has External Info()",
+        "desc": "Récupère si des infos externes sont disponibles dans le système info externe indiqué."
+      },
+      "Lot": {
+        "sig": "Lot Lot()",
+        "desc": ""
+      },
+      "MicrobiologicHistory": {
+        "sig": "String Microbiologic History(Mnemonic Specimen Layout,Positive Integer Maximum Days Ago,Positive Integer Skip Count,Positive Integer Maximum Count,String Material Mnemonic,String Procedure Mnemonic,Logical Positive Only,Positive Integer Minimal Severity,Date Time Reference Time,String View Format)",
+        "desc": "Veuillez consulter le chapitre Microbiologie du manuel (Modules > Microbiologie > Fonctions MISPL)."
+      },
+      "NumberOfBilledBillingCodes": {
+        "sig": "Positive Integer Number Of Billed Billing Codes(String Billing Code,Date Start Date,Date End Date)",
+        "desc": "Cette méthode récupère le nombre de fois qu'un code cotation était facturé pour un objet, en fonction du code cotation mentionné et lors de la période donnée."
+      },
+      "PatientData": {
+        "sig": "String Patient Data(String Attribute List)",
+        "desc": "Récupère une liste des attributs de patient demandés séparés par virgules."
+      },
+      "Person": {
+        "sig": "Person Person()",
+        "desc": ""
+      },
+      "PersonData": {
+        "sig": "String Person Data(String Attribute List)",
+        "desc": "Récupère une liste des attributs de personne demandés séparés par virgules. En revanche, TOUS les attributs sont disponibles à l'aide de la méthode .Person()."
+      },
+      "PIN": {
+        "sig": "String PIN(String Source Mnemonic)",
+        "desc": ""
+      },
+      "QCLot": {
+        "sig": "QCLot QCLot()",
+        "desc": "La fonction MISPL Object.QCLot permet d'accéder à l'enregistrement lot QC lié à un objet de type Lot QC."
+      },
+      "Result": {
+        "sig": "Result Result(Mnemonic Property Mnemonic,Positive Integer Index,Date Time Reference Time,Result Status Minimal Status)",
+        "desc": "Cherche un résultat spécifique d'un objet qui répond aux critères spécifiés. Contrairement à la méthode .GetResult(), cette fonction permet de spécifier l'état minimum de résultat."
+      },
+      "ResultAttribute": {
+        "sig": "String Result Attribute(String Property Mnemonic,String Imposed Result Value,Positive Integer Index,Date Time Reference Time,String Attribute Name)",
+        "desc": "La recherche d'un enregistrement résultat pour cet objet est effectuée.La valeur récupérée par la méthode est de type 'string' (chaîne de caractères). En cas de réussite, la méthode récupère la valeur"
+      },
+      "SetAttribute": {
+        "sig": "Active Logical Set Attribute(Mnemonic Attribute Mnemonic,Date Start Date)",
+        "desc": ""
+      },
+      "Sex": {
+        "sig": "Sex Sex()",
+        "desc": "Cette fonction récupère le sexe de l'objet, n'importe s'il s'agit d'une personne ou un animal."
+      }
+    }
+  },
+  "ord": {
+    "title": "Order",
+    "functions": {
+      "AddOrderTodoItem": {
+        "sig": "Void Add Order Todo Item(Mnemonic Order Todo List Mnemonic,String Reason,Date Due Date,String Assignment)",
+        "desc": "This function allows to add an order to-do item to a specific order to-do list."
+      },
+      "AddRequest": {
+        "sig": "Active Logical Add Request(String Request List,Date Time Object Time,Logical To Charge)",
+        "desc": "Cette fonction permet d'ajouter une liste de demandes à un dossier existant. Lorsqu'elle est utilisée pour ajouter une demande, l'urgence minimum de la définition de demande (Requestable.MinimalUrgenc"
+      },
+      "Attribute": {
+        "sig": "String Attribute(String Attribute Name)",
+        "desc": "Cette fonction récupère les attributs de dossier lesquels ne peuvent pas être obtenus ou lesquels sont difficiles à obtenir au moyen de constructions MISPL standards.Exemple pratique: FitText(Replace("
+      },
+      "BudgetInvoice": {
+        "sig": "Budget Invoice Budget Invoice(Mnemonic Budget Class Mnemonic,Reimburser Type Owner Type)",
+        "desc": "Récupérer la facture budgétaire spécifiée (si possible)."
+      },
+      "BudgetItemsOfParty": {
+        "sig": "String Budget Items Of Party(String Budget Class List,Reimburser Type Owner Type,Logical Separated,String Information Type)",
+        "desc": "Récupère de l'information budgétaire pour le dossier et l'organisme de remboursement spécifié. Une valeur singulière ou une liste de tags est récupérée."
+      },
+      "CancelResults": {
+        "sig": "Active Logical Cancel Results(String Property Mnemonic List,String Reason)",
+        "desc": "Annuler (discontinuer) résultats d'un dossier."
+      },
+      "CheckFSE": {
+        "sig": "String Check FSE()",
+        "desc": "Cette fonction MISPL vérifie l'état complet du dossier par rapport à la Feuille de Soins Electronique (FSE).La valeur récupérée contient 2 tags:Faites usage de la fonction MISPL ExtractTag.Les tags so"
+      },
+      "CheckKVDT": {
+        "sig": "String Check KVDT(Date Check Date,String OKVKennung,XDTCharacter Set Character Set)",
+        "desc": "Uniquement utilisé en Allemagne."
+      },
+      "Consult": {
+        "sig": "Consult Consult()",
+        "desc": "Get the consult record for the current order, if it is a consult order. Else returns unknown."
+      },
+      "CreateMediumReport": {
+        "sig": "Active Void Create Medium Report(String Code,Report Medium Medium,String Target,Logical Forced,String Generation Parameter Set,String Medium Info)",
+        "desc": "Permet d'ajouter via MISPL un compte-rendu pour un moyen de rapporter spécifique (fax, e-mail, courrier,...). En plus du paramètre Code, les paramètres MediumType, Target, Forced, GenerationParameterS"
+      },
+      "CreateReferral": {
+        "sig": "Active Void Create Referral(String Tagged Value List)",
+        "desc": ""
+      },
+      "CreateReport": {
+        "sig": "Active Void Create Report(String Code)",
+        "desc": "Permet d'ajouter un compte-rendu par MISPL."
+      },
+      "GetClinicalConsultation": {
+        "sig": "Clin Consultation Get Clinical Consultation()",
+        "desc": "Retrieve the Clinical Consultation linked to this Order"
+      },
+      "GetDiagnosis": {
+        "sig": "Diagnosis Get Diagnosis(Diagnosis Previous,String Code)",
+        "desc": "Récupère le diagnostic suivant faisant référence au dossier actuel. Le diagnostic le plus récent est récupéré en premier."
+      },
+      "GetIdentifier": {
+        "sig": "Order Identifier Get Identifier(Site Enumerated Identifier Type)",
+        "desc": "Get the specified identifier of the order"
+      },
+      "GetOrderTodoItem": {
+        "sig": "Order Todo Item Get Order Todo Item(Integer Order Todo Item Id)",
+        "desc": "This function allows to retrieve a specific order to-do item of an order."
+      },
+      "GetOrderTodoItems": {
+        "sig": "String Get Order Todo Items(String Order Todo List Mnemonic,Logical Order Todo Item Status)",
+        "desc": "Returns all linked order to-do items for a specific list or with a specific status."
+      },
+      "GetPhoneLog": {
+        "sig": "Phone Log Get Phone Log(Phone Log Previous,Logical Phoned)",
+        "desc": ""
+      },
+      "GetSpecimen": {
+        "sig": "Specimen Get Specimen(Specimen Previous,Mnemonic Material)",
+        "desc": "Permet d'accéder aux différents échantillons d'un dossier. Usage typique:Specimen TheSpecimen;TheSpecimen := .GetSpecimen(?, ?);WHILE TheSpecimen <> ?DO....TheSpecimen := .GetSpecimen(TheSpecimen, ?);"
+      },
+      "HasMissingSpecimens": {
+        "sig": "Logical Has Missing Specimens()",
+        "desc": "Vérifie si le dossier a des échantillons manquants. La fonction récupère 'YES' en cas d'échantillons manquants, sinon 'NO'."
+      },
+      "HasPreviousResults": {
+        "sig": "Logical Has Previous Results(String Property Classification Name,Result Status Minimal Result Status)",
+        "desc": "Checks if the results of the order belonging to the given property classification have historical predecessors."
+      },
+      "InvoiceItemsData": {
+        "sig": "String Invoice Items Data(String Payer Type List,String Price Code List,String Reimbursement Class List,String Value,String Separate By)",
+        "desc": "Cette fonction récupère des données des éléments non rejetés des factures du dossier."
+      },
+      "IsEmpty": {
+        "sig": "Logical Is Empty()",
+        "desc": "Vérifie si un dossier est vide. La fonction récupère 'NO' quand un code demande de type Analyse, Sang, Matériel, Microbiologie est trouvé. Sinon, elle récupère 'YES'."
+      },
+      "IsRequested": {
+        "sig": "Logical Is Requested(String Mnemonic List,Logical All)",
+        "desc": "Vérifie si un dossier contient une ou toutes les analyses d'une liste d'analyses. Résultats discontinués et non sollicités sont ignorés."
+      },
+      "ObjectPaymentAgreement": {
+        "sig": "Payment Agreement Object Payment Agreement()",
+        "desc": "Récupère une référence à l'accord de paiement primaire utilisé pour tarifer le dossier."
+      },
+      "PostProcess": {
+        "sig": "Active Logical Post Process(Logical Allow Specimen Reuse,Logical Allow Result Reuse,Logical Already Scheduled,Logical Auto Sample Login,Logical Print Order Label1,Logical Print Order Label2,Logical Print Specimen Labels)",
+        "desc": ""
+      },
+      "PropertyList": {
+        "sig": "String Property List(Result Status Minimal Status,Result Status Maximal Status,String Property Field Name,String Property Classification,Logical Allow Unsolicited Results)",
+        "desc": "Récupère une liste d'analyses appartenant à la classification d'analyses spécifiée et pour laquelle il y a des résultats appartenant à ce dossier et ayant un état qui se trouve entre l'état minimum et"
+      },
+      "RecalculateSpecimen": {
+        "sig": "Void Recalculate Specimen()",
+        "desc": "This MISPL allows to trigger recalculation of the internal id of all (including discontinued) specimen. This MISPL should only be used in specific configurations. MIPS personnel only."
+      },
+      "ReportList": {
+        "sig": "String Report List(Report Scope Scope,String Default Report Code,Mnemonic Template Mnemonic,String Target Internal Id,Logical Is Copy)",
+        "desc": "Récupère une liste de comptes-rendus séparés par virgules contenant résultats du dossier. Chaque entrée convient à la syntaxe:\"ReportScope\\DefaultReportCode\\TemplateMnemonic\\TargetInternalId\\IsCopy\\Co"
+      },
+      "Result": {
+        "sig": "Result Result(Mnemonic Property Mnemonic,String Minimal Status,String Maximal Status)",
+        "desc": "Récupère une référence à un résultat spécifique du dossier."
+      },
+      "SetDepartment": {
+        "sig": "Active Logical Set Department(Mnemonic Department Mnemonic)",
+        "desc": "Permet de mettre à jour la discipline pour laquelle un dossier était créé. Cette fonction était conçue principalement pour usage en combinaison avec la saisie de dossier à partir de CyberLab, où la di"
+      },
+      "SetImage": {
+        "sig": "Active Logical Set Image(String File Name)",
+        "desc": "Renseigne le champ 'Order.Image' pour communication avec un système externe de document imaging. Permet de spécifier p.ex. un URL qui se fonde sur l'id interne de dossier lors de la phase de post-trai"
+      },
+      "SetStudyEpisode": {
+        "sig": "Active Logical Set Study Episode(String Episode)",
+        "desc": "Change la valeur du champ 'Episode' au niveau Dossier en la valeur spécifiée comme paramètre."
+      },
+      "Summary": {
+        "sig": "String Summary(Result Status Minimal Status,Result Status Maximal Status,String Property Field Name,String Property Classification,Logical Allow Unsolicited Results,String Separator,String Format)",
+        "desc": "Récupère un résumé du dossier qui servira typiquement de \"Journal nominatif\" en France."
+      },
+      "TariffResult": {
+        "sig": "Result Tariff Result(String Billing Code,String Property Mnemonic)",
+        "desc": "Récupère une référence à un résultat tarifé du dossier. Cette fonction est uniquement disponible lors de l'exécution du programme de tarification."
+      },
+      "ToBePhoned": {
+        "sig": "Active Logical To Be Phoned()",
+        "desc": "Un dossier complet est marqué comme à téléphoner. Les résultats d'analyses 'visibles' explicitement demandées seront marqués.- il faut que l'analyse soit visible ('Visible' = 'Oui') et qu'elle ait un "
+      }
+    }
+  },
+  "rslt": {
+    "title": "Result",
+    "functions": {
+      "Action": {
+        "sig": "Action Action()",
+        "desc": ""
+      },
+      "AddExternalComment": {
+        "sig": "Active Logical Add External Comment(String Text,Logical Append)",
+        "desc": ""
+      },
+      "AddInternalComment": {
+        "sig": "Active Logical Add Internal Comment(String Text,Logical Append)",
+        "desc": ""
+      },
+      "Attribute": {
+        "sig": "String Attribute(String Attribute Name)",
+        "desc": "Cette fonction récupère un attribut du résultat actuel au format 'string' (chaîne de caractères)."
+      },
+      "BloodSelectionDiscontinuation": {
+        "sig": "Active Logical Blood Selection Discontinuation(String Reason)",
+        "desc": "Cette fonction permet de discontinuer et répéter la sélection de sang pour lequel le résultat actuel est l'épreuve de compatibilité. La sélection de sang est également REPETE: une nouvelle sélection d"
+      },
+      "BloodSelectionPromotion": {
+        "sig": "Active Logical Blood Selection Promotion()",
+        "desc": ""
+      },
+      "BloodSelectionReported": {
+        "sig": "Blood Selection Blood Selection Reported()",
+        "desc": ""
+      },
+      "Cancel": {
+        "sig": "Active Logical Cancel(String Action,String Reason)",
+        "desc": "Cette fonction permet d'annuler le résultat et requiert la spécification d'une raison. Sa fonctionnalité est analogue à celle de la fonction interactive 'Discontinuer'.Erreurs:Une erreur se produira q"
+      },
+      "Escalate": {
+        "sig": "Active Logical Escalate(String Comment,Logical Stricly)",
+        "desc": ""
+      },
+      "GetBloodSelection": {
+        "sig": "Blood Selection Get Blood Selection()",
+        "desc": ""
+      },
+      "GetCode": {
+        "sig": "String Get Code(Mnemonic Coding System Mnemonic)",
+        "desc": ""
+      },
+      "GetDilutionCode": {
+        "sig": "Dilution Code Get Dilution Code(String Code)",
+        "desc": "Get dilution code id given a dilution code as stringNeeded in order to be able to dilute a result record using MISPL.e.g. Result based MISPL:.Dilute(.GetDilutionCode(\"ByHalf\"), \"Result needs dilution "
+      },
+      "GetPriorResult": {
+        "sig": "Result Get Prior Result(Positive Integer Index,String Imposed Result Value)",
+        "desc": "En cas de réussite, la fonction récupère l'id de l'enregistrement résultat demandé. En cas d'échec, la valeur inconnue est récupérée. Le but de cette méthode est identique à celui de Object.GetResult("
+      },
+      "LastOrder": {
+        "sig": "Order Last Order()",
+        "desc": ""
+      },
+      "LastRequest": {
+        "sig": "Request Last Request(Logical Explicit)",
+        "desc": ""
+      },
+      "MarkAsSolicited": {
+        "sig": "Active Logical Mark As Solicited()",
+        "desc": ""
+      },
+      "MicrobiologyAction": {
+        "sig": "Microbiology Action Microbiology Action()",
+        "desc": ""
+      },
+      "NumericValue": {
+        "sig": "Fractional Numeric Value()",
+        "desc": "Si le résultat n'est pas encore disponible, la fonction rend '?'.Si la valeur du résultat commence par '<', une petite valeur est soustraite de la valeur du résultat. Si la valeur du résultat commence"
+      },
+      "PathologyExamOfWhichConclusion": {
+        "sig": "Pathology Exam Pathology Exam Of Which Conclusion()",
+        "desc": ""
+      },
+      "PriorAttribute": {
+        "sig": "String Prior Attribute(Positive Integer Index,String Imposed Result Value,String Attribute Name)",
+        "desc": ""
+      },
+      "ReferenceValue": {
+        "sig": "String Reference Value()",
+        "desc": "Cette fonction MISPL récupère les valeurs de référence pour le résultat."
+      },
+      "RelatedResult": {
+        "sig": "Result Related Result(String Property Mnemonic)",
+        "desc": "Permet de récupérer un résultat associé du même objet et de la même heure de prélèvement.Quand il y a plusieurs résultats pour la même analyse et la même heure de prélèvement, la méthode Result.Relate"
+      },
+      "ReportedNonconformity": {
+        "sig": "Nonconformity Reported Nonconformity()",
+        "desc": "Needed for reporting: when the report result value contains a text module reference (hence Result-table based) that must be evaluated and the text module wants to access information of the NC record, "
+      },
+      "SetAsBaseLine": {
+        "sig": "Active Logical Set As Base Line(Logical Base Line)",
+        "desc": "Remarquez : le but principal de la fonction consiste à influencer le seuil dalerte général du résultat afin de déclencher une action telle quune différente couleur daffichage.Lorsqu'un seuil d'aler"
+      },
+      "SetAutomaticConfirmation": {
+        "sig": "Active Logical Set Automatic Confirmation(Logical Automatic Confirmation)",
+        "desc": ""
+      },
+      "SetAutomaticValidation": {
+        "sig": "Active Logical Set Automatic Validation(Logical Automatic Validation)",
+        "desc": ""
+      },
+      "SetManualSeverity": {
+        "sig": "Active Logical Set Manual Severity(Integer Manual Severity)",
+        "desc": "Permet de mettre le seuil dalerte manuel dun résultat à nimporte quelle valeur.Remarquez : le but principal de la fonction consiste à influencer le seuil dalerte général du résultat afin de déclen"
+      },
+      "StatisticalWeight": {
+        "sig": "Positive Fractional Statistical Weight()",
+        "desc": "Fonction MISPL récupérant le poids statistique (de l'analyse associée), applicable au moment de la saisie du résultat ('heure de disponibilité')."
+      },
+      "Successor": {
+        "sig": "Result Successor()",
+        "desc": ""
+      },
+      "WorkSpecimen": {
+        "sig": "Specimen Work Specimen()",
+        "desc": "This must return the specimen on which the result was directly measured/scheduled.It is found by following the ResultOutput->Action->SpecimenInput or first recursively ResultOutput->Action->Resultput "
+      }
+    }
+  },
+  "actn": {
+    "title": "Action",
+    "functions": {
+      "ApproachActivity": {
+        "sig": "Approach Activity Approach Activity()",
+        "desc": "Retrieve the approach activity (Genetics) linked to this action."
+      },
+      "Attribute": {
+        "sig": "String Attribute(String Attribute Name)",
+        "desc": ""
+      },
+      "Cancel": {
+        "sig": "Active Logical Cancel(String Action,String Reason)",
+        "desc": "Le fonctionnement de cette méthode est identique à celui de Result.Cancel(), mais les résultats en sortie d'une action sont tous annulés en même temps."
+      },
+      "InputByMnemonic": {
+        "sig": "String Input By Mnemonic(Mnemonic Property Mnemonic)",
+        "desc": ""
+      },
+      "InputResult": {
+        "sig": "Result Input Result(Mnemonic Property Mnemonic)",
+        "desc": ""
+      },
+      "MicrobiologyAction": {
+        "sig": "Microbiology Action Microbiology Action()",
+        "desc": ""
+      },
+      "Order": {
+        "sig": "Order Order()",
+        "desc": ""
+      },
+      "OutputResult": {
+        "sig": "Result Output Result(Mnemonic Property Mnemonic)",
+        "desc": "Cette fonction MISPL peut, par exemple, servir à afficher des informations de poche de sang sur une liste de travail d'épreuve de compatibilité."
+      },
+      "PropertyList": {
+        "sig": "String Property List(Result Status Minimal Status,Result Status Maximal Status,String Property Field Name,Logical Allow Unsolicited Results)",
+        "desc": "Récupère une liste d'analyses pour lesquelles il y a des résultats appartenant à cette action et dont l'état se trouve entre l'état minimal et l'état maximal spécifiés."
+      },
+      "ResultOperation": {
+        "sig": "String Result Operation(String First Resultvalue,String Second Resultvalue,String Message Mnemonic,String Imposed Operation)",
+        "desc": "Valeur résultat de la fonction: en cas de réussite, une valeur qui dépend de l'opération est récupérée. En cas de non réussite, un message qui dépend de l'opération est affiché.Exemples: ResultOperati"
+      },
+      "SpecimenInput": {
+        "sig": "Specimen Input Specimen Input()",
+        "desc": ""
+      }
+    }
+  },
+  "spmn": {
+    "title": "Specimen",
+    "functions": {
+      "AddBlocks": {
+        "sig": "Active Positive Integer Add Blocks(Mnemonic Medium Mnemonic,Positive Integer Number To Add,Positive Integer Number To Reach,Logical Print Block Label)",
+        "desc": ""
+      },
+      "AddCarriers": {
+        "sig": "Logical Add Carriers(String Microbiology Mnemonic,String Medium Mnemonic List,Logical Print,Logical Mark As Grafted,Logical Double Allowed,String Comment)",
+        "desc": "Cette fonction MISPL permet d'ajouter une ou plusieurs plaque(s) à une ou plusieurs action(s) de microbiologie sur l'échantillon actuel.Attention:- Chaque parameter peut avoir la valeur \"?\" sauf le de"
+      },
+      "AddRequest": {
+        "sig": "Active Void Add Request(String Request List,Logical To Charge,String Billing Mark)",
+        "desc": ""
+      },
+      "Attribute": {
+        "sig": "String Attribute(String Attribute Name)",
+        "desc": ""
+      },
+      "CarrierCount": {
+        "sig": "Positive Integer Carrier Count(String Medium Mnemonic List,String Medium Test Mnemonic List)",
+        "desc": ""
+      },
+      "CollectionInfo": {
+        "sig": "Specimen Collection Info Collection Info()",
+        "desc": "Access to the SpecimenCollectionInfo-record linked to the current specimen. Note that this record is not always available since it's only stored when needed."
+      },
+      "DirectParent": {
+        "sig": "Specimen Direct Parent()",
+        "desc": "Return the specimen that is the direct parent of the given specimen.For root specimens this returns always the unknown value."
+      },
+      "FirstRequest": {
+        "sig": "Active Request First Request(Logical Explicit)",
+        "desc": "Cette fonction rend la moins récente demande pour un échantillon.A partir de la table Request, vous avez accès à la table Order; p.ex. FirstRequest(?).Order."
+      },
+      "GetStorage": {
+        "sig": "Item Storage Get Storage(String Archive Mnemonic,String Usage)",
+        "desc": "Récupère le plus récent enregistrement stockage échantillon pour l'échantillon et pour la sérothèque spécifiée."
+      },
+      "IsolationCount": {
+        "sig": "Integer Isolation Count(String Organism Mnemonic List,Logical Aerobe,String Organism Billing Mark List,Logical Reportable,String Appraisal List,Logical Antibiogram Present)",
+        "desc": ""
+      },
+      "LabSpecificSize": {
+        "sig": "Fractional Lab Specific Size(Mnemonic Lab Mnemonic)",
+        "desc": ""
+      },
+      "LastRequest": {
+        "sig": "Request Last Request(Logical Explicit)",
+        "desc": "Récupère la plus récente demande pour un échantillon. A partir de la table 'Request', vous avez accès à la table 'Order': p.ex. LastRequest(?).Order."
+      },
+      "PathologyExam": {
+        "sig": "Pathology Exam Pathology Exam()",
+        "desc": ""
+      },
+      "Result": {
+        "sig": "Result Result(Mnemonic Property Mnemonic,Result Status Minimal Status,Result Status Maximum Status,Order Order Id)",
+        "desc": "Returns a reference to a specific result for a given property in a given order."
+      },
+      "SetMeasuredSize": {
+        "sig": "Void Set Measured Size(Positive Fractional Size Value)",
+        "desc": "This can be used when the volume is entered as a result value and it has to be copied to the measured size field of the specimen"
+      },
+      "SetReplacementLevel": {
+        "sig": "Active Void Set Replacement Level(Positive Integer Level)",
+        "desc": ""
+      },
+      "SetStorage": {
+        "sig": "Active Item Storage Set Storage(Logical Override,String Archive Mnemonic,String Usage,String Code Pattern,String Reason)",
+        "desc": "Permet d'attribuer à l'échantillon une position (stockage) dans la sérothèque spécifiée. Quand le paramètre <Usage> est renseigné, le premier portoir non occupé avec cet usage sera cherché. Sinon, le "
+      },
+      "SpecimenOutput": {
+        "sig": "Specimen Output Specimen Output()",
+        "desc": ""
+      },
+      "TariffResult": {
+        "sig": "Result Tariff Result(String Billing Code,String Property Mnemonic)",
+        "desc": ""
+      },
+      "Variable": {
+        "sig": "Specimen Variable Variable(Mnemonic Variable Name)",
+        "desc": ""
+      }
+    }
+  },
+  "crsp": {
+    "title": "Correspondent",
+    "functions": {
+      "Attribute": {
+        "sig": "String Attribute(String Attribute Name)",
+        "desc": "Currently supported values:- \"TourMnemonicList[:Pattern]\": returns a comma-separated list of the mnemonics of the tours where this correspondent is a member, sorted by tour mnemonic. When the optional"
+      },
+      "Bank": {
+        "sig": "Bank Bank()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement banque quand le correspondant actuel est de ce type."
+      },
+      "Budget": {
+        "sig": "Budget Budget(Mnemonic Budget Class Mnemonic,Invoice Grouping Period Period,Date Validity Date)",
+        "desc": "Cette fonction MISPL récupère l'enregistrement Budget de ce correspondant qui répond aux paramètres spécifiés."
+      },
+      "Company": {
+        "sig": "Company Company()",
+        "desc": "This function returns the identifier of the company record if the current correspondent is of this type."
+      },
+      "CreateIdentification": {
+        "sig": "Logical Create Identification(Correspondent Source,String Code,Date Start Date,Date End Date)",
+        "desc": "Creates an identification record for this (target) correspondent"
+      },
+      "CreateNationalNumber": {
+        "sig": "Logical Create National Number(String Code,Date Start Date,Date End Date)",
+        "desc": "Creates a national number identification record for this (target) correspondent.Fixed identification source is SpecificSite.NationalPinProvider."
+      },
+      "CurrentAgreements": {
+        "sig": "String Current Agreements(Date Validity Date)",
+        "desc": "Cette fonction récupère une liste des accords de paiement du correspondant, séparés par virgules."
+      },
+      "Department": {
+        "sig": "Department Department()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement discipline si le correspondant actuel est de ce type."
+      },
+      "Firm": {
+        "sig": "Firm Firm()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement firme si le correspondant actuel est de ce type."
+      },
+      "Fund": {
+        "sig": "Fund Fund()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement caisse si le correspondant actuel est de ce type."
+      },
+      "GroupMembership": {
+        "sig": "Correspondent Group Member Group Membership(String Group Name,String Group Code)",
+        "desc": "Récupère l'affiliation du correspondant à un groupe de correspondants à l'aide de son nom ou de son code."
+      },
+      "HCCode": {
+        "sig": "String HCCode()",
+        "desc": ""
+      },
+      "HCProvider": {
+        "sig": "HCProvider HCProvider()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement médecin si le correspondant actuel est de ce type."
+      },
+      "HealthOffice": {
+        "sig": "Health Office Health Office()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement office de santé si le correspondant actuel est de ce type."
+      },
+      "Identification": {
+        "sig": "String Identification(String Source Internal Id)",
+        "desc": "Récupère le champ code de la première identification attribuée à cette personne par la source <SourceInternalId>. Etant donné que la fonction MISPL utilise l'id interne d'un correspondant, rendez-vous"
+      },
+      "IdentificationList": {
+        "sig": "String Identification List(String Source Internal Id,Date Reference Date,String Format)",
+        "desc": "Récupère le(s) identification(s) active(s) à la date <ReferenceDate> pour ce correspondant, attribuée(s) par la source d'identifications <SourceInternalId>.Le format est une liste de valeurs séparées "
+      },
+      "Institution": {
+        "sig": "Institution Institution()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement institution si le correspondant actuel est de ce type."
+      },
+      "IsGroupMember": {
+        "sig": "Logical Is Group Member(String Group Name)",
+        "desc": "Cette fonction détecte si le correspondant fait partie du groupe de correspondants spécifié."
+      },
+      "KnownIdentification": {
+        "sig": "Identification Known Identification(String External Id,Date Validity Date)",
+        "desc": ""
+      },
+      "Lab": {
+        "sig": "Lab Lab()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement laboratoire si le correspondant actuel est de ce type."
+      },
+      "Organization": {
+        "sig": "Organization Organization()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement organisation si le correspondant actuel est de ce type."
+      },
+      "PaymentAgreement": {
+        "sig": "Payment Agreement Payment Agreement(Positive Integer Sequence Number,Date Validity Date)",
+        "desc": "Cette fonction MISPL récupère une référence à un accord de paiement dont le correspondant source est l'organisme et qui répond au critères spécifiés à l'aide des paramètres.Exemple: MyCorrespondent.Pa"
+      },
+      "Person": {
+        "sig": "Person Person()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement personne si le correspondant actuel est de ce type."
+      },
+      "PreviousFinancing": {
+        "sig": "String Previous Financing(Date Validity Date)",
+        "desc": "Cette fonction cherche le plus récent groupe de dossiers du correspondant. Les identifications des accords de paiement du groupe de dossiers sont récupérées dans une liste, séparées par virgules."
+      },
+      "SendMail": {
+        "sig": "Logical Send Mail(String From,String Subject,String Content,Mail Priority Priority)",
+        "desc": "Cette fonction permet d'envoyer un e-mail (externe) à un correspondant. Cet e-mail sera envoyé à l'adresse e-mail du correspondant. La fonction récupère la valeur 'true' en cas de réussite."
+      },
+      "Study": {
+        "sig": "Study Study()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement étude si le correspondant actuel est de ce type."
+      },
+      "TourMnemonicList": {
+        "sig": "String Tour Mnemonic List(String Pattern)",
+        "desc": "Récupère une liste de mnémoniques, séparés par virgules, des tours auxquels ce correspondant appartient, rangés en fonction du mnémonique de tour. Quand <Pattern> (facultatif) est spécifié, seulement "
+      },
+      "UnpaidAmount": {
+        "sig": "Fractional Unpaid Amount(Mnemonic Firm Mnemonic,Date Maximum Due Date)",
+        "desc": "Cette fonction MISPL récupère le montant total des relevés du correspondant (payeur) et qui répond aux critères optionnels."
+      },
+      "Ward": {
+        "sig": "Ward Ward()",
+        "desc": "Cette fonction récupère l'identifiant de l'enregistrement UF si le correspondant actuel est de ce type."
+      }
+    }
+  },
+  "gsit": {
+    "title": "gp_Site",
+    "functions": {
+      "AddLogEntry": {
+        "sig": "Active Logical Add Log Entry(String Table Name,Positive Integer Record Id,String Log Type Name,Log Severity Log Severity,Logical Needs Checking,String Log Message)",
+        "desc": "This function adds a log entry record based on the input parameters."
+      },
+      "CurrentDevice": {
+        "sig": "String Current Device()",
+        "desc": "This function yields the name of the current device as a string."
+      },
+      "CurrentOS": {
+        "sig": "String Current OS()",
+        "desc": "This function returns the name of the current OS, either 'UNIX' or \"WINDOWS'."
+      },
+      "CurrentRole": {
+        "sig": "String Current Role()",
+        "desc": "This function yields the role mnemonic of the current user as a string."
+      },
+      "CurrentSessionHasPrivilege": {
+        "sig": "Logical Current Session Has Privilege(String Privilege)",
+        "desc": "This function checks if the user/role combination of the current session owns the specified privilege. It returns the logical value YES if the privilege is granted to the session, else NO. If the sess"
+      },
+      "CurrentTerminal": {
+        "sig": "String Current Terminal()",
+        "desc": "This function yields the name of the current terminal as a string."
+      },
+      "CurrentUser": {
+        "sig": "String Current User()",
+        "desc": "This function yields the login name of the current user as a string."
+      },
+      "Expand": {
+        "sig": "String Expand(String Table Name,Positive Integer Record Id,String Original Text,String Parameter List)",
+        "desc": "Expand the dynamic text starting from the record as specified by TableName and RecordId. <TableName> is only needed when the text actually contains a dynamic part. <RecordId> is only needed when the t"
+      },
+      "FindCommandByTableAndDescription": {
+        "sig": "bt_Command Find Command By Table And Description(String Table Name,String Command Description)",
+        "desc": "This function returns the command record matching the input parameters : if success then a reference to the record is returned, otherwise ?."
+      },
+      "GetAttachments": {
+        "sig": "String Get Attachments(Mnemonic Table Name,Recid Record Id,String Category Name)",
+        "desc": ""
+      },
+      "GetLogEntry": {
+        "sig": "lg_Entry Get Log Entry(String Table Name,Positive Integer Record Id,String Log Type Name,Logical Needs Checking,Log Severity Log Severity,Date Time Created After,Date Time Created Before,String Message Match String,Positive Integer Seq No)",
+        "desc": "This function accesses a log entry record based on the input parameters : if success then a reference to the record is returned, otherwise ?."
+      },
+      "GetRole": {
+        "sig": "sc_Role Get Role(Mnemonic Mnemonic)",
+        "desc": "This functions searches for a user by its mnemonic. It returns a role id."
+      },
+      "GetUser": {
+        "sig": "sc_User Get User(String Login Name)",
+        "desc": "This functions searches for a user by its login name. It returns a user id."
+      },
+      "IsHoliday": {
+        "sig": "Logical Is Holiday(Date Date)",
+        "desc": "This function allows to check if the specified date is a holiday or not."
+      },
+      "IsTestDatabase": {
+        "sig": "Logical Is Test Database()",
+        "desc": ""
+      },
+      "SendMail": {
+        "sig": "Logical Send Mail(String From,String To,String Subject,String Content,Mail Priority Priority)",
+        "desc": "Cette fonction permet d'envoyer un mail interne ou externe."
+      },
+      "XmlEscaped": {
+        "sig": "String Xml Escaped(String Input)",
+        "desc": "This function yields the XML-escaped version of the string that was passed in."
+      }
+    }
+  },
+  "ssit": {
+    "title": "SpecificSite",
+    "functions": {
+      "AllowedAbrechnungsGebietValues": {
+        "sig": "String Allowed Abrechnungs Gebiet Values(String Scheinuntergruppe,String OKVKennung,String Quarter)",
+        "desc": "Cette fonction est réservée aux clients allemands."
+      },
+      "AllowedKTABValues": {
+        "sig": "String Allowed KTABValues(String OKVKennung,String Quarter)",
+        "desc": "Cette fonction est réservée aux clients allemands."
+      },
+      "AllowedScheinuntergruppeValues": {
+        "sig": "String Allowed Scheinuntergruppe Values(String OKVKennung,String Quarter)",
+        "desc": "Cette fonction est réservée aux clients allemands."
+      },
+      "CurrentDepartment": {
+        "sig": "String Current Department()",
+        "desc": "This function yields the mnemonic of the department (if any) currently used for login."
+      },
+      "EncodeXDTPolicyName": {
+        "sig": "String Encode XDTPolicy Name(String Gebuhrenordnung,String KTAB,String Abrechnungstyp)",
+        "desc": "Cette fonction est réservée aux clients allemands."
+      },
+      "EuroToLocal": {
+        "sig": "Fractional Euro To Local(Fractional Amount In Euro,Positive Integer Decimal Count)",
+        "desc": "Cette fonction convertit le montant donné (exprimé en euro) en le montant correspondant exprimé en monnaie locale. Le montant qui en résulte est arrondi en fonction du nombre de décimales spécifié."
+      },
+      "ExonerationFraction": {
+        "sig": "Fractional Exoneration Fraction(Logical ALD,Logical Baby,Logical CMU,Logical FSV,Logical Private Accident,Logical Work Accident,String Code ALD,String Code Situation,String Code Regime,String Code Acte,String Prescriptor Specialism,String Extra)",
+        "desc": "Cette fonction est réservée aux clients français et permet de calculer la partie à rembourser par la caisse primaire (France). La fraction est principalement déterminée par Code ALD et Code Situation."
+      },
+      "ExonerationJustification": {
+        "sig": "Integer Exoneration Justification(Logical ALD,Logical Baby,Logical CMU,Logical FSV,Logical Private Accident,Logical Work Accident,String Code ALD,String Code Situation,String Code Regime,String Code Acte,String Prescriptor Specialism,String Extra)",
+        "desc": "Cette fonction est réservée aux clients français et permet de calculer le code 'justification d'exonération'. Cette fonction peut être utilisée au niveau des (clauses) polices d'assurance."
+      },
+      "ExonerationNature": {
+        "sig": "Integer Exoneration Nature(Logical ALD,Logical Baby,Logical CMU,Logical FSV,Logical Private Accident,Logical Work Accident,String Code ALD,String Code Situation,String Code Regime,String Code Acte,String Prescriptor Specialism,String Extra)",
+        "desc": "Cette fonction est réservée aux clients français et permet de calculer la 'nature d'assurance'."
+      },
+      "GetAbrechnungsArt": {
+        "sig": "Positive Integer Get Abrechnungs Art(String OKVKennung,String Quarter,String Short VKNR,String KTAB)",
+        "desc": "Cette fonction est réservée aux clients allemands."
+      },
+      "GetCode": {
+        "sig": "String Get Code(Mnemonic Table Name,Positive Integer Record Id,Mnemonic Coding System Mnemonic)",
+        "desc": "This function returns the code in the specified coding system for the specified record."
+      },
+      "GetCorrespondent": {
+        "sig": "Correspondent Get Correspondent(String Internal Id)",
+        "desc": "Cette fonction permet la recherche d'un correspondant en fonction de son id interne. Si un correspondant est trouvé, la fonction récupère l'id du correspondant."
+      },
+      "GetCorrespondentId": {
+        "sig": "Correspondent Get Correspondent Id(String Internal Id,Correspondent Type Type)",
+        "desc": "Cette fonction permet de récupérer une référence au correspondant qui répond aux critères spécifiés."
+      },
+      "GetDepartment": {
+        "sig": "Department Get Department(String Department Mnemonic)",
+        "desc": "Get the department record that corresponds with the given mnemonic"
+      },
+      "GetDiagnosisCode": {
+        "sig": "Diagnosis Code Get Diagnosis Code(String Diagnosis Code Code,Diagnosis Code System System,Mnemonic System Mnemonic)",
+        "desc": "Cette fonction permet de chercher le code diagnostic."
+      },
+      "GetEncounter": {
+        "sig": "Encounter Get Encounter(String Encounter Id)",
+        "desc": "Retruns an Encounter for a given ID"
+      },
+      "GetExecutingLab": {
+        "sig": "String Get Executing Lab(Integer Nth Lab)",
+        "desc": "Cette fonction n'est disponible que dans un contexte donné: édition de documents de cotation. Elle permet de récupérer l'identification (provenant du fournisseur code santé) du n-ième laboratoire exéc"
+      },
+      "GetFundId": {
+        "sig": "Fund Get Fund Id(Mnemonic Fund Mnemonic)",
+        "desc": "Cette fonction permet de récupérer une référence à la caisse spécifiée."
+      },
+      "GetHLAAntigen": {
+        "sig": "HLAAntigen Get HLAAntigen(String Antigen Name)",
+        "desc": "This function returns a reference to the HLA antigen object that corresponds with the name given."
+      },
+      "GetInvoiceId": {
+        "sig": "Invoice Get Invoice Id(Firm Firm Id,String Doc No,Positive Integer Version No)",
+        "desc": "Cette fonction permet de récupérer une référence à la facture spécifiée. La fonction récupère '?' si aucune facture n'est trouvée ou si plusieurs factures sont trouvées."
+      },
+      "GetInvoiceSummaryId": {
+        "sig": "Invoice Summary Get Invoice Summary Id(Firm Firm Id,String Doc No)",
+        "desc": "Cette fonction récupère une référence au relevé spécifié. La fonction récupère '?' si aucun relevé correspondant n'est trouvé."
+      },
+      "GetNonconformity": {
+        "sig": "Nonconformity Get Nonconformity(Mnemonic Context Table Name,Positive Integer Context Record,String NCType Mnemonic,Integer Nonconformity)",
+        "desc": "MISPL function to check if there is a NC of a certain type (or list of types) on a certain record."
+      },
+      "GetObjectId": {
+        "sig": "Object Get Object Id(String Internal Id,Object Type Type)",
+        "desc": "Cette fonction permet de récupérer une référence à l'objet qui répond aux critères spécifiés."
+      },
+      "GetPolicyNameId": {
+        "sig": "Policy Name Get Policy Name Id(String Policy Name Code,Fund Fund Id,Logical Can Use Default Policy Name)",
+        "desc": "Cette fonction permet de récupérer une référence au nom de police répondant aux critères spécifiés. Quand il n'y a pas de nom de police correspondant, une référence au nom de police par défaut de la c"
+      },
+      "GetPrinterId": {
+        "sig": "rp_Printer Get Printer Id(String Printer Name)",
+        "desc": "Cette fonction permet de récupérer une référence à l'imprimante spécifiée."
+      },
+      "GetProvision": {
+        "sig": "Provision Get Provision(Mnemonic Lab Mnemonic,Mnemonic Department Mnemonic,Mnemonic Executing Class Mnemonic,Date Time Time)",
+        "desc": "Permet l'accès aux dispositions à l'aide de MISPL."
+      },
+      "GetStay": {
+        "sig": "Stay Get Stay(String Stay Id)",
+        "desc": "Returns a Stay based on an ID"
+      },
+      "GetVertragsarztId": {
+        "sig": "Vertragsarztnummer Get Vertragsarzt Id(String Vertragsarztnummer,Date Validitydate,Integer Nth Record)",
+        "desc": "Cette fonction est réservée aux clients allemands."
+      },
+      "Glims": {
+        "sig": "Specific Site Glims()",
+        "desc": "Exemple: RETURN IfKnownString(Glims().Organization.Name);"
+      },
+      "LocalToEuro": {
+        "sig": "Fractional Local To Euro(Fractional Amount In Local Currency,Positive Integer Decimals)",
+        "desc": "Cette fonction permet de convertir le montant donné (exprimé en monnaie locale) en le montant correspondant exprimé en euro. Le montant qui en résulte est arrondi en fonction du nombre de décimales sp"
+      },
+      "PaymentAgreements": {
+        "sig": "String Payment Agreements(String Policy Name Code,Positive Integer Correspondent Id,Positive Integer Fund Id,Date Validity Date)",
+        "desc": "Cette fonction récupère une liste d'identifiants d'accord de paiement qui répondent aux critères spécifiés."
+      },
+      "RegisterNonconformity": {
+        "sig": "Nonconformity Register Nonconformity(Mnemonic Context Table Name,Positive Integer Context Record Id,Mnemonic NCType Mnemonic)",
+        "desc": "This will create a Nonconformity record"
+      },
+      "TariffingData": {
+        "sig": "String Tariffing Data(String What To Retrieve)",
+        "desc": "Cette fonction peut récupérer des données générales de tarification: ces données ne sont disponibles que lors de la tarification."
+      },
+      "ToEuro": {
+        "sig": "Fractional To Euro(Fractional Amount,Positive Integer Decimal Count)",
+        "desc": "Si les montants stockés dans GLIMS ne sont pas encore exprimés en euro, cette fonction permet de convertir le montant en le montant correspondant exprimé en euro. Le montant qui en résulte est arrondi"
+      },
+      "ToLocal": {
+        "sig": "Fractional To Local(Fractional Amount,Positive Integer Decimal Count)",
+        "desc": "Si les montants stockés dans GLIMS sont exprimés en euro, cette fonction permet de convertir le montant en le montant correspondant exprimé en monnaie locale. Le montant qui en résulte est arrondi en "
+      }
+    }
+  },
+  "mcra": {
+    "title": "MicrobiologyAction",
+    "functions": {
+      "AddCarriers": {
+        "sig": "Logical Add Carriers(String Mnemonic List,Logical Print,Logical Mark As Grafted,Logical Double Allowed,String Comment)",
+        "desc": "Cette fonction MISPL permet d'ajouter une ou plusieurs plaque(s) à l'action de microbiologie actuelle.Elle peut être utilisée, par exemple, dans le champ de Plaque \"Déclencheur si commentaire a changé"
+      },
+      "AddIsolation": {
+        "sig": "Active Logical Add Isolation(Mnemonic Organism Mnemonic)",
+        "desc": "Permet d'ajouter un nouvel isolement pour l'action microbiologique. Cet isolement ne fera pas référence à une plaque."
+      },
+      "AntibioticCount": {
+        "sig": "Positive Integer Antibiotic Count(String Organism Mnemonic List,Logical Aerobe,String Organism Billing Mark List,Logical Reportable,String Appraisal List,Logical Answered,String Formula Type List)",
+        "desc": "Cette fonction permet de récupérer le nombre d'antibiotiques testés."
+      },
+      "AntibioticResultCount": {
+        "sig": "Positive Integer Antibiotic Result Count(String Organism Mnemonic List,Logical Aerobe,String Organism Billing Mark List,Logical Reportable,String Appraisal List,Logical Answered,String Formula Type List)",
+        "desc": "Cette fonction permet de récupérer le nombre de résultats connus pour les antibiotiques testés."
+      },
+      "CarrierCount": {
+        "sig": "Positive Integer Carrier Count(String Medium Mnemonic List,String Medium Test Mnemonic List)",
+        "desc": "Cette fonction permet de récupérer le nombre de plaques liées à l'action de microbiologie donnée."
+      },
+      "CarrierList": {
+        "sig": "String Carrier List(String Format)",
+        "desc": "Permet de récupérer la liste des plaques - séparées par des virgules - d'une action de microbiologie."
+      },
+      "IsolationCount": {
+        "sig": "Positive Integer Isolation Count(String Organism Mnemonic List,Logical Aerobe,String Organism Billing Mark List,Logical Reportable,String Appraisal List,Logical Antibiogram Present)",
+        "desc": "Cette fonction permet de récupérer le nombre d'organismes isolés."
+      },
+      "IsolationTestCount": {
+        "sig": "Positive Integer Isolation Test Count(String Organism Mnemonic List,String Test Mnemonic List,Logical Aerobe,String Organism Billing Mark List,Logical Reportable Only,Logical Positive Only,Logical Answered Only)",
+        "desc": "Récupère le nombre de tests d'isolement."
+      },
+      "LastRequest": {
+        "sig": "Request Last Request(Logical Explicit)",
+        "desc": ""
+      },
+      "SetConclusion": {
+        "sig": "Active Logical Set Conclusion(String New Conclusion,Logical Append Conclusion)",
+        "desc": ""
+      },
+      "SetEndOfIncubationTime": {
+        "sig": "Active Logical Set End Of Incubation Time(Date Time End Of Incubation Time)",
+        "desc": "This sets the field EndOfIncubationTime"
+      },
+      "SetReviewDate": {
+        "sig": "Active Logical Set Review Date(Date New Review Date)",
+        "desc": "Syntaxe: Logical SetReviewDate (Date NouvelleDateRévision)"
+      },
+      "SetStatus": {
+        "sig": "Active Logical Set Status(String Status Name,String Extra Info)",
+        "desc": ""
+      },
+      "TextualSummary": {
+        "sig": "String Textual Summary(Logical Positive Only,Positive Integer Minimal Severity,String View Format)",
+        "desc": "Rend un résumé de l'action microbiologique au format textuel:résultat (pos/nég) + isolements détectés + résultats d'antibiotique (facultativement via paramètre).Exemple:isolaat,isolvol,antibiogram,Cor"
+      }
+    }
+  },
+  "isol": {
+    "title": "Isolation",
+    "functions": {
+      "AddSubCarrier": {
+        "sig": "Logical Add Sub Carrier(String Mnemonic List,Logical Print,Logical Mark As Grafted,Logical Double,String Comment)",
+        "desc": "Cette fonction MISPL ajoute une ou plusieurs sous-plaques pour l'isolement sélectionné.Trois niveaux sont supportés : plaque - sous-plaque du premier niveau - sous-plaque du deuxième niveau."
+      },
+      "AddTest": {
+        "sig": "Active Isolation Test Add Test(Mnemonic Test Mnemonic)",
+        "desc": "Permet d'ajouter un test d'isolement 'principal' (n'étant pas inférieur à un autre test) pour le même isolement. Ce nouveau test n'aura pas de test 'parent'. Cette méthode récupérera l'id de l'enregis"
+      },
+      "AntibioticResult": {
+        "sig": "Antibiotic Result Antibiotic Result(Mnemonic Antibiotic Mnemonic)",
+        "desc": "Permet de récupérer le résultat d'antibiotique d'un isolement."
+      },
+      "AntibioticResultIndexed": {
+        "sig": "Antibiotic Result Antibiotic Result Indexed(Positive Integer Number)",
+        "desc": "Permet de récupérer le 'n'-ième résultat d'antibiotique d'un isolement. Le 'n' est le paramètre de la fonction."
+      },
+      "EqualReportedRIS": {
+        "sig": "Logical Equal Reported RIS(Mnemonic Antibiotic Mnemonic,String RISValues,Logical Must Be Tested)",
+        "desc": "EqualReportedRIS(AntibioticMnemonic, RISReportedValueList, MustBeTested): returns YES if the RISReportedValue is in of the RISReportedValueList or if MustBeTested = NO and the antibiotic was not teste"
+      },
+      "EqualRIS": {
+        "sig": "Logical Equal RIS(Mnemonic Antibiotic Mnemonic,String RISValues,Logical Must Be Tested)",
+        "desc": "EqualRIS(AntibioticMnemonic, RISRawValueList, MustBeTested): récupère YES quand la RISRawValue fait partie de RISRawValueList ou quand MustBeTested = NO et l'antibiotique n'était pas testé."
+      },
+      "GetSequence": {
+        "sig": "Active Integer Get Sequence(Mnemonic Sequence Type Mnemonic)",
+        "desc": ""
+      },
+      "GetStorage": {
+        "sig": "Item Storage Get Storage(Mnemonic Archive Mnemonic,String Usage)",
+        "desc": "Allow returning the id of a storage record in the specified lab archive.The return value is a reference to the storage record."
+      },
+      "GetStorageList": {
+        "sig": "String Get Storage List()",
+        "desc": ""
+      },
+      "HideRIS": {
+        "sig": "Active Logical Hide RIS(Mnemonic Antibiotic Mnemonic,String RISValues)",
+        "desc": "HideRIS(AntibioticMnemonic, RISReportValueList): la RISReportValue n'apparaît pas sur le compte-rendu de l'antibiotique quand elle fait partie de RISReportValueList."
+      },
+      "ReplaceReportedRIS": {
+        "sig": "Active Logical Replace Reported RIS(Mnemonic Antibiotic Mnemonic,String RISOld Report Value,String RISNew Report Value)",
+        "desc": "ReplaceReportedRIS(AntibioticMnemonic, RISOldReportedValue, RISNewReportedValue): changes the RISReportValue to RISNewReportValue if RISReportValueChanged = NO (or user agrees after prompt) and the RI"
+      },
+      "ReplaceRIS": {
+        "sig": "Active Logical Replace RIS(Mnemonic Antibiotic Mnemonic,String RISOld Value,String RISNew Value)",
+        "desc": "ReplaceRIS(AntibioticMnemonic, RISOldRawValue, RISNewReportValue): change la RISReportValue en RISNewReportValue si RISReportValueChanged = NO (ou l'utilisateur confirme quand GLIMS pose la question) "
+      },
+      "SetExternalComment": {
+        "sig": "Active Logical Set External Comment(String Value)",
+        "desc": "Permet de changer le commentaire externe de l'isolement."
+      },
+      "SetInternalComment": {
+        "sig": "Active Logical Set Internal Comment(String Value)",
+        "desc": "Permet de changer le commentaire interne de l'isolement."
+      },
+      "SetOrganism": {
+        "sig": "Active Logical Set Organism(Mnemonic Organism Mnemonic)",
+        "desc": "Permet de remplacer le micro-organisme de l'isolement par un autre micro-organisme. Le nouveau micro-organisme doit avoir le même type d'organisme que l'organisme original."
+      },
+      "SetReportOfficially": {
+        "sig": "Active Logical Set Report Officially(Logical Report Officially)",
+        "desc": "Sets the reportofficially flag of an isolation"
+      },
+      "SetRIS": {
+        "sig": "Active Logical Set RIS(Mnemonic Antibiotic Mnemonic,String RISNew Value,Logical Create)",
+        "desc": "SetRIS(AntibioticMnemonic, RISNewReportValue, Create): change la RISReportValue en RISNewReportValue si1) RISReportValueChanged = NO (ou l'utilisateur confirme quand GLIMS pose la question) et l'antib"
+      },
+      "SetStorage": {
+        "sig": "Active Void Set Storage(Logical Override,String Archive Mnemonic,String Usage,String Code Pattern,String Reason)",
+        "desc": "Allow assigning a storage position in the specified lab archive. If <Usage> is specified, the first free rack of this usage will be searched. Otherwise, the first free rack is searched.The filling mec"
+      },
+      "Test": {
+        "sig": "Isolation Test Test(Mnemonic Organism Test Mnemonic)",
+        "desc": "Permet de récupérer le test d'isolement."
+      }
+    }
+  },
+  "carr": {
+    "title": "Carrier",
+    "functions": {
+      "AddIsolation": {
+        "sig": "Active Logical Add Isolation(Mnemonic Organism Mnemonic)",
+        "desc": ""
+      },
+      "AddIsolationWithAppraisal": {
+        "sig": "Active Logical Add Isolation With Appraisal(Mnemonic Organism Mnemonic,Mnemonic Appraisal)",
+        "desc": ""
+      },
+      "AddSubCarrier": {
+        "sig": "Logical Add Sub Carrier(String Mnemonic List,Logical Print,Logical Mark As Grafted,Logical Double,String Comment)",
+        "desc": "Cette fonction MISPL ajoute une ou plusieurs sous-plaques à la plaque sélectionnée.Trois niveaux sont supportés : plaque - sous-plaque du premier niveau - sous-plaque du deuxième niveau."
+      },
+      "GetStorage": {
+        "sig": "Item Storage Get Storage(String Archive Mnemonic,String Usage)",
+        "desc": ""
+      },
+      "SetStorage": {
+        "sig": "Active Item Storage Set Storage(Logical Override,String Archive Mnemonic,String Usage,String Code Pattern,String Reason)",
+        "desc": ""
+      }
+    }
+  },
+  "nc": {
+    "title": "Nonconformity",
+    "functions": {
+      "GetContext": {
+        "sig": "NCContext Get Context(String Table Name,Positive Integern)",
+        "desc": ""
+      }
+    }
+  },
+  "enct": {
+    "title": "Encounter",
+    "functions": {
+      "Close": {
+        "sig": "Active Logical Close(Date Time Target Time)",
+        "desc": "Cette fonction MISPL permet de clôturer une visite à la date/heure cible spécifiée"
+      },
+      "FindContract": {
+        "sig": "Contract Find Contract(Date Time Target Time)",
+        "desc": "Cette fonction MISPL permet de récupérer le contrat d'une visite qui correspond à la date/heure cible spécifiée (target time)."
+      },
+      "FindStay": {
+        "sig": "Stay Find Stay(Date Time Target Time)",
+        "desc": "Cette fonction MISPL permet de récupérer le séjour d'une personne qui correspond à la date/heure cible spécifiée (target time)."
+      },
+      "GetDiagnosis": {
+        "sig": "Diagnosis Get Diagnosis(Diagnosis Previous,String Code)",
+        "desc": "Récupère le diagnostic suivant qui fait référence à la visite actuelle. Le diagnostic ayant la date/heure la plus élevée et la dernière date/heure de création est récupérée en premier."
+      },
+      "HasStay": {
+        "sig": "Logical Has Stay(Date Time Reference Time,String Ward Mnemonic List)",
+        "desc": "Cette fonction vérifie s'il y a un séjour pendant la visite actuelle pour au moins l'une des UF d'hébergement spécifiées."
+      }
+    }
+  },
+  "ptex": {
+    "title": "PathologyExam",
+    "functions": {
+      "ChangeResponsible": {
+        "sig": "Active Logical Change Responsible(Mnemonic Responsible)",
+        "desc": ""
+      },
+      "Reopen": {
+        "sig": "Active Logical Reopen()",
+        "desc": "Remet l'état de l'examen à 'Ouvert'."
+      },
+      "SetStatus": {
+        "sig": "Active Logical Set Status(String Status Name,String Extra Info)",
+        "desc": ""
+      },
+      "SetStatusConfirmed": {
+        "sig": "Active Logical Set Status Confirmed()",
+        "desc": "Tous les résultats disponibles de l'examen seront confirmés."
+      },
+      "SetStatusConfirmedComplete": {
+        "sig": "Active Logical Set Status Confirmed Complete()",
+        "desc": "Tous les résultats disponibles de l'examen seront confirmés, y inclus le résultat de conclusion. Quand tous les résultats sont confirmés, l'examen obtient l'état 'Confirmé-complet'. Sinon, quand quelq"
+      },
+      "SetStatusDiscontinued": {
+        "sig": "Active Logical Set Status Discontinued()",
+        "desc": "L'examen et ses résultats seront discontinués."
+      },
+      "SetStatusRunning": {
+        "sig": "Active Logical Set Status Running()",
+        "desc": "Remet l'état de l'examen à 'Ouvert'."
+      },
+      "SetStatusValidated": {
+        "sig": "Active Logical Set Status Validated()",
+        "desc": "Tous les résultats disponibles (ou confirmés) de l'examen seront validés. Le résultat de conclusion est également validé (uniquement quand le pathologiste responsable est renseigné). Quand tous les ré"
+      },
+      "SetStatusValidatedComplete": {
+        "sig": "Active Logical Set Status Validated Complete()",
+        "desc": "Tous les résultats disponibles (ou confirmés) de l'examen seront validés. Le résultat de conclusion est également validé (uniquement quand le pathologiste responsable est renseigné). Quand tous les ré"
+      },
+      "SetWorkStatus": {
+        "sig": "Active Logical Set Work Status(String Work Status Name)",
+        "desc": "L'état de traitement de l'examen est changé en le nouvel état renseigné."
+      }
+    }
+  },
+  "abrs": {
+    "title": "AntibioticResult",
+    "functions": {
+      "AddComment": {
+        "sig": "Logical Add Comment(String Text,Logical Append)",
+        "desc": ""
+      },
+      "AgarDiffusionValue": {
+        "sig": "Positive Fractional Agar Diffusion Value()",
+        "desc": "Cette fonction retourne la valeur numérique du diamètre de diffusion d'agar (stockée sous forme d'une chaîne de caractère). Si la valeur initiale est précédée de '<' ou '>', la valeur numérique retour"
+      },
+      "ETestValue": {
+        "sig": "Positive Fractional ETest Value()",
+        "desc": "Cette fonction retourne la valeur numérique du E-Test (stockée sous forme d'une chaîne de caractère). Si la valeur initiale est précédée de '<' ou '>', la valeur retournée est respectivement"
+      },
+      "MICValue": {
+        "sig": "Positive Fractional MICValue()",
+        "desc": "Cette fonction retourne la valeur numérique du CMI (stockée sous forme d'une chaîne de caractère). Si la valeur initiale est précédée de '<' ou '>', la valeur retournée est respectivement"
+      },
+      "SetReportable": {
+        "sig": "Active Logical Set Reportable(Logical New Reportability)",
+        "desc": "Remplace la valeur de l'option 'Rapportable' relative à cet antibiotique par la valeur assignée à ce paramètre."
+      }
+    }
+  },
+  "usr": {
+    "title": "sc_User",
+    "functions": {
+      "HasPrivilege": {
+        "sig": "Logical Has Privilege(String Privilege)",
+        "desc": "Cette fonction vérifie si l'utilisateur dispose du privilège spécifié. Elle récupère la valeur 'logical' YES si le privilège est attribué à l'utilisateur, sinon NO. Si l'utilisateur est du type 'Hôte'"
+      },
+      "SendMail": {
+        "sig": "Logical Send Mail(String Subject,String Content,Mail Priority Priority)",
+        "desc": "Cette fonction envoie un mail à un utilisateur. Il s'agira d'un mail interne si la méthode courrier de l'utilisateur est 'Interne' et d'un mail externe si la méthode courrier est 'Externe'. L'expédite"
+      }
+    }
+  },
+  "role": {
+    "title": "sc_Role",
+    "functions": {
+      "SendMail": {
+        "sig": "Logical Send Mail(String Subject,String Content,Mail Priority Priority)",
+        "desc": "This function sends a mail to all users with a specific role. The mail will be internal mail if the user has 'Internal' as mail method and external mail if the user has 'External' as mail method. The "
+      }
+    }
+  },
+  "bbag": {
+    "title": "BloodBag",
+    "functions": {
+      "AntigenByNumber": {
+        "sig": "Blood Bag Antigen Antigen By Number(Positive Integer Number)",
+        "desc": "Cette fonction MISPL BloodBag.AntigenByNumber peut être utilisé à fin de naviguer au enregistrement n-th antigène de la poche de sang, où 'n' est le paramètre. Trier dossier est défini dans la table A"
+      },
+      "Attribute": {
+        "sig": "Logical Attribute(Mnemonic Attribute Mnemonic)",
+        "desc": ""
+      },
+      "AttributeOverview": {
+        "sig": "String Attribute Overview(Blood Attribute Usage Restrict To,Mnemonic Text Mnemonic)",
+        "desc": "Cette fonction retourne un résumé de touts attributs poche de sang attachés à la poche de sang.Il y a la possibilité de limiter seulement à 'known properties', seulement aux réactions de transfusion, "
+      },
+      "CreateOrder": {
+        "sig": "Active Logical Create Order()",
+        "desc": "Cree un lot pour la poche de sang.Cree un objet pour ce lot.Cree une commande pour cet objet.Ajoute le lot dans la définition spécifié du produit sanguin à cette commande."
+      },
+      "GenerateDocument": {
+        "sig": "Logical Generate Document(String Form Mnemonic,String Form Type,Logical Do Print,String Printer Name,Positive Integer Copy Count,String The Directory,String The File Name)",
+        "desc": "Generate a TEXT based or GRB based document.The document can be printed or saved to file.Return value will be yes when generation of the document succeeded."
+      },
+      "GetAntigen": {
+        "sig": "Logical Get Antigen(String Antigen Mnemonic)",
+        "desc": ""
+      },
+      "Lot": {
+        "sig": "Lot Lot()",
+        "desc": "Navigue a l'enregistrement 'lot' qui correspond à cette poche de sang."
+      },
+      "Print": {
+        "sig": "Logical Print(Mnemonic Text Mnemonic,String Printer Name)",
+        "desc": ""
+      },
+      "Selection": {
+        "sig": "Blood Selection Selection(Positive Integer Number)",
+        "desc": "Retourne la sélection de sang (non-discontinuée) relaté à cette poche de sang. S'il y a plus d'une liée, cette fonction retourne inconnu."
+      },
+      "SetAntigen": {
+        "sig": "Active Logical Set Antigen(String Antigen Mnemonic,Logical Presence)",
+        "desc": ""
+      },
+      "SetAttribute": {
+        "sig": "Active Logical Set Attribute(Mnemonic Attribute Mnemonic,Logical Presence,String Extra Info)",
+        "desc": ""
+      },
+      "SetExpirationTime": {
+        "sig": "Active Logical Set Expiration Time(Date Time New Expiration Time)",
+        "desc": "Change la date et l'heure de péremption de la poche de sang à la valeur donné."
+      },
+      "SetStatus": {
+        "sig": "Active Logical Set Status(String Status Name,String Extra Info)",
+        "desc": "Définie l'heure de vérificationSi l'état de la poche était 'Vérification', on le change vers 'Initial'"
+      },
+      "VerificationPassed": {
+        "sig": "Active Logical Verification Passed()",
+        "desc": "Définie l'heure de vérificationSi l'état de la poche était 'Vérification', on le change vers 'Initial'"
+      }
+    }
+  },
+  "bsel": {
+    "title": "BloodSelection",
+    "functions": {
+      "CompatibilityCascade": {
+        "sig": "Active Result Compatibility Cascade(String Requestable Mnemonic)",
+        "desc": "But: Ajoute une épreuve de compatibilité cascade à partir d'une sélection de sang existante.Fonction valeur résultat: à succès, la fonction retourne ou bien une unité positive qui est l'id enregistrem"
+      },
+      "LastRequest": {
+        "sig": "Request Last Request(Logical Explicit)",
+        "desc": ""
+      },
+      "PrintForm": {
+        "sig": "Multi-record Logical Print Form(String Text Mnemonic,String Printer Name)",
+        "desc": "Cette fonction est utilisée chaque fois qu'on veut imprimer automatiquement un formulaire de transfusion sans interface utilisateur. L'imprimante utilisée par GLIMS sera l'imprimante dernière utilisée"
+      },
+      "Promotion": {
+        "sig": "Active Logical Promotion()",
+        "desc": "Cette fonction peut être utilisée dans le déclencheur de l'analyse qui décrit l'épreuve de compatibilité d'un produit sanguin. Afin de distinguer entre des sélections de sang, qui doivent être évaluée"
+      },
+      "SetAttribute": {
+        "sig": "Active Logical Set Attribute(String Attribute Name,String Attribute Value)",
+        "desc": "Retourne: logique. Si successive vrai, sinon faux."
+      },
+      "SetUtmostTransfusionTime": {
+        "sig": "Active Logical Set Utmost Transfusion Time(Date Time Value)",
+        "desc": "Détermine le délai de transfusion limite spécifié jusqu'à la valeur décimale (date-heure)."
+      },
+      "Successor": {
+        "sig": "Blood Selection Successor()",
+        "desc": ""
+      }
+    }
+  },
+  "prop": {
+    "title": "Property",
+    "functions": {
+      "Description": {
+        "sig": "String Description()",
+        "desc": ""
+      },
+      "StatisticalWeight": {
+        "sig": "Positive Fractional Statistical Weight(Date Time Reference Time)",
+        "desc": ""
+      }
+    }
+  },
+  "mat": {
+    "title": "Material",
+    "functions": {
+      "Description": {
+        "sig": "String Description()",
+        "desc": ""
+      }
+    }
+  },
+  "function_billing": {
+    "title": "independent_function_billing",
+    "functions": {
+      "AllowedAbrechnungsGebietValues": {
+        "sig": "",
+        "desc": ""
+      },
+      "AllowedKTABValues": {
+        "sig": "",
+        "desc": ""
+      },
+      "AllowedScheinuntergruppeValues": {
+        "sig": "",
+        "desc": ""
+      },
+      "EncodeXDTPolicyName": {
+        "sig": "",
+        "desc": ""
+      },
+      "EuroToLocal": {
+        "sig": "",
+        "desc": ""
+      },
+      "GetAbrechnungsArt": {
+        "sig": "IntegerLargeModulo(StringNumeratorIntegerDenominator)",
+        "desc": "This function allows to perform a remainder calculation. The 1st parameter is divided by the 2nd parameter and the function returns the remainder as an integer."
+      },
+      "GetExecutingLab": {
+        "sig": "IntegerLargeModulo(StringNumeratorIntegerDenominator)",
+        "desc": "This function allows to perform a remainder calculation. The 1st parameter is divided by the 2nd parameter and the function returns the remainder as an integer."
+      },
+      "GetFundId": {
+        "sig": "IntegerLargeModulo(StringNumeratorIntegerDenominator)",
+        "desc": "This function allows to perform a remainder calculation. The 1st parameter is divided by the 2nd parameter and the function returns the remainder as an integer."
+      },
+      "GetInvoiceId": {
+        "sig": "IntegerLargeModulo(StringNumeratorIntegerDenominator)",
+        "desc": "This function allows to perform a remainder calculation. The 1st parameter is divided by the 2nd parameter and the function returns the remainder as an integer."
+      },
+      "GetInvoiceSummaryId": {
+        "sig": "IntegerLargeModulo(StringNumeratorIntegerDenominator)",
+        "desc": "This function allows to perform a remainder calculation. The 1st parameter is divided by the 2nd parameter and the function returns the remainder as an integer."
+      },
+      "GetPolicyNameId": {
+        "sig": "IntegerLargeModulo(StringNumeratorIntegerDenominator)",
+        "desc": "This function allows to perform a remainder calculation. The 1st parameter is divided by the 2nd parameter and the function returns the remainder as an integer."
+      },
+      "GetVertragsarztId": {
+        "sig": "IntegerLargeModulo(StringNumeratorIntegerDenominator)",
+        "desc": "This function allows to perform a remainder calculation. The 1st parameter is divided by the 2nd parameter and the function returns the remainder as an integer."
+      },
+      "LargeModulo": {
+        "sig": "IntegerLargeModulo(StringNumeratorIntegerDenominator)",
+        "desc": "This function allows to perform a remainder calculation. The 1st parameter is divided by the 2nd parameter and the function returns the remainder as an integer."
+      },
+      "LocalToEuro": {
+        "sig": "",
+        "desc": ""
+      },
+      "FrenchCleType12": {
+        "sig": "StringFrenchCleType12(StringInputString)",
+        "desc": "This MISPL function has been developed to check identifications that return the 'CLE type 1-2'."
+      },
+      "Modulus11": {
+        "sig": "stringModulus11(String)",
+        "desc": "A control digit calculation which complies with the Dutch \"Modulus 11\" algorithm."
+      },
+      "PaymentAgreements": {
+        "sig": "StringStringToOGM(StringOriginalNumber)",
+        "desc": "This function converts a string representing an integer to an OGM number (\"Overschrijvings gestruktureerde mededeling\") <s> is the representation of an integer number (<= 9.999.999.999) that must be c"
+      },
+      "StringToOGM": {
+        "sig": "StringStringToOGM(StringOriginalNumber)",
+        "desc": "This function converts a string representing an integer to an OGM number (\"Overschrijvings gestruktureerde mededeling\") <s> is the representation of an integer number (<= 9.999.999.999) that must be c"
+      },
+      "TariffingData": {
+        "sig": "StringWeighedModulus(StringStringToCheck,StringWeightList,IntegerDivider,LogicalReturnComplement)",
+        "desc": "A remainder or complement (control digit) calculation which complies with the \"Weighed Modulus xx\" algorithm."
+      },
+      "ToEuro": {
+        "sig": "StringWeighedModulus(StringStringToCheck,StringWeightList,IntegerDivider,LogicalReturnComplement)",
+        "desc": "A remainder or complement (control digit) calculation which complies with the \"Weighed Modulus xx\" algorithm."
+      },
+      "ToLocal": {
+        "sig": "StringWeighedModulus(StringStringToCheck,StringWeightList,IntegerDivider,LogicalReturnComplement)",
+        "desc": "A remainder or complement (control digit) calculation which complies with the \"Weighed Modulus xx\" algorithm."
+      },
+      "WeighedModulus": {
+        "sig": "StringWeighedModulus(StringStringToCheck,StringWeightList,IntegerDivider,LogicalReturnComplement)",
+        "desc": "A remainder or complement (control digit) calculation which complies with the \"Weighed Modulus xx\" algorithm."
+      },
+      "WeighedModulus11": {
+        "sig": "StringWeighedModulus11(StringModulustype,StringStringToCheck)",
+        "desc": "A remainder or complement (control digit) calculation which complies with the \"Weighed Modulus 11\" algorithm."
+      }
+    }
+  },
+  "function_datatypeconversion": {
+    "title": "independent_function_datatypeconversion",
+    "functions": {
+      "EnumeratedToString": {
+        "sig": "StringEnumeratedToString(StringEnumeratorClassName,EnumeratedValue)",
+        "desc": "Cette fonction convertit en un 'string' (chaîne de caractères) la valeur du type 'enumerator', appartenant au domaine EnumeratorClassName."
+      },
+      "FractionalToInteger": {
+        "sig": "IntegerFractionalToInteger(FractionalFractional)",
+        "desc": "Cette fonction convertit Fractional en Integer (entier) (sans arrondi)."
+      },
+      "FractionalToString": {
+        "sig": "StringFractionalToString(FractionalFractional,StringFormat)",
+        "desc": "Cette fonction convertit Fractional en une chaîne de caractères ('string') et ce en respectant la chaîne de contrôle Format."
+      },
+      "IntegerToString": {
+        "sig": "StringIntegerToString(IntegerInteger,StringFormat)",
+        "desc": "Cette fonction convertit Integer (entier) en une chaîne de caractères et ce en respectant le Format donné."
+      },
+      "StringToEnumerated": {
+        "sig": "EnumeratedStringToEnumerated(StringEnumeratorClassName,StringString)",
+        "desc": "Cette fonction convertit une chaîne de caractères ('string') en la valeur correspondante du EnumeratorClassName."
+      },
+      "StringToFractional": {
+        "sig": "FractionalStringToFractional(String)",
+        "desc": ""
+      },
+      "StringToInteger": {
+        "sig": "IntegerStringToInteger(String)",
+        "desc": ""
+      },
+      "ToString": {
+        "sig": "StringToString({datetime|date|enumerated|fractional|integer|time},StringFormat)",
+        "desc": "Cette fonction combine les fonctions précédentes telles que IntegerToString, FractionalToString,..."
+      }
+    }
+  },
+  "function_datetime": {
+    "title": "independent_function_datetime",
+    "functions": {
+      "DateAndTimeToDateTime": {
+        "sig": "DatetimeDateAndTimeToDateTime(DateDate,TimeTime)FractionalDateAndTimeToDateTime(DateDate,IntegerTime)",
+        "desc": "Cette fonction combine un Date (date) et Time (heure) et rend un DateTime (combinaison de date et heure)."
+      },
+      "DateDiffInYears": {
+        "sig": "FractionalDateDiffInYears(DateDate1,DateDate2):",
+        "desc": "La fonction rend Date1-Date2 en années en tenant compte d'années bissextiles. Par conséquent 27/5/(x+1) - 27/5/(x) est toujours 1."
+      },
+      "DateTimeToDate": {
+        "sig": "DateDateTimeToDate({Datetime|Fractional}DateTime)",
+        "desc": "Cette fonction récupère la partie date de DateTime (combinaison de date et heure)."
+      },
+      "DateTimeToString": {
+        "sig": "StringDateTimeToString(DatetimeDateTime,StringFormat)",
+        "desc": "Cette fonction convertit DateTime (= combinaison de date et heure) en une chaîne de caractères et ce en respectant le Format."
+      },
+      "DateTimeToTime": {
+        "sig": "TimeDateTimeToTime(DatetimeDateTime)IntegerDateTimeToTime(FractionalDateTime)",
+        "desc": "Cette fonction récupère la partie Time (= l'heure) de DateTime (= combinaison de date et heure), i.e. le nombre de secondes depuis minuit."
+      },
+      "DateToString": {
+        "sig": "StringDateToString(DateDate,StringFormat)",
+        "desc": "Cette fonction convertit Date en une chaîne de caractères et ce en respectant le Format."
+      },
+      "Now": {
+        "sig": "TimeNow()",
+        "desc": "Cette fonction récupère l'heure actuelle comme déterminée par la variable d'environnement \"MA_TimeSource\":"
+      },
+      "StringToDate": {
+        "sig": "DateStringToDate(StringDateString)",
+        "desc": "Cette fonction convertit DateString (format DD/MM/[YY]YY) en Date."
+      },
+      "StringToTime": {
+        "sig": "TimeStringToTime(StringTimeString)",
+        "desc": "Cette fonction convertit TimeString (format HH[:MM[:SS]] en Time."
+      },
+      "TimeToString": {
+        "sig": "StringTimeToString({Time|Integer}Time,StringFormat)",
+        "desc": "Cette fonction convertit Time (= l'heure = le nombre de secondes depuis minuit) en une chaîne de caractères et ce en respectant le Format."
+      },
+      "Today": {
+        "sig": "DateToday()",
+        "desc": "Cette fonction récupère la date actuelle comme déterminée par la variable d'environnement \"MA_TimeSource\":"
+      }
+    }
+  },
+  "function_interactive": {
+    "title": "independent_function_interactive",
+    "functions": {
+      "Message": {
+        "sig": "VoidMessage(StringMessageString)",
+        "desc": "Cette fonction affiche à l'écran un message informationnel."
+      },
+      "AskChoice": {
+        "sig": "IntegerAskChoice(StringQuestion,StringTitre,StringListeChoix,LogicalObligatoire,IntegerRéponseParDéfaut)",
+        "desc": "Cette fonction affiche une question dans une boîte de dialogue, attend jusqu'à ce que l'utilisateur sélectionne l'une des réponses possibles dans la liste et rend un nombre entier contenant le numéro "
+      },
+      "AskString": {
+        "sig": "StringAskString(StringQuestion,StringTitre,LogicalObligatoire,StringRéponseParDéfaut)",
+        "desc": "Cette fonction affiche une question dans une boîte de dialogue, attend jusqu'à ce que l'utilisateur saisisse du texte et rend une chaîne de caractères contenant la réponse."
+      },
+      "AskYesNo": {
+        "sig": "",
+        "desc": ""
+      }
+    }
+  },
+  "function_mathematical": {
+    "title": "independent_function_mathematical",
+    "functions": {
+      "Abs": {
+        "sig": "IntegerAbs(IntegerEntrée)",
+        "desc": "Cette fonction rend la valeur absolue de Entrée."
+      },
+      "Exp": {
+        "sig": "FractionalExp(FractionalBase,FractionalExposant)",
+        "desc": "Cette fonction élève Base à la puissance Exposant."
+      },
+      "Fabs": {
+        "sig": "FractionalFabs(FractionalEntrée)",
+        "desc": "Cette fonction rend la valeur absolue de Entrée."
+      },
+      "Fmod": {
+        "sig": "FractionalFmod(FractionalDividend,FractionalDivider)",
+        "desc": "Cette fonction rend le module du Dividend et Divider fractionnaires. (Pour modules de nombres entiers (integers): utilisez %)."
+      },
+      "Log": {
+        "sig": "FractionalLog(FractionalEntrée)",
+        "desc": "Cette fonction rend le logarithme naturel (base e) de Entrée."
+      },
+      "Log10": {
+        "sig": "FractionalLog10(FractionalEntrée)",
+        "desc": "Cette fonction rend le logarithme (base 10) de Entrée."
+      },
+      "Round": {
+        "sig": "FractionalRound(FractionalValeur,IntegerPositionsDécimales)",
+        "desc": "Cette fonction rend la valeur arrondie d'une valeur fractionnaire donnée."
+      },
+      "Sqrt": {
+        "sig": "FractionalSqrt(FractionalEntrée)",
+        "desc": "Cette fonction rend la racine carrée de Entrée."
+      },
+      "Truncate": {
+        "sig": "FractionalTruncate(FractionalValeur,IntegerPositionsDécimales)",
+        "desc": "Cette fonction rend la valeur abrégée d'une valeur fractionnaire donnée."
+      }
+    }
+  },
+  "function_miscellaneous": {
+    "title": "independent_function_miscellaneous",
+    "functions": {
+      "AddLogEntry": {
+        "sig": "StringCurrentDepartment()",
+        "desc": "Cette fonction récupère la mnémonique de la discipline de l'utilisateur."
+      },
+      "CurrentDepartment": {
+        "sig": "StringCurrentDepartment()",
+        "desc": "Cette fonction récupère la mnémonique de la discipline de l'utilisateur."
+      },
+      "CurrentRole": {
+        "sig": "StringCurrentRole()",
+        "desc": "Cette fonction récupère la mnémonique du rôle choisi par l'utilisateur au moment de sa connexion."
+      },
+      "CurrentOS": {
+        "sig": "StringCurrentOS()",
+        "desc": "Cette fonction récupère le nom du système d'exploitation actif, c.-à-d. la chaîne de caractères \"UNIX\" ou \"WINDOWS\".  Cette fonction permet ainsi de décider quelle syntaxe de chemin d'accès utiliser l"
+      },
+      "CurrentDevice": {
+        "sig": "StringCurrentDevice()",
+        "desc": ""
+      },
+      "CurrentTerminal": {
+        "sig": "StringCurrentTerminal()",
+        "desc": ""
+      },
+      "CurrentUser": {
+        "sig": "StringDatedIdentifier(StringSequencePrefix,StringIdentifierPrefix,IntegerDigitCount, FractionalDate)",
+        "desc": "Cette fonction constitue une extension de la fonctionIdentifieret peut servir quand il faut que l'identifiant récupéré augmente conformément au temps.  Il faudra que la date spécifiée par le paramètre"
+      },
+      "DatedIdentifier": {
+        "sig": "StringDatedIdentifier(StringSequencePrefix,StringIdentifierPrefix,IntegerDigitCount, FractionalDate)",
+        "desc": "Cette fonction constitue une extension de la fonctionIdentifieret peut servir quand il faut que l'identifiant récupéré augmente conformément au temps.  Il faudra que la date spécifiée par le paramètre"
+      },
+      "GetCode": {
+        "sig": "",
+        "desc": "Pour récupérer le code Orphanet de la maladie liée à un certain Examen génétique :"
+      },
+      "GetCorrespondent": {
+        "sig": "ObjectGetObjectId(StringInternalId,ObjectTypeType)",
+        "desc": "Cette fonction récupère une référence à l'objet qui répond aux critères spécifiés."
+      },
+      "GetCorrespondentId": {
+        "sig": "ObjectGetObjectId(StringInternalId,ObjectTypeType)",
+        "desc": "Cette fonction récupère une référence à l'objet qui répond aux critères spécifiés."
+      },
+      "GetLogEntry": {
+        "sig": "ObjectGetObjectId(StringInternalId,ObjectTypeType)",
+        "desc": "Cette fonction récupère une référence à l'objet qui répond aux critères spécifiés."
+      },
+      "GetObjectId": {
+        "sig": "ObjectGetObjectId(StringInternalId,ObjectTypeType)",
+        "desc": "Cette fonction récupère une référence à l'objet qui répond aux critères spécifiés."
+      },
+      "GetPrinterId": {
+        "sig": "",
+        "desc": "rp_Printer ThePrinter;"
+      },
+      "GetSiteAttribute": {
+        "sig": "StringGetSiteAttribute(StringTable,IntegerRecordId,StringAttributeName)",
+        "desc": "Un attribut configurable de type de données 'Reference' permet de définir un type de données dont la valeur fait référence à un autre enregistrement appartenant à une autre table.  Pour naviguer à cet"
+      },
+      "GetUser": {
+        "sig": "StringIdentifier(StringPréfixeSéquence,StringPréfixeIdentifiant,IntegerNombreChiffres)",
+        "desc": "Cette fonction récupère un identifiant unique, composé du PréfixeIdentifiant et d'un suffixe de NombreChiffres chiffres. Le suffixe montre la nouvelle valeur du séquenceur appelé ‘<PréfixeSéquence><Pr"
+      },
+      "Glims": {
+        "sig": "StringIdentifier(StringPréfixeSéquence,StringPréfixeIdentifiant,IntegerNombreChiffres)",
+        "desc": "Cette fonction récupère un identifiant unique, composé du PréfixeIdentifiant et d'un suffixe de NombreChiffres chiffres. Le suffixe montre la nouvelle valeur du séquenceur appelé ‘<PréfixeSéquence><Pr"
+      },
+      "Identifier": {
+        "sig": "StringIdentifier(StringPréfixeSéquence,StringPréfixeIdentifiant,IntegerNombreChiffres)",
+        "desc": "Cette fonction récupère un identifiant unique, composé du PréfixeIdentifiant et d'un suffixe de NombreChiffres chiffres. Le suffixe montre la nouvelle valeur du séquenceur appelé ‘<PréfixeSéquence><Pr"
+      },
+      "IsHoliday": {
+        "sig": "IntegerNextValue(StringSéquence)",
+        "desc": "Cette fonction récupère la valeur 'integer' suivante de la Séquence Séquenceur, augmentée de 1."
+      },
+      "NextValue": {
+        "sig": "IntegerNextValue(StringSéquence)",
+        "desc": "Cette fonction récupère la valeur 'integer' suivante de la Séquence Séquenceur, augmentée de 1."
+      },
+      "NumberToStringInFull": {
+        "sig": "StringNumberToStringInFull (IntegerNuméroStringLangue)",
+        "desc": "Cette fonction écrit intégralement le numéro spécifié.  En revanche, elle fonctionne uniquement en néerlandais."
+      },
+      "SendMail": {
+        "sig": "LogicalSetSiteAttribute(StringTable,IntegerIdEnregistrement,StringNomAttribut,StringValeur)",
+        "desc": ""
+      },
+      "SetSiteAttribute": {
+        "sig": "LogicalSetSiteAttribute(StringTable,IntegerIdEnregistrement,StringNomAttribut,StringValeur)",
+        "desc": ""
+      },
+      "Translate": {
+        "sig": "StringTranslate(TextTexte,StringLangue)",
+        "desc": "Cette fonction traduit le Texte contenant du texte dynamique en la langue spécifiée."
+      }
+    }
+  },
+  "function_readingvariables": {
+    "title": "independent_function_readingvariables",
+    "functions": {
+      "PeekDate": {
+        "sig": "DatePeekDate(StringSharedDateVariableName)",
+        "desc": "Return value of the named shared date variable."
+      },
+      "PeekDecimal": {
+        "sig": "FractionalPeekDecimal(StringSharedDecimalVariableName)",
+        "desc": "Return value of the named shared decimal variable."
+      },
+      "PeekInteger": {
+        "sig": "IintegerPeekInteger(StringSharedIntegerVariable)",
+        "desc": "Return value of the named shared integer variable."
+      },
+      "PeekLogical": {
+        "sig": "LogicalPeekLogical(StringSharedLogicalVariableName)",
+        "desc": "Return value of the named shared logical variable."
+      },
+      "PeekRecId": {
+        "sig": "RecidPeekRecId(StringSharedRecidVariableName)",
+        "desc": "Return value of the shared shared recid variable."
+      },
+      "PeekCharacter": {
+        "sig": "StringPeekCharacter(StringSharedCharVar)",
+        "desc": "Return value of the named shared character string variable."
+      }
+    }
+  },
+  "function_string": {
+    "title": "independent_function_string",
+    "functions": {
+      "Chr": {
+        "sig": "StringChr(IntegerOrdinalNumber)",
+        "desc": "This function converts OrdinalNumber to its corresponding single-character string value in the active character set. If the ordinal number is in the range of 0 to 255, Chr returns the corresponding si"
+      },
+      "Cpad": {
+        "sig": "StringCpad(Strings,Integerl,Stringf)",
+        "desc": "This function returns a string of length <l> formed from <s> (center aligned) padded left and right with as many times string <f> as needed."
+      },
+      "Entry": {
+        "sig": "stringEntry(IntegerPosition,StringList,StringDelimiter)",
+        "desc": "This function returns the entry at position Position from the Delimiter-delimited List. If Position is less than 1 or larger than the number of elements, the unknown value is returned. If delimiter is"
+      },
+      "Expand": {
+        "sig": "StringExpand(<TableName>, <RecordId>, <OriginalText>, <ParameterList>)",
+        "desc": "Sometimes the need arises to expand a dynamic text in a site function or MISPL statement where the text is to be expanded on another table than the original base table.  You can use the Expand() MISPL"
+      },
+      "ExtractTag": {
+        "sig": "StringExtractTag(StringTag,StringList,StringDelimiter)",
+        "desc": "This function extracts an entry from the tagged value list List."
+      },
+      "Fill": {
+        "sig": "StringFill(StringSource,IntegerRepeats)",
+        "desc": "This function generates a character string by concatenating Source Repeats times. If Repeats is less than or equal to 0, an empty string is produced."
+      },
+      "FitText": {
+        "sig": "StringFitText(StringInputString,IntegerMaxlinelength,StringFirstPrefix,StringPrefix,StringSuffix)",
+        "desc": "If noFirstPrefixis specified (value ?) then the generalPrefixis used for the first line.  If aSuffixis specified (even if it is \"\"), blanks are added to each line so that each line containsMaxLineLeng"
+      },
+      "IfKnownString": {
+        "sig": "StringIfKnownString(StringString)",
+        "desc": "This function returns its argument, or the empty string if the argument contains the unknown value."
+      },
+      "Index": {
+        "sig": "IntegerIndex(StringSource,StringTarget)",
+        "desc": "This function returns the position of the first occurrence of Target within Source. The search is case-insensitive. If Target does not exist within Source, 0 is returned. If Target is an empty string,"
+      },
+      "Len": {
+        "sig": "IntegerLen(StringString)",
+        "desc": "This function gets the length of a string."
+      },
+      "Lookup": {
+        "sig": "IntegerLookup(StringEntry,StringList,StringDelimiter)",
+        "desc": "This function returns the position of Entry within the Delimiter-delimited list List. The search is case-insensitive. If Entry does not appear in the list, 0 is returned. The Delimiter should be a del"
+      },
+      "Lpad": {
+        "sig": "StringLpad(Strings,Integerl,Stringf):",
+        "desc": "This function returns a string of length <l> formed from <s> (right aligned) padded to the right with as many times string <f> as needed."
+      },
+      "Ltrim": {
+        "sig": "StringLtrim(StringSource,StringTrimCharacters)",
+        "desc": "This functions removes leading white space, or other specified characters, from Source. The Ltrim function is similar to the Trim function, except that it trims characters only from the left end of th"
+      },
+      "Matches": {
+        "sig": "LogicalMatches(StringString,StringPattern,LogicalCaseSensitive)",
+        "desc": "This function compares String to a regular expression Pattern and returns YES if the expression satisfies the pattern criteria. If CaseSensitive is set, the check is case-sensitive."
+      },
+      "NumEntries": {
+        "sig": "IntegerNumEntries(StringList,StringDelimiter)",
+        "desc": "This function returns the number of entries in List.  NumEntries returns the number of Delimiter occurrences plus 1, and it returns 0 if the list has zero length."
+      },
+      "Ord": {
+        "sig": "IntegerOrd(StringString)",
+        "desc": "This function convert the single character string String to the corresponding ordinal number of the character in the active character set. The values for string are case-sensitive. For example, Ord(\"a"
+      },
+      "PutTag": {
+        "sig": "StringPutTag(StringTag,StringStringValue,StringList,StringDelimiter)",
+        "desc": "This function puts or replaces an entry in a tagged value list."
+      },
+      "RangeLabel": {
+        "sig": "StringRangeLabel(FractionalTestValue,StringRangeList)",
+        "desc": "This function searches in which (numeric) range the TestValue is to be situated, and returns the corresponding label. It is for instance used for supplement calculation, where the supplement code depe"
+      },
+      "RemoveEntry": {
+        "sig": "StringRemoveEntry(StringList,StringDelimiter,IntegerPosition,IntegerCount)",
+        "desc": "This function removes Count entries from List. Operation is based on the convention that the number of entries equals the number of delimiters plus 1."
+      },
+      "Replace": {
+        "sig": "StringReplace(StringSource,StringFromString,StringToString)",
+        "desc": "This function returns a string with specified substring replacements. The Replace function replaces all occurrences of FromString within Source. After replacing a substring, the Replace function resum"
+      },
+      "Rpad": {
+        "sig": "StringRpad(Strings,Integerl,Stringf)",
+        "desc": "This function returns a string of length <l> formed from <s> (left aligned) padded to the left with as many times string <f> as needed."
+      },
+      "Rtrim": {
+        "sig": "StringRtrim(StringSource,StringTrimCharacters)",
+        "desc": "This function removes trailing white space, or other specified characters, from Source. The Rtrim function is similar to the Trim function, except that it trims characters only from the right end of t"
+      },
+      "Sort": {
+        "sig": "StringSort(StringList,StringDelimiter)",
+        "desc": "Alphabetically sort List."
+      },
+      "Strip": {
+        "sig": "StringStrip(StringSource,StringStripCharacters)",
+        "desc": "This function removes all characters occurring in StripCharacters from Source. The function is case-insensitive. If you do not specify StripCharacters, the Strip function removes all white space chara"
+      },
+      "Substr": {
+        "sig": "StringSubstr(StringSource,IntegerPosition,IntegerLength)",
+        "desc": "This function extracts substring of Source, starting from Position, with specified Length. If Length equals -1, all characters between Position and the end of Source are returned.  If Position exceeds"
+      },
+      "ToLower": {
+        "sig": "StringToLower(StringSource)",
+        "desc": "This function converts any uppercase letters in Source to lowercase."
+      },
+      "ToUpper": {
+        "sig": "StringToUpper(StringSource)",
+        "desc": "This function converts any lowercase letters in Source to uppercase."
+      },
+      "Translate": {
+        "sig": "StringTranslate(StringTextId,StringLanguageName)",
+        "desc": ""
+      },
+      "TranslateCharacters": {
+        "sig": "StringTranslateCharacters(StringSource,StringInlist,StringOutlist)",
+        "desc": "This case-sensitive function translates Source according to the specified Inlist and Outlist."
+      },
+      "Trim": {
+        "sig": "StringTrim(StringSource,StringTrimCharacters)",
+        "desc": "This function removes leading and trailing white space, or other specified characters, from Source. The function is case-insensitive."
+      },
+      "XmlEscaped": {
+        "sig": "StringXmlEscaped(StringSource)",
+        "desc": "This function escapes the reserved XML characters (ampersand, less-than, greater-than, quote) from a string."
+      }
+    }
+  },
+  "function_writingvariables": {
+    "title": "independent_function_writingvariables",
+    "functions": {
+      "PokeDate": {
+        "sig": "VoidPokeDate(StringSharedDateVariableName,DateValue)",
+        "desc": "Assign Value to the named shared date variable."
+      },
+      "PokeDecimal": {
+        "sig": "VoidPokeDecimal(StringSharedDecimalVariableName,FractionalValue)",
+        "desc": "Assign Value to the named shared decimal variable."
+      },
+      "PokeInteger": {
+        "sig": "VoidPokeInteger(StringSharedIntegerVariableName,IntegerValue)",
+        "desc": "Assign Value to the named shared integer variable."
+      },
+      "PokeLogical": {
+        "sig": "VoidPokeLogical(StringSharedLogicalVariableName,LogicalValue)",
+        "desc": "Assign Value to the named shared logical variable."
+      },
+      "PokeRecId": {
+        "sig": "VoidPokeRecId(StringSharedRecidVariableName,RecidValue)",
+        "desc": "Assign Value to the named shared recid variable."
+      },
+      "PokeCharacter": {
+        "sig": "VoidPokeCharacter(StringSharedStringVariable,StringValue)",
+        "desc": "Assign Value to the named shared string variable."
+      }
+    }
+  }
+}

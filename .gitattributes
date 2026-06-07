@@ -1,0 +1,4 @@
+docs/chunks/vectorstore/chroma.sqlite3 filter=lfs diff=lfs merge=lfs -text
+docs/chunks/bm25_corpus.json filter=lfs diff=lfs merge=lfs -text
+docs/chunks/vectorstore/**/*.bin filter=lfs diff=lfs merge=lfs -text
+docs/chunks/vectorstore/**/*.pickle filter=lfs diff=lfs merge=lfs -text

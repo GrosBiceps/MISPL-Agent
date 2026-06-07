@@ -1,0 +1,48 @@
+{
+  "project": {
+    "name": "MISPL Agent — Assistant IA pour GLIMS/Clinisys",
+    "domain": "laboratoire de biologie médicale, SIL GLIMS, langage MISPL, règles métiers",
+    "language": "fr",
+    "version": "1.0.0"
+  },
+  "response": {
+    "format": "structured",
+    "citationsRequired": true,
+    "outputStyle": "technical",
+    "thinkingMode": true,
+    "certitudeLevel": true
+  },
+  "rag": {
+    "vectorstore": "docs/chunks/vectorstore",
+    "embeddingModel": "text-embedding-3-small",
+    "chunkSize": 800,
+    "chunkOverlap": 150,
+    "topK": 5
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python src/rag/*.py*)",
+      "Bash(python src/agent/*.py*)",
+      "Bash(python -m venv*)",
+      "Bash(pip install*)",
+      "Bash(git status)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(mkdir*)",
+      "Bash(ls*)",
+      "Read(**)",
+      "Write(outputs/**)",
+      "Write(docs/chunks/**)",
+      "Write(.claude/**)",
+      "Edit(outputs/**)",
+      "Edit(.claude/**)",
+      "Edit(src/**)"
+    ],
+    "deny": [
+      "Bash(rm -rf*)",
+      "Bash(git push --force*)"
+    ]
+  }
+}

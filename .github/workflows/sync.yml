@@ -1,0 +1,61 @@
+name: Sync to Hugging Face Space
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Installer huggingface_hub
+        run: pip install "huggingface_hub>=0.23.0"
+
+      - name: Push vers Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python -c "
+          from huggingface_hub import HfApi
+          import os
+
+          api = HfApi()
+          api.upload_folder(
+              folder_path='.',
+              repo_id='GrosBiceps/Mispl-agent',
+              repo_type='space',
+              token=os.environ['HF_TOKEN'],
+              ignore_patterns=[
+                  '.git/*', '.github/*', '.venv/*',
+                  '__pycache__/*', '*.pyc',
+                  'french/*', 'outputs/*',
+                  'docs_architecturales/*',
+                  'etude_faisabilite/*',
+                  'tests/*', 'scripts/*', 'notebooks/*',
+              ]
+          )
+          print('Upload termine')
+          "
+
+      - name: Pause puis restart Space HF
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "Pause du Space..."
+          curl -s -X POST \
+            "https://huggingface.co/api/spaces/GrosBiceps/Mispl-agent/pause" \
+            -H "Authorization: Bearer $HF_TOKEN"
+          echo ""
+          sleep 10
+          echo "Restart du Space..."
+          curl -s -X POST \
+            "https://huggingface.co/api/spaces/GrosBiceps/Mispl-agent/restart?factory=true" \
+            -H "Authorization: Bearer $HF_TOKEN"
+          echo ""
+          echo "Done"

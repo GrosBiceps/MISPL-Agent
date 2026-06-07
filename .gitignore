@@ -1,0 +1,44 @@
+# ── Python ──────────────────────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.DS_Store
+
+# ── Secrets ─────────────────────────────────────────────────────────────────
+.env
+.env.*
+
+# ── Documentation source propriétaire — JAMAIS dans le repo ─────────────────
+french/
+ManuelOpenSource/
+*.htm
+*.html
+
+# ── Données CHU — propriété du service de biologie médicale ─────────────────
+fonctions_mispl.xlsx
+*.xlsx
+
+# ── Vectorstore + BM25 générés — reconstruire via ingest_knowledge_base.py ──
+docs/chunks/vectorstore/
+docs/chunks/bm25_corpus.json
+docs/chunks/manifest*.json
+*.bin
+*.pickle
+chroma.sqlite3
+
+# ── Outputs et rapports générés ─────────────────────────────────────────────
+outputs/sessions/
+outputs/cache/
+outputs/*.json
+
+# ── Binaires lourds ─────────────────────────────────────────────────────────
+*.mp4
+*.pdf
+*.exe
+*.iso
+
+# ── Temporaires éditeur ─────────────────────────────────────────────────────
+*.tmp*
+*.bak
+*~

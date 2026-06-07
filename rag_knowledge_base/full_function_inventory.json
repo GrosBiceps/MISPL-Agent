@@ -1,0 +1,823 @@
+{
+  "ab": {
+    "title": "Antibiotic&#160;",
+    "functions": [
+      "Description"
+    ]
+  },
+  "abrs": {
+    "title": "AntibioticResult&#160;",
+    "functions": [
+      "AddComment",
+      "AgarDiffusionValue",
+      "ETestValue",
+      "MICValue",
+      "SetReportable"
+    ]
+  },
+  "actn": {
+    "title": "Action&#160;",
+    "functions": [
+      "ApproachActivity",
+      "Attribute",
+      "Cancel",
+      "InputByMnemonic",
+      "InputResult",
+      "MicrobiologyAction",
+      "Order",
+      "OutputResult",
+      "PropertyList",
+      "ResultOperation",
+      "SpecimenInput"
+    ]
+  },
+  "anml": {
+    "title": "Animal&#160;",
+    "functions": [
+      "ExtendedBirthDate"
+    ]
+  },
+  "apac": {
+    "title": "ApproachActivity&#160;",
+    "functions": [
+      "GetOutputResult"
+    ]
+  },
+  "appr": {
+    "title": "Approach&#160;",
+    "functions": [
+      "AddLocusRequest",
+      "GetActivities",
+      "GetActivity",
+      "GetLocusResult",
+      "GetVariantResult"
+    ]
+  },
+  "bbag": {
+    "title": "BloodBag&#160;",
+    "functions": [
+      "AntigenByNumber",
+      "Attribute",
+      "AttributeOverview",
+      "CreateOrder",
+      "GenerateDocument",
+      "GetAntigen",
+      "Lot",
+      "Print",
+      "Selection",
+      "SetAntigen",
+      "SetAttribute",
+      "SetExpirationTime",
+      "SetStatus",
+      "VerificationPassed"
+    ]
+  },
+  "bbtp": {
+    "title": "BloodBagTyping&#160;",
+    "functions": [
+      "GetAntigen"
+    ]
+  },
+  "bc": {
+    "title": "BillingCode&#160;",
+    "functions": [
+      "ExternalDescription",
+      "IsGroupMember"
+    ]
+  },
+  "bdln": {
+    "title": "w_BillingDocumentLine&#160;",
+    "functions": [
+      "GetExecutingLab"
+    ]
+  },
+  "bit": {
+    "title": "BillingItem&#160;",
+    "functions": [
+      "LinkedRequestCharge"
+    ]
+  },
+  "blpr": {
+    "title": "BloodProduct&#160;",
+    "functions": [
+      "Description"
+    ]
+  },
+  "blrb": {
+    "title": "BloodRequestable&#160;",
+    "functions": [
+      "GetBloodProduct"
+    ]
+  },
+  "bpoa": {
+    "title": "BloodProductOrderAdvice&#160;",
+    "functions": [
+      "CurrentAmount",
+      "CurrentMaximum",
+      "CurrentMinimum"
+    ]
+  },
+  "bsel": {
+    "title": "BloodSelection&#160;",
+    "functions": [
+      "CompatibilityCascade",
+      "LastRequest",
+      "PrintForm",
+      "Promotion",
+      "SetAttribute",
+      "SetUtmostTransfusionTime",
+      "Successor"
+    ]
+  },
+  "buiv": {
+    "title": "BudgetInvoice&#160;",
+    "functions": [
+      "NomenclatureCodes"
+    ]
+  },
+  "carr": {
+    "title": "Carrier&#160;",
+    "functions": [
+      "AddIsolation",
+      "AddIsolationWithAppraisal",
+      "AddSubCarrier",
+      "GetStorage",
+      "SetStorage"
+    ]
+  },
+  "cnty": {
+    "title": "Country&#160;",
+    "functions": [
+      "Name"
+    ]
+  },
+  "cplt": {
+    "title": "Complaint&#160;",
+    "functions": [
+      "GetLog"
+    ]
+  },
+  "crcl": {
+    "title": "CorrespondentClass&#160;",
+    "functions": [
+      "Description"
+    ]
+  },
+  "crsp": {
+    "title": "Correspondent&#160;",
+    "functions": [
+      "Attribute",
+      "Bank",
+      "Budget",
+      "Company",
+      "CreateIdentification",
+      "CreateNationalNumber",
+      "CurrentAgreements",
+      "Department",
+      "Firm",
+      "Fund",
+      "GroupMembership",
+      "HCCode",
+      "HCProvider",
+      "HealthOffice",
+      "Identification",
+      "IdentificationList",
+      "Institution",
+      "IsGroupMember",
+      "KnownIdentification",
+      "Lab",
+      "Organization",
+      "PaymentAgreement",
+      "Person",
+      "PreviousFinancing",
+      "SendMail",
+      "Study",
+      "TourMnemonicList",
+      "UnpaidAmount",
+      "Ward"
+    ]
+  },
+  "dscc": {
+    "title": "DiscountCode&#160;",
+    "functions": [
+      "ExternalDescription"
+    ]
+  },
+  "dsgr": {
+    "title": "DiscountGroup&#160;",
+    "functions": [
+      "Description"
+    ]
+  },
+  "enct": {
+    "title": "Encounter&#160;",
+    "functions": [
+      "Close",
+      "FindContract",
+      "FindStay",
+      "GetDiagnosis",
+      "HasStay"
+    ]
+  },
+  "fnd": {
+    "title": "Fund&#160;",
+    "functions": [
+      "IsAnOfficialFundMember"
+    ]
+  },
+  "fshp": {
+    "title": "FinancialShipment&#160;",
+    "functions": [
+      "FinancialTransaction"
+    ]
+  },
+  "ftr": {
+    "title": "FinancialTransaction&#160;",
+    "functions": [
+      "Gain",
+      "GetCreditingBalanceRecord",
+      "GetDebittingBalanceRecord",
+      "InvoiceSummary",
+      "MostRecentShipment",
+      "Payment"
+    ]
+  },
+  "gnte": {
+    "title": "GeneticExam&#160;",
+    "functions": [
+      "GetApproachCount",
+      "GetApproachList",
+      "GetFather",
+      "GetLocusResult",
+      "GetLocusResultCount",
+      "GetVariantResult",
+      "Result",
+      "RootSpecimen"
+    ]
+  },
+  "gntp": {
+    "title": "GeneticProcedure&#160;",
+    "functions": [
+      "Description"
+    ]
+  },
+  "gsit": {
+    "title": "gp_Site&#160;",
+    "functions": [
+      "AddLogEntry",
+      "CurrentDevice",
+      "CurrentOS",
+      "CurrentRole",
+      "CurrentSessionHasPrivilege",
+      "CurrentTerminal",
+      "CurrentUser",
+      "Expand",
+      "FindCommandByTableAndDescription",
+      "GetAttachments",
+      "GetLogEntry",
+      "GetRole",
+      "GetUser",
+      "IsHoliday",
+      "IsTestDatabase",
+      "SendMail",
+      "XmlEscaped"
+    ]
+  },
+  "hcpr": {
+    "title": "HCProvider&#160;",
+    "functions": [
+      "Profession"
+    ]
+  },
+  "iit": {
+    "title": "InvoiceItem&#160;",
+    "functions": [
+      "PanelMembersInfo"
+    ]
+  },
+  "inv": {
+    "title": "Invoice&#160;",
+    "functions": [
+      "AnInvoiceItem",
+      "Data",
+      "GetPayment",
+      "NumberOfItems"
+    ]
+  },
+  "invs": {
+    "title": "InvoiceSummary&#160;",
+    "functions": [
+      "CompareInvoiceReimburser",
+      "Data",
+      "FirstInvoice",
+      "GetReminder",
+      "MaximumNumberOfItems"
+    ]
+  },
+  "irt": {
+    "title": "InvoiceRejectionType&#160;",
+    "functions": [
+      "ExternalDescription"
+    ]
+  },
+  "isol": {
+    "title": "Isolation&#160;",
+    "functions": [
+      "AddSubCarrier",
+      "AddTest",
+      "AntibioticResult",
+      "AntibioticResultIndexed",
+      "EqualReportedRIS",
+      "EqualRIS",
+      "GetSequence",
+      "GetStorage",
+      "GetStorageList",
+      "HideRIS",
+      "ReplaceReportedRIS",
+      "ReplaceRIS",
+      "SetExternalComment",
+      "SetInternalComment",
+      "SetOrganism",
+      "SetReportOfficially",
+      "SetRIS",
+      "SetStorage",
+      "Test"
+    ]
+  },
+  "isot": {
+    "title": "IsolationTest&#160;",
+    "functions": [
+      "AddSubtest"
+    ]
+  },
+  "lcsr": {
+    "title": "LocusResult&#160;",
+    "functions": [
+      "GetDetailValue",
+      "GetGeneticResultDetail"
+    ]
+  },
+  "mat": {
+    "title": "Material&#160;",
+    "functions": [
+      "Description"
+    ]
+  },
+  "mcra": {
+    "title": "MicrobiologyAction&#160;",
+    "functions": [
+      "AddCarriers",
+      "AddIsolation",
+      "AntibioticCount",
+      "AntibioticResultCount",
+      "CarrierCount",
+      "CarrierList",
+      "IsolationCount",
+      "IsolationTestCount",
+      "LastRequest",
+      "SetConclusion",
+      "SetEndOfIncubationTime",
+      "SetReviewDate",
+      "SetStatus",
+      "TextualSummary"
+    ]
+  },
+  "morg": {
+    "title": "MicroOrganism&#160;",
+    "functions": [
+      "Description"
+    ]
+  },
+  "mtvc": {
+    "title": "MaterialVariableChoice&#160;",
+    "functions": [
+      "Value"
+    ]
+  },
+  "nc": {
+    "title": "Nonconformity&#160;",
+    "functions": [
+      "GetContext"
+    ]
+  },
+  "nccc": {
+    "title": "NCCorrectionChoice&#160;",
+    "functions": [
+      "Description"
+    ]
+  },
+  "nctp": {
+    "title": "NCType&#160;",
+    "functions": [
+      "Advice",
+      "Description"
+    ]
+  },
+  "obj": {
+    "title": "Object&#160;",
+    "functions": [
+      "Age",
+      "AgeInDays",
+      "AgeInMonths",
+      "AgeInYears",
+      "Animal",
+      "AttributeList",
+      "AttributePeriod",
+      "BirthDate",
+      "BloodSelectionByNumber",
+      "BuildHistoryGraph",
+      "CheckDiagnosisCodeCompatibility",
+      "ClearAttribute",
+      "DeclaredType",
+      "DeleteAttribute",
+      "FindMostRecentBilledBillingCode",
+      "GetBloodBag",
+      "GetCheckedOutBag",
+      "GetData",
+      "GetDiagnosis",
+      "GetLastBillingItemByReceiptDate",
+      "GetLocusResult",
+      "GetPhoneLog",
+      "GetResult",
+      "GetVariantResult",
+      "HasExternalInfo",
+      "Lot",
+      "MicrobiologicHistory",
+      "NumberOfBilledBillingCodes",
+      "PatientData",
+      "Person",
+      "PersonData",
+      "PIN",
+      "QCLot",
+      "Result",
+      "ResultAttribute",
+      "SetAttribute",
+      "Sex"
+    ]
+  },
+  "ord": {
+    "title": "Order&#160;",
+    "functions": [
+      "AddOrderTodoItem",
+      "AddRequest",
+      "Attribute",
+      "BudgetInvoice",
+      "BudgetItemsOfParty",
+      "CancelResults",
+      "CheckFSE",
+      "CheckKVDT",
+      "Consult",
+      "CreateMediumReport",
+      "CreateReferral",
+      "CreateReport",
+      "GetClinicalConsultation",
+      "GetDiagnosis",
+      "GetIdentifier",
+      "GetOrderTodoItem",
+      "GetOrderTodoItems",
+      "GetPhoneLog",
+      "GetSpecimen",
+      "HasMissingSpecimens",
+      "HasPreviousResults",
+      "InvoiceItemsData",
+      "IsEmpty",
+      "IsRequested",
+      "ObjectPaymentAgreement",
+      "PostProcess",
+      "PropertyList",
+      "RecalculateSpecimen",
+      "ReportList",
+      "Result",
+      "SetDepartment",
+      "SetImage",
+      "SetStudyEpisode",
+      "Summary",
+      "TariffResult",
+      "ToBePhoned"
+    ]
+  },
+  "os": {
+    "title": "OrderSet&#160;",
+    "functions": [
+      "BCData",
+      "BCIData",
+      "BCIData2",
+      "BillingCodesCurrentlyPresent",
+      "DlvrData",
+      "FrenchSupplements",
+      "LinkedFinance",
+      "LinkedOrder",
+      "OrderData",
+      "TariffResult"
+    ]
+  },
+  "paya": {
+    "title": "PaymentAgreement&#160;",
+    "functions": [
+      "CheckBelgianMatriculation"
+    ]
+  },
+  "pcho": {
+    "title": "PurchaseOrder&#160;",
+    "functions": [
+      "Currency",
+      "TotalPrice"
+    ]
+  },
+  "pdlv": {
+    "title": "ProductDelivery&#160;",
+    "functions": [
+      "ProductByNumber"
+    ]
+  },
+  "pmnt": {
+    "title": "Payment&#160;",
+    "functions": [
+      "PaymentInfo"
+    ]
+  },
+  "prdc": {
+    "title": "Product&#160;",
+    "functions": [
+      "GetStorageLocation"
+    ]
+  },
+  "prop": {
+    "title": "Property&#160;",
+    "functions": [
+      "Description",
+      "StatisticalWeight"
+    ]
+  },
+  "prsn": {
+    "title": "Person&#160;",
+    "functions": [
+      "AfterBirth",
+      "AntigenAntibody",
+      "AntigenByNumber",
+      "AvailableBloodBagByNumber",
+      "BloodForPersonAvailable",
+      "CalculateMedidocCaseNumber",
+      "CheckNationalNumber",
+      "Encounter",
+      "ExtendedBirthDate",
+      "GetAntibody",
+      "GetAntigen",
+      "GetEncounter",
+      "GetEncountersList",
+      "GetMedicalRecord",
+      "GetTypingAdvice",
+      "HLAAntibody",
+      "HLAAntibodyByNumber",
+      "HLAAntigen",
+      "HLAAntigenByNumber",
+      "Hospitalized",
+      "OtherAntigens",
+      "Relation",
+      "RelationsOverview",
+      "RhesusPhenoType",
+      "SetAntibody",
+      "SetAntigen",
+      "SetHLAAntibodyPresence",
+      "SetHLAAntibodyRValue",
+      "SetHLAAntigenPresence",
+      "SetMedicalRecord",
+      "SetTypingAdvice",
+      "Stay",
+      "Stays"
+    ]
+  },
+  "pspc": {
+    "title": "ProductSpecification&#160;",
+    "functions": [
+      "Packing"
+    ]
+  },
+  "ptex": {
+    "title": "PathologyExam&#160;",
+    "functions": [
+      "ChangeResponsible",
+      "Reopen",
+      "SetStatus",
+      "SetStatusConfirmed",
+      "SetStatusConfirmedComplete",
+      "SetStatusDiscontinued",
+      "SetStatusRunning",
+      "SetStatusValidated",
+      "SetStatusValidatedComplete",
+      "SetWorkStatus"
+    ]
+  },
+  "qcp": {
+    "title": "QCPopulation&#160;",
+    "functions": [
+      "Attribute"
+    ]
+  },
+  "rfrl": {
+    "title": "Referral&#160;",
+    "functions": [
+      "Abrechnungsgebiet",
+      "PersonenKreis",
+      "Scheinuntergruppe",
+      "UeberweisungsTyp"
+    ]
+  },
+  "role": {
+    "title": "sc_Role&#160;",
+    "functions": [
+      "SendMail"
+    ]
+  },
+  "rqbl": {
+    "title": "Requestable&#160;",
+    "functions": [
+      "GetPanelRequestable",
+      "Tariff"
+    ]
+  },
+  "rqst": {
+    "title": "Request&#160;",
+    "functions": [
+      "DefaultTariff",
+      "DefaultTariffInfo"
+    ]
+  },
+  "rslt": {
+    "title": "Result&#160;",
+    "functions": [
+      "Action",
+      "AddExternalComment",
+      "AddInternalComment",
+      "Attribute",
+      "BloodSelectionDiscontinuation",
+      "BloodSelectionPromotion",
+      "BloodSelectionReported",
+      "Cancel",
+      "Escalate",
+      "GetBloodSelection",
+      "GetCode",
+      "GetDilutionCode",
+      "GetPriorResult",
+      "LastOrder",
+      "LastRequest",
+      "MarkAsSolicited",
+      "MicrobiologyAction",
+      "NumericValue",
+      "PathologyExamOfWhichConclusion",
+      "PriorAttribute",
+      "ReferenceValue",
+      "RelatedResult",
+      "ReportedNonconformity",
+      "SetAsBaseLine",
+      "SetAutomaticConfirmation",
+      "SetAutomaticValidation",
+      "SetManualSeverity",
+      "StatisticalWeight",
+      "Successor",
+      "WorkSpecimen"
+    ]
+  },
+  "rsto": {
+    "title": "ResultOutput&#160;",
+    "functions": [
+      "CascadeRequest"
+    ]
+  },
+  "spmi": {
+    "title": "SpecimenInput&#160;",
+    "functions": [
+      "BarCode"
+    ]
+  },
+  "spmn": {
+    "title": "Specimen&#160;",
+    "functions": [
+      "AddBlocks",
+      "AddCarriers",
+      "AddRequest",
+      "Attribute",
+      "CarrierCount",
+      "CollectionInfo",
+      "DirectParent",
+      "FirstRequest",
+      "GetStorage",
+      "IsolationCount",
+      "LabSpecificSize",
+      "LastRequest",
+      "PathologyExam",
+      "Result",
+      "SetMeasuredSize",
+      "SetReplacementLevel",
+      "SetStorage",
+      "SpecimenOutput",
+      "TariffResult",
+      "Variable"
+    ]
+  },
+  "spst": {
+    "title": "ItemStorage&#160;",
+    "functions": [
+      "Coordinates"
+    ]
+  },
+  "ssit": {
+    "title": "SpecificSite&#160;",
+    "functions": [
+      "AllowedAbrechnungsGebietValues",
+      "AllowedKTABValues",
+      "AllowedScheinuntergruppeValues",
+      "CurrentDepartment",
+      "EncodeXDTPolicyName",
+      "EuroToLocal",
+      "ExonerationFraction",
+      "ExonerationJustification",
+      "ExonerationNature",
+      "GetAbrechnungsArt",
+      "GetCode",
+      "GetCorrespondent",
+      "GetCorrespondentId",
+      "GetDepartment",
+      "GetDiagnosisCode",
+      "GetEncounter",
+      "GetExecutingLab",
+      "GetFundId",
+      "GetHLAAntigen",
+      "GetInvoiceId",
+      "GetInvoiceSummaryId",
+      "GetNonconformity",
+      "GetObjectId",
+      "GetPolicyNameId",
+      "GetPrinterId",
+      "GetProvision",
+      "GetStay",
+      "GetVertragsarztId",
+      "Glims",
+      "LocalToEuro",
+      "PaymentAgreements",
+      "RegisterNonconformity",
+      "TariffingData",
+      "ToEuro",
+      "ToLocal"
+    ]
+  },
+  "stdy": {
+    "title": "Study&#160;",
+    "functions": [
+      "GetNextOrder",
+      "GetNextStudyObject"
+    ]
+  },
+  "stn": {
+    "title": "Station&#160;",
+    "functions": [
+      "GetStationEventCode"
+    ]
+  },
+  "unit": {
+    "title": "Unit&#160;",
+    "functions": [
+      "Description"
+    ]
+  },
+  "usr": {
+    "title": "sc_User&#160;",
+    "functions": [
+      "HasPrivilege",
+      "SendMail"
+    ]
+  },
+  "vatc": {
+    "title": "VATCode&#160;",
+    "functions": [
+      "Description"
+    ]
+  },
+  "vrnr": {
+    "title": "VariantResult&#160;",
+    "functions": [
+      "CopyAnnotationsToVariant",
+      "GetAnnotation",
+      "GetDetailValue",
+      "GetGeneticResultDetail",
+      "SetAnnotation",
+      "SetClassification"
+    ]
+  },
+  "vrnt": {
+    "title": "Variant&#160;",
+    "functions": [
+      "GetAnnotation",
+      "GetCopyNumberVariant",
+      "GetSequenceVariant",
+      "SetAnnotation",
+      "SetClassification"
+    ]
+  },
+  "wlst": {
+    "title": "WorkList&#160;",
+    "functions": [
+      "ActionStatus"
+    ]
+  }
+}

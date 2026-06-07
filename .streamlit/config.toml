@@ -1,0 +1,24 @@
+[server]
+fileWatcherType = "none"
+headless = true
+port = 7860
+enableCORS = false
+enableXsrfProtection = false
+maxUploadSize = 50
+
+[browser]
+gatherUsageStats = false
+
+[runner]
+fastReruns = true
+
+[logger]
+level = "error"
+
+[theme]
+base = "dark"
+primaryColor = "#3b82f6"
+backgroundColor = "#13131f"
+secondaryBackgroundColor = "#1a1a2e"
+textColor = "#f1f5f9"
+font = "sans serif"
