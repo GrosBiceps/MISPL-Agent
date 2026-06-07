@@ -65,7 +65,7 @@ CACHE_DIR = ROOT / "outputs" / "cache"
 # Version du pipeline de génération. À incrémenter dès que le system prompt,
 # le post-traitement (strip CoT) ou le format de réponse change → invalide
 # automatiquement tout le cache obsolète sans avoir à le vider à la main.
-CACHE_VERSION = "v21"
+CACHE_VERSION = "v23"
 
 def _cache_key(question: str, model: str, top_k: int) -> str:
     raw = f"{CACHE_VERSION}|{question}|{model}|{top_k}"
@@ -366,7 +366,10 @@ def ask_mispl(
         "utilisee directement (niveau Certain), JAMAIS marquee 'a verifier'. "
         "Ne marque 'a verifier dans GLIMS' QUE si une fonction est totalement absente de tous les extraits. "
         "Si un extrait montre un pattern complet correspondant a la demande, suis-le comme modele. "
-        "INTERDIT d'utiliser CascadeRequest (ancienne version GLIMS) — toujours Action.Order().AddRequest."
+        "INTERDIT d'utiliser CascadeRequest (ancienne version GLIMS) — toujours Action.Order().AddRequest. "
+        "CAS IMPOSSIBLE (creer/supprimer un patient, un objet, une analyse au referentiel, modifier les bornes) : "
+        "repondre UNIQUEMENT 'impossible via MISPL — se fait via la configuration GLIMS', "
+        "SANS pseudo-code, SANS inventer CreatePatient/CreatePerson/CreateObject."
     )
 
     # Injection de l'historique entre system et user (max 6 échanges)

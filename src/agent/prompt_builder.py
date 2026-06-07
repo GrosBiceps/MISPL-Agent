@@ -453,6 +453,17 @@ Valeurs de référence pour le résultat.
 
 ### Result.RelatedResult(PropertyMnemonic) → Result
 Résultat associé du même objet et même heure de prélèvement. Priorité : même demande → même échantillon → même dossier.
+**RÈGLE CRITIQUE** : Pour accéder à un résultat LIÉ (autre analyse du même dossier/objet), utiliser OBLIGATOIREMENT `.RelatedResult("MNEM")` — JAMAIS `.Specimen.Result(...)` ni `.Order.Result(...)` qui sont des navigations différentes.
+```mispl
+/* CORRECT — résultat lié via RelatedResult */
+IF .RelatedResult("B_PROT_BETA_AMYL").Id <> ? AND .Mantissa <> ? THEN
+  Action.Order().AddRequest("B_ALZ_RATIO_ABETA42_40", ?, ?);
+ENDIF;
+
+/* INTERDIT pour un résultat lié : */
+/* .Specimen.Result("B_PROT_BETA_AMYL", ?, ?)  ← FAUX */
+/* .Order.Result("B_PROT_BETA_AMYL", ?, ?)     ← FAUX */
+```
 
 ### Result.ReportedNonconformity() → Nonconformity
 NC associée au résultat (pour modules de texte basés sur Result).
