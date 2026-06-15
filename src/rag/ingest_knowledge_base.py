@@ -186,12 +186,21 @@ def _extract_section_metadata(title: str, content: str, fm: dict) -> dict:
         "Types", "Déclaration", "Instructions", "Opérateurs", "Valeur",
         "Exemple", "Usage", "Notes", "Note", "Attention", "Signature", "Syntaxe",
         "Fonctions", "Anti", "Overview",
+        # Mots FR courts ressemblant à des identifiants (faux positifs courts)
+        "Lot", "PIN", "Si", "Et", "Ou", "Ce", " Il",
     }
     first_word = title.split()[0].rstrip("()") if title else ""
-    # Vrai nom de fonction : PascalCase avec au moins une lettre minuscule suivant une majuscule
-    # ex: AddRequest ✓, NumericValue ✓, Les ✗, Navigation ✗
-    is_pascal = bool(re.search(r"[A-Z][a-z][A-Za-z0-9]+", first_word))
-    if first_word and first_word not in _NOT_FN_WORDS and is_pascal and len(first_word) > 3:
+    # Identifiant MISPL valide : commence par majuscule, alphanum/underscore.
+    # On NE filtre PLUS sur len > 3 : sinon Abs, Chr, Len, Now, Ord, Exp, Log
+    # (vraies fonctions math/string MISPL) étaient perdues → pas d'exact-match,
+    # absentes de known_functions, recall FR dégradé sur ces fonctions courantes.
+    is_identifier = bool(re.fullmatch(r"[A-Z][A-Za-z0-9_]*", first_word))
+    # Signal anti-faux-positif : un vrai titre de fonction porte une **Signature**
+    # ou est PascalCase long (>3). Les mots FR courts (Cas, Les, Lot, PIN) sont
+    # exclus par _NOT_FN_WORDS + absence de signature.
+    is_pascal_long = bool(re.search(r"[A-Z][a-z][A-Za-z0-9]+", first_word)) and len(first_word) > 3
+    looks_like_fn = is_identifier and (has_signature or is_pascal_long)
+    if first_word and first_word not in _NOT_FN_WORDS and looks_like_fn:
         fn_name = first_word
 
     # Extraire signature depuis le contenu
@@ -257,8 +266,15 @@ def _extract_section_metadata(title: str, content: str, fm: dict) -> dict:
 def _build_bm25_text(chunk_text: str, meta: dict, fm: dict) -> str:
     """
     Texte BM25 enrichi pour le corpus JSON.
-    Stratégie identique à build_vectorstore.py :
-      texte original + function_name x3 + keywords_fr + tags + anti_hallucination
+      texte original + function_name x3 + signature (+ frontmatter file-level
+      UNIQUEMENT pour les sections sans fonction = intro/concept).
+
+    IMPORTANT — anti-contamination : keywords_fr/tags/anti_hallucination du
+    frontmatter sont au niveau FICHIER. Les injecter dans CHAQUE section faisait
+    hériter à toutes les fonctions d'un fichier le sac de mots-clés global
+    (ex: CreateNationalNumber héritait "envoyer email médecin" + "identification
+    patient" → remontait en #1 sur des requêtes email/utilisateur sans rapport).
+    On ne les injecte donc que dans les sections concept (sans function_name).
     """
     parts = [chunk_text]
 
@@ -269,18 +285,16 @@ def _build_bm25_text(chunk_text: str, meta: dict, fm: dict) -> str:
         sub = re.findall(r"[A-Z][a-z0-9]+", fn)
         if sub:
             parts.append(" ".join(sub) * 2)
+    else:
+        # Section concept/intro : les mots-clés fichier sont alors pertinents
+        kw = fm.get("keywords_fr", [])
+        if isinstance(kw, list):
+            parts.extend(str(k) for k in kw)
+        tags = fm.get("tags", [])
+        if isinstance(tags, list):
+            parts.append(" ".join(str(t) for t in tags))
 
-    # Mots-clés français → recall queries utilisateur
-    kw = fm.get("keywords_fr", [])
-    if isinstance(kw, list):
-        parts.extend(str(k) for k in kw)
-
-    # Tags techniques
-    tags = fm.get("tags", [])
-    if isinstance(tags, list):
-        parts.append(" ".join(str(t) for t in tags))
-
-    # Anti-hallucinations dans BM25 pour détecter les mauvais noms
+    # Anti-hallucinations : utiles partout (détecter les mauvais noms de fonction)
     anti = fm.get("anti_hallucination", [])
     if isinstance(anti, list):
         parts.extend(str(a) for a in anti)
@@ -348,6 +362,10 @@ def ingest_knowledge_base(
                 continue
 
             meta = _extract_section_metadata(section_title, section_content, fm)
+            # Chemin fichier relatif KB → permet de citer la source précise dans
+            # le contexte LLM (avant : source ChromaDB = "rag_knowledge_base" pour
+            # tous les chunks, granularité fichier perdue côté dense).
+            meta["source_file"] = str(md_path.relative_to(KB_ROOT)).replace("\\", "/")
             bm25_text = _build_bm25_text(section_content, meta, fm)
 
             # ID déterministe : hash (fichier + titre section)
@@ -456,6 +474,7 @@ def ingest_knowledge_base(
             "text": c["bm25_text"],        # texte enrichi pour BM25
             "function_name": c["metadata"]["function_name"],
             "source": c["metadata"]["source"] + "/" + c["file"],
+            "source_file": c["metadata"]["source_file"],
             "section": c["section"],
             "return_type": c["metadata"]["return_type"],
             "signature": c["metadata"]["signature"],

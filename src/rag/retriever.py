@@ -341,6 +341,31 @@ _FN_SYNONYMS: dict[str, list[str]] = {
 }
 
 
+# Beaucoup de clés _FN_SYNONYMS sont qualifiées (OrderAddRequest, ResultNumericValue,
+# ObjectAge…) alors que le function_name extrait du KB est NU (AddRequest, NumericValue,
+# Age). Sans remap, 141/198 entrées de synonymes ne se déclenchaient JAMAIS → recall FR
+# mort sur les fonctions table-spécifiques. On agrège ici les synonymes par nom nu.
+_TABLE_PREFIXES = (
+    "Order", "Result", "Specimen", "Object", "Action", "Person", "Station",
+    "Correspondent", "Request", "WorkList", "User", "Encounter", "Mcra",
+    "Diagnosis", "BloodBag",
+)
+
+def _bare_fn_name(name: str) -> str:
+    """OrderAddRequest → AddRequest ; ResultNumericValue → NumericValue ; Abs → Abs."""
+    for p in _TABLE_PREFIXES:
+        if name.startswith(p) and len(name) > len(p) and name[len(p)].isupper():
+            return name[len(p):]
+    return name
+
+_FN_SYNONYMS_BARE: dict[str, list[str]] = {}
+for _k, _v in _FN_SYNONYMS.items():
+    _FN_SYNONYMS_BARE.setdefault(_k, []).extend(_v)
+    _bare = _bare_fn_name(_k)
+    if _bare != _k:
+        _FN_SYNONYMS_BARE.setdefault(_bare, []).extend(_v)
+
+
 def _enrich_bm25_text(chunk: dict) -> str:
     """
     Construit le texte BM25 enrichi :
@@ -358,8 +383,8 @@ def _enrich_bm25_text(chunk: dict) -> str:
         sub = re.findall(r"[A-Z][a-z0-9]+", fn)
         if sub:
             parts.append(" ".join(sub) * 2)
-        # Synonymes FR/EN
-        syns = _FN_SYNONYMS.get(fn, [])
+        # Synonymes FR/EN — lookup sur nom nu (couvre les variantes table-qualifiées)
+        syns = _FN_SYNONYMS_BARE.get(fn, []) or _FN_SYNONYMS.get(fn, [])
         for s in syns:
             parts.append(s)
     sig = chunk.get("signature", "")
@@ -513,6 +538,33 @@ _INTENT_EXPANSIONS: list[tuple[list[str], str]] = [
       "envoyer alerte", "prevenir prescripteur", "informer prescripteur",
       "issuer email", "issuer mail", "issuer sendmail"],
      "SendMail Correspondent.SendMail sc_User.SendMail MailPriority From To Subject Issuer GetCorrespondent"),
+    # Math — expansions ciblées (une fonction dominante par intent, pas un sac)
+    (["arrondir", "arrondi", "round"],
+     "Round Round Round arrondir arrondi decimal"),
+    (["valeur absolue", "abs "],
+     "Abs Abs Abs Fabs valeur absolue positif"),
+    (["racine carree", "square root", "sqrt"],
+     "Sqrt Sqrt Sqrt racine carree"),
+    (["puissance", "exposant", "exp ", "exponentielle"],
+     "Exp Exp Exp puissance exposant exponentielle"),
+    (["logarithme", "log naturel", "log decimal"],
+     "Log Log10 logarithme"),
+    (["tronquer nombre", "truncate", "partie entiere"],
+     "Truncate Truncate tronquer partie entiere"),
+    (["modulo", "reste division", "fmod"],
+     "Fmod Fmod modulo reste division"),
+    # Longueur / taille de chaîne (Len court — exact-match rare en FR)
+    (["longueur chaine", "taille chaine", "nombre de caracteres", "len ",
+      "longueur du texte", "compter caracteres", "longueur d une chaine"],
+     "Len Len Len Len longueur chaine caracteres taille nombre"),
+    # Code ASCII ↔ caractère
+    (["code ascii", "caractere ascii", "ordinal caractere", "chr ", "ord ",
+      "convertir code en caractere", "caractere depuis code"],
+     "Chr Ord ascii ordinal caractere code"),
+    # Date / heure courante
+    (["date du jour", "date aujourd hui", "aujourd hui", "jour courant",
+      "date courante", "heure courante", "maintenant", "today", "now"],
+     "Today Today Now date du jour aujourd hui heure courante maintenant"),
     # Formatter date
     (["formater date", "format date", "afficher date", "datetostring", "strftime"],
      "DateToString DateTimeToString format %d %m %Y Today Now"),
@@ -634,9 +686,12 @@ _INTENT_EXPANSIONS: list[tuple[list[str], str]] = [
      "Result.Escalate Escalate escalade critique"),
 
     # Jours fériés / urgence
-    (["jour ferie", "jour ferié", "holiday", "urgence", "isholiday",
-      "specimen urgency", "urgency specimen"],
-     "IsHoliday holiday Specimen.Attribute Urgency urgence"),
+    (["jour ferie", "jour ferié", "holiday", "isholiday", "ferie", "vacances",
+      "jour chome", "calendrier ferie"],
+     "IsHoliday IsHoliday IsHoliday holiday jour ferie calendrier"),
+    (["urgence specimen", "isholiday specimen", "specimen urgency", "urgency specimen",
+      "echantillon urgent", "urgence echantillon"],
+     "Specimen.Attribute Urgency urgence echantillon"),
 
     # Microbiologie — comptage plaques / isolements
     (["compter plaques", "carrier count", "isolation count", "compter isolements",
@@ -739,6 +794,13 @@ def _fuzzy_trigger_match(trigger: str, query_norm: str, min_len: int = 6) -> boo
     """Matching flou : substring exact + préfixe 80% (absorbe troncatures/fautes finales)."""
     if trigger in query_norm:
         return True
+    # Le prefix-fuzzy 80% est réservé aux triggers MONO-MOT. Sur un trigger
+    # multi-mots, 80% du préfixe tombe sur le 1er mot et matchait n'importe
+    # quelle requête le contenant (ex: "extraire ipp" → matchait "extraire une
+    # sous-chaine" et injectait l'expansion IPP/Identification, qui écrasait
+    # Substr). On n'autorise donc le fuzzy que pour un mot unique.
+    if " " in trigger:
+        return False
     if len(trigger) >= min_len:
         prefix_len = max(min_len, int(len(trigger) * 0.8))
         if trigger[:prefix_len] in query_norm:
@@ -803,7 +865,7 @@ class MISPLRetriever:
                 "text": results["documents"][0][i],
                 "score": float(1.0 - results["distances"][0][i]),
                 **{k: results["metadatas"][0][i].get(k, "") for k in [
-                    "source", "section", "doc_title", "function_name",
+                    "source", "source_file", "section", "doc_title", "function_name",
                     "return_type", "signature", "category", "priority",
                     "has_examples", "is_table_independent",
                 ]},
@@ -826,6 +888,7 @@ class MISPLRetriever:
                 "text": c["text"],
                 "score": float(scores[idx]),
                 "source": c.get("source", ""),
+                "source_file": c.get("source_file", ""),
                 "section": c.get("section", ""),
                 "doc_title": c.get("source", ""),
                 "function_name": c.get("function_name", ""),
@@ -997,7 +1060,8 @@ class MISPLRetriever:
                 header_parts.append(f"Fonction : {doc['function_name']}")
             if doc.get("return_type"):
                 header_parts.append(f"Type : {doc['return_type']}")
-            header_parts.append(f"Source : {doc.get('source', '?')} — {doc.get('section', '?')}")
+            src = doc.get("source_file") or doc.get("source", "?")
+            header_parts.append(f"Source : {src} — {doc.get('section', '?')}")
             header_parts.append(f"Score : {doc.get('score', 0):.3f}")
 
             if doc.get("signature"):

@@ -1,14 +1,14 @@
 {
-  "version": "1.1",
+  "version": "1.2",
   "created": "2026-06-04",
-  "updated": "2026-06-04",
+  "updated": "2026-06-10",
   "method": "clean_room_reverse_engineering",
   "proxy_language": "Progress ABL / OpenEdge",
   "total_concepts": 563,
   "total_table_specific": 441,
   "total_independent": 122,
   "total_tables_with_mispl": 76,
-  "md_files": 25,
+  "md_files": 38,
   "audit_fixes": ["R1_ResultAttribute_is_valid_shorthand", "R2_declaration_order", "R3_frontmatter_enriched", "R4_CascadeRequest_not_deprecated", "R5_validate_method_added", "R6_Status_field_documented", "R7_GetSiteAttribute_3params", "R8_interactive_functions_added", "R9_shared_variables_added"],
   "structure": {
     "01_core_syntax": {
@@ -108,12 +108,5 @@
       "NewOrder": "IMPOSSIBLE",
       "FRACTIONAL PROGRAM": "Type de programme incorrect — utiliser DECIMAL PROGRAM ou LOGICAL PROGRAM"
     }
-  },
-  "eln_2022_constants": {
-    "LOD": "0.009% (9e-5)",
-    "LOQ": "0.005% (5e-5)",
-    "NBM_freq_max": "1.1%",
-    "fold_change": "1.9x",
-    "min_events_per_node": 17
   }
 }

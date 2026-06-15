@@ -78,5 +78,5 @@ Les fiches du répertoire `02_functions/` ont été rédigées selon la méthode
 3. Rédaction entièrement nouvelle basée sur les analogies Progress ABL et l'algorithmie standard.
 4. Validation par expertise technique (exécution du code), non par comparaison avec le manuel.
 
-**Responsable de la rédaction** : Florian Magne — florian.magne40@chu-limoges.fr 
+**Responsable de la rédaction** : Florian Magne — florian.magne@chu-limoges.fr 
 **Date** : 2026-06-04

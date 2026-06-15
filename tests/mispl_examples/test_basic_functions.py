@@ -33,9 +33,10 @@ class TestRAGRetrieval:
     def test_string_functions_retrieved(self, retriever):
         """Substr, Index, Len doivent apparaître pour une question sur les chaînes."""
         docs = retriever.query("comment extraire une sous-chaîne en MISPL ?", top_k=5)
-        sources = [d["source"] for d in docs]
+        # KB migrée HTML→Markdown : la source est désormais string_functions.md
+        sources = [(d.get("source_file") or d.get("source") or "").lower() for d in docs]
         texts = " ".join([d["text"] for d in docs]).lower()
-        assert any("function_string" in s for s in sources), "function_string.htm non retrouvé"
+        assert any("string_function" in s for s in sources), "string_functions.md non retrouvé"
         assert "substr" in texts or "index" in texts, "Fonctions string non retrouvées dans les chunks"
 
     def test_date_functions_retrieved(self, retriever):
