@@ -37,7 +37,9 @@ except ImportError:
 # ── Monitoring ressources — démarre le relevé CPU/RAM/disque/réseau/GPU en
 # tâche de fond dès le lancement. Le rapport Plotly HTML est écrit à l'arrêt
 # (atexit) dans outputs/monitoring/. Désactivable via MISPL_MONITOR=0.
-@st.cache_resource(show_spinner=False)
+# NB : PAS de @st.cache_resource ici — start_monitoring() est déjà idempotent
+# (singleton interne). Le décorateur forçait inspect.getsource() sur le module,
+# ce qui plantait le tokenizer (TokenError EOF in multi-line string).
 def _start_resource_monitor():
     if os.environ.get("MISPL_MONITOR", "1") == "0":
         return None
