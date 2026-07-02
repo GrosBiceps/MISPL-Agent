@@ -34,6 +34,22 @@ try:
 except ImportError:
     pass
 
+# ── Monitoring ressources — démarre le relevé CPU/RAM/disque/réseau/GPU en
+# tâche de fond dès le lancement. Le rapport Plotly HTML est écrit à l'arrêt
+# (atexit) dans outputs/monitoring/. Désactivable via MISPL_MONITOR=0.
+@st.cache_resource(show_spinner=False)
+def _start_resource_monitor():
+    if os.environ.get("MISPL_MONITOR", "1") == "0":
+        return None
+    try:
+        from src.utils.resource_monitor import start_monitoring
+        return start_monitoring()
+    except Exception as e:  # jamais bloquer l'appli pour du monitoring
+        logging.getLogger(__name__).warning(f"Monitoring ressources indisponible : {e}")
+        return None
+
+_start_resource_monitor()
+
 st.set_page_config(
     page_title="MISPL Agent",
     page_icon=None,
@@ -323,6 +339,44 @@ with st.expander("Parametres", expanded=False):
     if _err:
         with st.expander("Erreur import agent"):
             st.code(_err, language="text")
+
+    # ── Monitoring ressources ─────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("**Ressources machine**")
+    _mon = _start_resource_monitor()
+    if _mon is None:
+        st.caption("Monitoring désactivé (MISPL_MONITOR=0) ou indisponible.")
+    else:
+        try:
+            import psutil
+            _vm = psutil.virtual_memory()
+            mc1, mc2, mc3 = st.columns(3)
+            mc1.metric("CPU", f"{psutil.cpu_percent():.0f}%")
+            mc2.metric("RAM", f"{_vm.percent:.0f}%", f"{_vm.used/1024/1024/1024:.1f} Go")
+            try:
+                import GPUtil
+                _g = GPUtil.getGPUs()
+                if _g:
+                    mc3.metric("GPU", f"{_g[0].load*100:.0f}%", f"{_g[0].memoryUsed:.0f} Mo VRAM")
+                else:
+                    mc3.metric("GPU", "—")
+            except Exception:
+                mc3.metric("GPU", "—")
+        except Exception:
+            pass
+        st.caption(f"Relevé continu · {len(_mon._samples)} points collectés.")
+        if st.button("Générer le rapport ressources (Plotly HTML)"):
+            _report = _mon._write_report()
+            if _report:
+                st.success(f"Rapport écrit : {_report}")
+                try:
+                    with open(_report, "rb") as _f:
+                        st.download_button("Télécharger le rapport HTML", _f,
+                                           file_name=_report.name, mime="text/html")
+                except Exception:
+                    pass
+            else:
+                st.warning("Aucune donnée collectée pour le moment.")
 
 
 # ── Header ────────────────────────────────────────────────────────────────────

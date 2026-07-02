@@ -31,6 +31,9 @@ chroma.sqlite3
 outputs/sessions/
 outputs/cache/
 outputs/*.json
+# Rapports de monitoring ressources (données machine locales, régénérables)
+outputs/monitoring/*.html
+outputs/monitoring/*.json
 
 # ── Binaires lourds ─────────────────────────────────────────────────────────
 *.mp4
