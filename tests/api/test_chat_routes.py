@@ -1,6 +1,6 @@
 """Tests de la route /chat/ask — auth requise, DLP, dérivation du mode d'accès, erreurs LLM."""
 
-from api.models import User
+from api.models import Conversation, Message, User
 from api.security import hash_password
 import api.routers.chat as chat_router
 
@@ -208,3 +208,84 @@ class TestLLMError:
 
         resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
         assert resp.status_code == 503
+
+
+class TestConversationPersistence:
+    def test_creates_new_conversation_when_none_provided(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("Voici la réponse", []))
+
+        resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["conversation_id"] is not None
+
+        db = db_session_factory()
+        conv = db.get(Conversation, body["conversation_id"])
+        assert conv is not None
+        assert conv.title == "Comment utiliser Substr ?"
+        messages = db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.id).all()
+        assert len(messages) == 2
+        assert messages[0].role == "user"
+        assert messages[0].content == "Comment utiliser Substr ?"
+        assert messages[1].role == "assistant"
+        assert messages[1].content == "Voici la réponse"
+
+    def test_reuses_provided_conversation_id(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("réponse 1", []))
+        first = client.post("/chat/ask", json={"question": "Question initiale ?"})
+        conversation_id = first.json()["conversation_id"]
+
+        monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("réponse 2", []))
+        second = client.post(
+            "/chat/ask",
+            json={"question": "Question suivante ?", "conversation_id": conversation_id},
+        )
+        assert second.status_code == 200
+        assert second.json()["conversation_id"] == conversation_id
+
+        db = db_session_factory()
+        messages = db.query(Message).filter(Message.conversation_id == conversation_id).order_by(Message.id).all()
+        assert len(messages) == 4
+
+    def test_conversation_id_owned_by_other_user_returns_404(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory, email="a@labo.fr")
+        make_user(db_session_factory, email="b@labo.fr")
+
+        db = db_session_factory()
+        owner = db.query(User).filter(User.email == "a@labo.fr").one()
+        other_conv = Conversation(user_id=owner.id, title="Conversation de A")
+        db.add(other_conv)
+        db.commit()
+        other_conv_id = other_conv.id
+
+        login(client, email="b@labo.fr")
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("ok", []))
+
+        resp = client.post(
+            "/chat/ask",
+            json={"question": "Question ?", "conversation_id": other_conv_id},
+        )
+        assert resp.status_code == 404
+
+    def test_blocked_dlp_message_does_not_create_conversation(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (True, ["IPP/NIP patient"]))
+        monkeypatch.setattr(chat_router, "ask_mispl", lambda *a, **kw: ("ne doit jamais arriver", []))
+
+        resp = client.post("/chat/ask", json={"question": "IPP:1234567 quoi faire ?"})
+        assert resp.status_code == 200
+        assert resp.json()["conversation_id"] is None
+
+        db = db_session_factory()
+        assert db.query(Conversation).count() == 0
