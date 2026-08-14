@@ -1,8 +1,9 @@
 import ReactMarkdown from "react-markdown";
 import { SourceOut } from "../lib/api";
-import { ASSISTANT_AVATAR, svgAvatar } from "../lib/avatar";
 import { extractCertainty } from "../lib/certainty";
 import CodeBlock from "./CodeBlock";
+import AssistantAvatarIcon from "./AssistantAvatarIcon";
+import UserAvatarBadge from "./UserAvatarBadge";
 
 interface Props {
   role: "user" | "assistant";
@@ -11,8 +12,6 @@ interface Props {
   warning?: string[];
   userInitials?: string;
 }
-
-const avatarStyle = { width: 32, height: 32, borderRadius: "50%", flexShrink: 0 } as const;
 
 const CERTAINTY_LABEL: Record<string, string> = {
   certain: "✅ Certain",
@@ -33,8 +32,8 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
         <span
           style={{
             display: "inline-block",
-            background: "#5a6656",
-            color: "#fff",
+            background: "var(--accent-solid)",
+            color: "var(--accent-solid-text)",
             padding: "10px 14px",
             borderRadius: "12px 12px 3px 12px",
             maxWidth: "80%",
@@ -43,7 +42,7 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
         >
           {content}
         </span>
-        <img src={svgAvatar("#6f7d6a", "#ffffff", userInitials || "?")} alt="" style={avatarStyle} />
+        <UserAvatarBadge initials={userInitials || "?"} />
       </div>
     );
   }
@@ -52,7 +51,7 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
 
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "12px 0" }}>
-      <img src={ASSISTANT_AVATAR} alt="" style={avatarStyle} />
+      <AssistantAvatarIcon />
       <div style={{ flex: 1, minWidth: 0 }}>
         {warning && warning.length > 0 && (
           <div className="warning-banner">
