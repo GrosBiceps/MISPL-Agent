@@ -1,24 +1,4 @@
 {
-  "project": {
-    "name": "MISPL Agent — Assistant IA pour GLIMS/Clinisys",
-    "domain": "laboratoire de biologie médicale, SIL GLIMS, langage MISPL, règles métiers",
-    "language": "fr",
-    "version": "1.0.0"
-  },
-  "response": {
-    "format": "structured",
-    "citationsRequired": true,
-    "outputStyle": "technical",
-    "thinkingMode": true,
-    "certitudeLevel": true
-  },
-  "rag": {
-    "vectorstore": "docs/chunks/vectorstore",
-    "embeddingModel": "text-embedding-3-small",
-    "chunkSize": 800,
-    "chunkOverlap": 150,
-    "topK": 5
-  },
   "permissions": {
     "allow": [
       "Bash(python src/rag/*.py*)",
@@ -44,5 +24,40 @@
       "Bash(rm -rf*)",
       "Bash(git push --force*)"
     ]
+  },
+  "enabledPlugins": {
+    "commercial-legal@claude-for-legal": true,
+    "corporate-legal@claude-for-legal": true,
+    "privacy-legal@claude-for-legal": true,
+    "employment-legal@claude-for-legal": true,
+    "product-legal@claude-for-legal": true,
+    "ip-legal@claude-for-legal": true,
+    "ai-governance-legal@claude-for-legal": true,
+    "legal-clinic@claude-for-legal": true,
+    "law-student@claude-for-legal": true,
+    "legal-builder-hub@claude-for-legal": true,
+    "litigation-legal@claude-for-legal": true,
+    "skill-creator@claude-plugins-official": true,
+    "regulatory-legal@claude-for-legal": true
+  },
+  "project": {
+    "name": "MISPL Agent — Assistant IA pour GLIMS/Clinisys",
+    "domain": "laboratoire de biologie médicale, SIL GLIMS, langage MISPL, règles métiers",
+    "language": "fr",
+    "version": "1.0.0"
+  },
+  "response": {
+    "format": "structured",
+    "citationsRequired": true,
+    "outputStyle": "technical",
+    "thinkingMode": true,
+    "certitudeLevel": true
+  },
+  "rag": {
+    "vectorstore": "docs/chunks/vectorstore",
+    "embeddingModel": "text-embedding-3-small",
+    "chunkSize": 800,
+    "chunkOverlap": 150,
+    "topK": 5
   }
 }

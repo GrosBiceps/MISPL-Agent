@@ -1,4 +1,4 @@
-# SOURCES.md — Registre de traçabilité juridique
+# SOURCES.md - Registre de traçabilité juridique
 
 ## Méthode appliquée : Clean Room Reverse-Engineering
 
@@ -38,9 +38,10 @@ Ce corpus RAG a été constitué exclusivement par **rétro-ingénierie fonction
 
 | Ressource | URL | Type |
 |-----------|-----|------|
-| Progress ABL Reference | https://docs.progress.com/bundle/openedge-abl-reference | Public, open-source docs |
-| Progress OpenEdge 12 | https://docs.progress.com/bundle/openedge-abl-prog-guide | Public |
-| ABL Cheatsheet (community) | https://www.consultingwerk.com/sites/default/files/ABL-Cheat-Sheet.pdf | Public |
+| Progress ABL Reference | https://docs.progress.com/bundle/abl-reference/page/ABL-Syntax-Reference.html | Public, documentation officielle Progress |
+| Progress OpenEdge, guide de développement ABL | https://docs.progress.com/bundle/openedge-develop-abl-applications/page/Introduction-to-ABL.html | Public, documentation officielle Progress |
+| ABL Coding Standards (Consultingwerk) | https://github.com/consultingwerk/ABL-Coding-Standards | Public, dépôt GitHub |
+
 
 **Date d'extraction de la logique fonctionnelle** : 2026-06-04
 
@@ -73,10 +74,10 @@ Usage : Exemples de cas d'utilisation uniquement (section `03_chu_use_cases/`).
 ## 4. Déclaration de non-plagiat
 
 Les fiches du répertoire `02_functions/` ont été rédigées selon la méthode **Clean Room** :
-1. Extraction des faits bruts (signature, comportement algorithmique) depuis le manuel source.
+1. Extraction des faits bruts (signature, comportement algorithmique) depuis le manuel source retapé à la main.
 2. **Destruction immédiate** de la formulation textuelle originale.
 3. Rédaction entièrement nouvelle basée sur les analogies Progress ABL et l'algorithmie standard.
 4. Validation par expertise technique (exécution du code), non par comparaison avec le manuel.
 
 **Responsable de la rédaction** : Florian Magne — florian.magne@chu-limoges.fr 
-**Date** : 2026-06-04
+**Date** : 2026-04-06

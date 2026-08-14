@@ -37,7 +37,10 @@ except ImportError:
 # ── Monitoring ressources — démarre le relevé CPU/RAM/disque/réseau/GPU en
 # tâche de fond dès le lancement. Le rapport Plotly HTML est écrit à l'arrêt
 # (atexit) dans outputs/monitoring/. Désactivable via MISPL_MONITOR=0.
-@st.cache_resource(show_spinner=False)
+# NB : PAS de @st.cache_resource ici — start_monitoring() est déjà idempotent
+# (singleton _MONITOR), et le décorateur placé avant le bloc _CSS plus bas
+# fait planter inspect.getsource (Streamlit lit le code source en avant et
+# tombe dans le triple-quote CSS).
 def _start_resource_monitor():
     if os.environ.get("MISPL_MONITOR", "1") == "0":
         return None
