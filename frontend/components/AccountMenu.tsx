@@ -50,7 +50,7 @@ export default function AccountMenu({ displayName, onLogout }: Props) {
           width: "100%",
           background: "transparent",
           border: "none",
-          padding: "6px 4px",
+          padding: "6px 0",
           color: "var(--ink-soft)",
           fontFamily: "var(--sans)",
         }}
@@ -129,7 +129,18 @@ export default function AccountMenu({ displayName, onLogout }: Props) {
               />
             ))}
           </div>
-          <button className="ghost" onClick={onLogout} style={{ width: "100%", textAlign: "left", padding: "8px 0" }}>
+          <button
+            onClick={onLogout}
+            style={{
+              width: "100%",
+              textAlign: "left",
+              padding: "8px 0",
+              background: "transparent",
+              border: "none",
+              color: "var(--accent-text)",
+              fontSize: 13.5,
+            }}
+          >
             Déconnexion
           </button>
         </div>
