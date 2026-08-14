@@ -49,6 +49,7 @@ export default function ChatPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarError, setSidebarError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getMe()
@@ -204,31 +205,40 @@ export default function ChatPage() {
         onDelete={handleDeleteConversation}
         onLogout={handleLogout}
       />
-      <main className="chat-main">
+      <main
+        className="chat-main"
+        onWheel={(e) => {
+          const area = scrollAreaRef.current;
+          if (!area || area.contains(e.target as Node)) return;
+          area.scrollTop += e.deltaY;
+        }}
+      >
         <div className="chat-content">
-          <header className="chat-header-sticky" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, paddingBottom: 4 }}>
+          <header style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, flexShrink: 0 }}>
             <h1 style={{ fontSize: 22 }}>Assistant MISPL</h1>
             <BetaBadge />
           </header>
 
-          {messages.length === 0 && !loading ? (
-            <EmptyState examples={EXAMPLES} onPick={handleAsk} />
-          ) : (
-            <div>
-              {messages.map((m, i) => (
-                <ChatMessage
-                  key={i}
-                  role={m.role}
-                  content={m.content}
-                  sources={m.sources}
-                  warning={m.warning}
-                  userInitials={getInitials(user.display_name)}
-                />
-              ))}
-              {loading && <ThinkingIndicator />}
-              <div ref={bottomRef} />
-            </div>
-          )}
+          <div className="chat-scroll-area" ref={scrollAreaRef}>
+            {messages.length === 0 && !loading ? (
+              <EmptyState examples={EXAMPLES} onPick={handleAsk} />
+            ) : (
+              <div>
+                {messages.map((m, i) => (
+                  <ChatMessage
+                    key={i}
+                    role={m.role}
+                    content={m.content}
+                    sources={m.sources}
+                    warning={m.warning}
+                    userInitials={getInitials(user.display_name)}
+                  />
+                ))}
+                {loading && <ThinkingIndicator />}
+                <div ref={bottomRef} />
+              </div>
+            )}
+          </div>
 
           <div className="sticky-input-bar">
             <div className="card">
