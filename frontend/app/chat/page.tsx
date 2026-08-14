@@ -143,6 +143,7 @@ export default function ChatPage() {
   }
 
   async function handleSelectConversation(id: number) {
+    if (loading) return;
     if (id === activeConversationId) return;
     try {
       const detail = await getConversation(id);
@@ -164,6 +165,7 @@ export default function ChatPage() {
   }
 
   async function handleDeleteConversation(id: number) {
+    if (loading) return;
     try {
       await deleteConversation(id);
       setConversations((prev) => prev.filter((c) => c.id !== id));

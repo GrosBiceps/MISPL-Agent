@@ -36,6 +36,14 @@ export default function ConversationSidebar({
         >
           »
         </button>
+        <button
+          className="ghost conv-sidebar-toggle"
+          onClick={onNew}
+          aria-label="Nouvelle conversation"
+          style={{ marginTop: 8 }}
+        >
+          +
+        </button>
       </aside>
     );
   }

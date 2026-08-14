@@ -11,6 +11,13 @@ function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+// Le backend sérialise des timestamps naïfs (sans offset), ex. "2026-08-13T22:30:00.123456".
+// new Date() interprèterait cette chaîne comme heure locale au lieu d'UTC — on force l'UTC ici.
+function parseAsUtc(isoString: string): Date {
+  const hasOffset = /Z$|[+-]\d{2}:\d{2}$/.test(isoString);
+  return new Date(hasOffset ? isoString : `${isoString}Z`);
+}
+
 export function groupConversationsByDate(
   conversations: ConversationSummary[],
   now: Date = new Date()
@@ -29,7 +36,7 @@ export function groupConversationsByDate(
   };
 
   for (const conv of conversations) {
-    const updated = new Date(conv.updated_at);
+    const updated = parseAsUtc(conv.updated_at);
     if (updated >= today) {
       buckets["Aujourd'hui"].push(conv);
     } else if (updated >= yesterday) {
