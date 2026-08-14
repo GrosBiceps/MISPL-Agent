@@ -112,6 +112,44 @@ class TestSuccessfulAsk:
         assert "Analyseur Cobas c702" in captured["question"]
         assert "Formater la date ?" in captured["question"]
 
+    def test_non_blocking_dlp_alerts_are_returned(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+
+        monkeypatch.setattr(
+            chat_router, "dlp_check", lambda text: (False, ["Date suspecte", "Nom potentiel"])
+        )
+        monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("ok", []))
+
+        resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["blocked"] is False
+        assert body["dlp_alerts"] == ["Date suspecte", "Nom potentiel"]
+
+    def test_conversation_history_passed_to_ask_mispl(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+
+        captured = {}
+
+        def fake_ask_mispl(question, **kwargs):
+            captured.update(kwargs)
+            return "ok", []
+
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "ask_mispl", fake_ask_mispl)
+
+        history = [
+            {"role": "user", "content": "Comment utiliser Substr ?"},
+            {"role": "assistant", "content": "Voici la syntaxe..."},
+        ]
+        client.post(
+            "/chat/ask",
+            json={"question": "Et pour Trim ?", "conversation_history": history},
+        )
+        assert captured["conversation_history"] == history
+
 
 class TestLLMError:
     def test_ask_mispl_exception_returns_503(self, client, db_session_factory, monkeypatch):
