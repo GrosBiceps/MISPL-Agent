@@ -111,6 +111,40 @@ class TestUpdateUser:
         resp = client.patch(f"/admin/users/{admin_id}", json={"is_active": False})
         assert resp.status_code == 409
 
+    def test_invalid_platform_role_on_last_admin_returns_422_not_409(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+        db = db_session_factory()
+        admin = db.query(User).filter(User.email == "admin@labo.fr").one()
+        admin_id = admin.id
+        db.close()
+        resp = client.patch(f"/admin/users/{admin_id}", json={"platform_role": "superadmin"})
+        assert resp.status_code == 422
+
+    def test_can_demote_admin_when_another_active_admin_remains(self, client, db_session_factory):
+        make_admin(db_session_factory, email="admin@labo.fr")
+        make_admin(db_session_factory, email="admin2@labo.fr")
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+        db = db_session_factory()
+        admin2 = db.query(User).filter(User.email == "admin2@labo.fr").one()
+        admin2_id = admin2.id
+        db.close()
+        resp = client.patch(f"/admin/users/{admin2_id}", json={"platform_role": "user"})
+        assert resp.status_code == 200
+        assert resp.json()["platform_role"] == "user"
+
+    def test_can_deactivate_admin_when_another_active_admin_remains(self, client, db_session_factory):
+        make_admin(db_session_factory, email="admin@labo.fr")
+        make_admin(db_session_factory, email="admin2@labo.fr")
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+        db = db_session_factory()
+        admin2 = db.query(User).filter(User.email == "admin2@labo.fr").one()
+        admin2_id = admin2.id
+        db.close()
+        resp = client.patch(f"/admin/users/{admin2_id}", json={"is_active": False})
+        assert resp.status_code == 200
+        assert resp.json()["is_active"] is False
+
 
 class TestResetPassword:
     def test_reset_generates_new_temp_password(self, client, db_session_factory):

@@ -80,6 +80,9 @@ def update_user(
 ):
     user = _get_user_or_404(db, user_id)
 
+    if payload.platform_role is not None and payload.platform_role not in ("admin", "user"):
+        raise HTTPException(status_code=422, detail="platform_role doit être 'admin' ou 'user'")
+
     would_demote = (
         payload.platform_role is not None
         and payload.platform_role != "admin"
@@ -95,8 +98,6 @@ def update_user(
     if payload.display_name is not None:
         user.display_name = payload.display_name
     if payload.platform_role is not None:
-        if payload.platform_role not in ("admin", "user"):
-            raise HTTPException(status_code=422, detail="platform_role doit être 'admin' ou 'user'")
         user.platform_role = payload.platform_role
     if payload.can_use_dsi_mode is not None:
         user.can_use_dsi_mode = payload.can_use_dsi_mode
