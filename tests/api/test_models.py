@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from api.db import Base
-from api.models import User, UserSession
+from api.models import Conversation, Message, User, UserSession
 
 
 def make_session():
@@ -67,3 +67,65 @@ class TestUserSessionModel:
         assert fetched.revoked_at is None
         assert fetched.user.email == "tech2@labo.fr"
         assert user.sessions[0].token == "tok-abc123"
+
+
+class TestConversationModel:
+    def test_create_conversation_linked_to_user(self):
+        db = make_session()
+        user = User(email="tech3@labo.fr", password_hash="h", display_name="Tech Trois", platform_role="user")
+        db.add(user)
+        db.commit()
+
+        conv = Conversation(user_id=user.id, title="Comment utiliser Substr ?")
+        db.add(conv)
+        db.commit()
+
+        fetched = db.query(Conversation).filter(Conversation.user_id == user.id).one()
+        assert fetched.title == "Comment utiliser Substr ?"
+        assert fetched.messages == []
+
+
+class TestMessageModel:
+    def test_create_messages_linked_to_conversation(self):
+        db = make_session()
+        user = User(email="tech4@labo.fr", password_hash="h", display_name="Tech Quatre", platform_role="user")
+        db.add(user)
+        db.commit()
+
+        conv = Conversation(user_id=user.id, title="Formater une date")
+        db.add(conv)
+        db.commit()
+
+        db.add(Message(conversation_id=conv.id, role="user", content="Comment formater la date ?"))
+        db.add(
+            Message(
+                conversation_id=conv.id,
+                role="assistant",
+                content="Utilisez FormatDate()",
+                sources_json='[{"function_name": "FormatDate"}]',
+            )
+        )
+        db.commit()
+
+        fetched = db.get(Conversation, conv.id)
+        assert len(fetched.messages) == 2
+        assert fetched.messages[0].role == "user"
+        assert fetched.messages[1].sources_json == '[{"function_name": "FormatDate"}]'
+
+    def test_deleting_conversation_cascades_to_messages(self):
+        db = make_session()
+        user = User(email="tech5@labo.fr", password_hash="h", display_name="Tech Cinq", platform_role="user")
+        db.add(user)
+        db.commit()
+
+        conv = Conversation(user_id=user.id, title="Test cascade")
+        db.add(conv)
+        db.commit()
+        db.add(Message(conversation_id=conv.id, role="user", content="Question"))
+        db.commit()
+        conv_id = conv.id
+
+        db.delete(conv)
+        db.commit()
+
+        assert db.query(Message).filter(Message.conversation_id == conv_id).count() == 0
