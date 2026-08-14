@@ -204,59 +204,63 @@ export default function ChatPage() {
         onDelete={handleDeleteConversation}
         onLogout={handleLogout}
       />
-      <main className="chat-main" style={{ maxWidth: 780, margin: "0 auto", padding: "2rem 1.5rem 1rem" }}>
-        <header style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
-          <h1 style={{ fontSize: 22 }}>Assistant MISPL</h1>
-          <BetaBadge />
-        </header>
+      <main className="chat-main">
+        <div className="chat-content">
+          <header style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
+            <h1 style={{ fontSize: 22 }}>Assistant MISPL</h1>
+            <BetaBadge />
+          </header>
 
-        {messages.length === 0 && !loading ? (
-          <EmptyState examples={EXAMPLES} onPick={handleAsk} />
-        ) : (
-          <div>
-            {messages.map((m, i) => (
-              <ChatMessage
-                key={i}
-                role={m.role}
-                content={m.content}
-                sources={m.sources}
-                warning={m.warning}
-                userInitials={getInitials(user.display_name)}
-              />
-            ))}
-            {loading && <ThinkingIndicator />}
-            <div ref={bottomRef} />
+          <div className="chat-scroll-area">
+            {messages.length === 0 && !loading ? (
+              <EmptyState examples={EXAMPLES} onPick={handleAsk} />
+            ) : (
+              <div>
+                {messages.map((m, i) => (
+                  <ChatMessage
+                    key={i}
+                    role={m.role}
+                    content={m.content}
+                    sources={m.sources}
+                    warning={m.warning}
+                    userInitials={getInitials(user.display_name)}
+                  />
+                ))}
+                {loading && <ThinkingIndicator />}
+                <div ref={bottomRef} />
+              </div>
+            )}
           </div>
-        )}
 
-        <div className="sticky-input-bar">
-          <div className="card">
-            <label style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
-              Contexte labo (optionnel)
-            </label>
-            <input
-              value={labContext}
-              onChange={(e) => setLabContext(e.target.value)}
-              placeholder="ex: Analyseur Cobas c702, tube EDTA, unités SI"
-              style={{ marginBottom: 12 }}
-            />
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleAsk(question);
-              }}
-              style={{ display: "flex", gap: 8 }}
-            >
+          <div className="sticky-input-bar">
+            <div className="card">
+              <label style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
+                Contexte labo (optionnel)
+              </label>
               <input
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Posez votre question MISPL..."
-                style={{ flex: 1 }}
+                value={labContext}
+                onChange={(e) => setLabContext(e.target.value)}
+                placeholder="ex: Analyseur Cobas c702, tube EDTA, unités SI"
+                style={{ marginBottom: 12 }}
               />
-              <button type="submit" disabled={loading}>
-                {loading ? "..." : "Envoyer"}
-              </button>
-            </form>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAsk(question);
+                }}
+                style={{ display: "flex", gap: 8 }}
+              >
+                <input
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  placeholder="Posez votre question MISPL..."
+                  style={{ flex: 1 }}
+                />
+                <button type="submit" disabled={loading}>
+                  {loading ? "..." : "Envoyer"}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </main>

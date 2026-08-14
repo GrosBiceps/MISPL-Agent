@@ -273,12 +273,30 @@ textarea {
 
 .app-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .chat-main {
   flex: 1;
   min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.chat-content {
+  max-width: 780px;
+  margin: 0 auto;
+  height: 100%;
+  padding: 2rem 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .conv-sidebar {
