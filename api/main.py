@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from api.db import Base, engine
-from api.routers import admin, auth
+from api.routers import admin, auth, chat
 
 
 @asynccontextmanager
@@ -23,3 +23,4 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="MISPL Agent API", lifespan=lifespan)
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(chat.router)

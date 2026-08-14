@@ -55,3 +55,22 @@ class ResetPasswordResponse(BaseModel):
 
 class RevokeSessionsResponse(BaseModel):
     revoked: int
+
+
+class ChatRequest(BaseModel):
+    question: str
+    lab_context: str | None = None
+
+
+class SourceOut(BaseModel):
+    function_name: str
+    source: str
+    score: float
+    exact_match: bool
+
+
+class ChatResponse(BaseModel):
+    response: str | None
+    sources: list[SourceOut]
+    blocked: bool
+    dlp_alerts: list[str]
