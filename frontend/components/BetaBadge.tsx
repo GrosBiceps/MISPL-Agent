@@ -8,7 +8,7 @@ export default function BetaBadge() {
         fontWeight: 600,
         letterSpacing: "0.06em",
         textTransform: "uppercase",
-        color: "var(--accent)",
+        color: "var(--accent-text)",
         background: "var(--accent-soft)",
         border: "1px solid var(--line)",
         padding: "3px 10px",
