@@ -20,6 +20,7 @@ import EmptyState from "../../components/EmptyState";
 import ThinkingIndicator from "../../components/ThinkingIndicator";
 import BetaBadge from "../../components/BetaBadge";
 import ConversationSidebar from "../../components/ConversationSidebar";
+import ChatComposer from "../../components/ChatComposer";
 
 interface Message {
   role: "user" | "assistant";
@@ -241,34 +242,14 @@ export default function ChatPage() {
           </div>
 
           <div className="sticky-input-bar">
-            <div className="card">
-              <label style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
-                Contexte labo (optionnel)
-              </label>
-              <input
-                value={labContext}
-                onChange={(e) => setLabContext(e.target.value)}
-                placeholder="ex: Analyseur Cobas c702, tube EDTA, unités SI"
-                style={{ marginBottom: 12 }}
-              />
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleAsk(question);
-                }}
-                style={{ display: "flex", gap: 8 }}
-              >
-                <input
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Posez votre question MISPL..."
-                  style={{ flex: 1 }}
-                />
-                <button type="submit" disabled={loading}>
-                  {loading ? "..." : "Envoyer"}
-                </button>
-              </form>
-            </div>
+            <ChatComposer
+              question={question}
+              onQuestionChange={setQuestion}
+              labContext={labContext}
+              onLabContextChange={setLabContext}
+              loading={loading}
+              onSubmit={() => handleAsk(question)}
+            />
           </div>
         </div>
       </main>
