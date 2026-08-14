@@ -69,7 +69,17 @@ export default function ConversationSidebar({
               <div
                 key={conv.id}
                 className={`conv-sidebar-item${conv.id === activeId ? " active" : ""}`}
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(conv.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    if (e.key === " ") {
+                      e.preventDefault();
+                    }
+                    onSelect(conv.id);
+                  }
+                }}
               >
                 <span className="conv-sidebar-item-title">{conv.title}</span>
                 <button
