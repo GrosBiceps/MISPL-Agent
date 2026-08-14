@@ -9,6 +9,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.local.example
 
 # ── Documentation source propriétaire — JAMAIS dans le repo ─────────────────
 french/

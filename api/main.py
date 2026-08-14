@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from api.db import Base, engine
-from api.routers import admin, auth
+from api.routers import admin, auth, chat
 
 
 @asynccontextmanager
@@ -21,5 +23,16 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="MISPL Agent API", lifespan=lifespan)
+
+_frontend_origins = os.environ.get("MISPL_FRONTEND_ORIGIN", "http://localhost:3000").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_frontend_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(chat.router)
