@@ -17,24 +17,26 @@ interface Props {
 }
 
 export default function CodeBlock({ children }: Props) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
 
   async function handleCopy() {
     const text = extractText(children);
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setStatus("copied");
+      setTimeout(() => setStatus("idle"), 1500);
     } catch {
       // Presse-papiers indisponible (contexte non sécurisé, permission refusée)
-      // — pas d'action, le bouton reste "Copier".
+      // — on signale l'échec à l'utilisateur au lieu d'échouer silencieusement.
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 2000);
     }
   }
 
   return (
     <div className="code-block-wrapper">
       <button type="button" className="copy-btn" onClick={handleCopy}>
-        {copied ? "Copié ✓" : "Copier"}
+        {status === "copied" ? "Copié ✓" : status === "error" ? "Indisponible" : "Copier"}
       </button>
       <pre>{children}</pre>
     </div>
