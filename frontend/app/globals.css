@@ -308,7 +308,7 @@ textarea {
   opacity: 1;
 }
 .conv-sidebar-item-delete:hover {
-  color: var(--danger);
+  color: var(--ink);
 }
 .conv-sidebar-empty {
   font-size: 12.5px;
