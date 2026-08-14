@@ -157,3 +157,23 @@ textarea {
     transform: scale(1);
   }
 }
+
+.code-block-wrapper {
+  position: relative;
+}
+.code-block-wrapper .copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 11px;
+  color: #9db4ac;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.code-block-wrapper .copy-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
