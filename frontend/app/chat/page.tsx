@@ -253,6 +253,11 @@ export default function ChatPage() {
     return <main style={{ padding: 40 }}>Chargement...</main>;
   }
 
+  const activeTitle =
+    activeConversationId === null
+      ? null
+      : conversations.find((c) => c.id === activeConversationId)?.title ?? null;
+
   return (
     <div className="app-layout">
       <ConversationSidebar
@@ -276,9 +281,11 @@ export default function ChatPage() {
         }}
       >
         <div className="chat-content">
-          <header style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, flexShrink: 0 }}>
-            <h1 style={{ fontSize: 22 }}>Assistant MISPL</h1>
-            <BetaBadge />
+          <header className="chat-header">
+            <h1 className="chat-header-title" title={activeTitle ?? undefined}>
+              {activeTitle ?? "Assistant MISPL"}
+            </h1>
+            {!activeTitle && <BetaBadge />}
           </header>
 
           <div className="chat-scroll-area" ref={scrollAreaRef}>

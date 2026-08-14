@@ -463,7 +463,7 @@ textarea {
 
 .composer-plus {
   background: transparent;
-  border: 1px solid var(--line);
+  border: none;
   color: var(--ink-soft);
 }
 .composer-plus:hover {
@@ -483,7 +483,7 @@ textarea {
   color: var(--accent-solid-text);
 }
 .composer-send:disabled {
-  background: var(--line);
+  background: transparent;
   border-color: var(--line);
   color: var(--ink-soft);
   opacity: 1;
@@ -607,6 +607,22 @@ textarea {
   padding: 2rem 1.5rem 1rem;
   display: flex;
   flex-direction: column;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.chat-header-title {
+  font-size: 20px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chat-scroll-area {
@@ -769,7 +785,11 @@ textarea:focus {
 /* ── État vide (accueil du chat) ───────────────────────────────── */
 
 .empty-state {
-  padding: 2rem 0 1rem;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5rem 0;
 }
 
 .empty-header {
@@ -793,7 +813,8 @@ textarea:focus {
 }
 .empty-mode {
   flex-shrink: 0;
-  align-self: center;
+  align-self: flex-start;
+  margin-top: 5px;
   font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
