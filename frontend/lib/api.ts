@@ -65,6 +65,7 @@ export interface ChatResponse {
   sources: SourceOut[];
   blocked: boolean;
   dlp_alerts: string[];
+  conversation_id: number | null;
 }
 
 export interface ChatHistoryMessage {
@@ -75,7 +76,8 @@ export interface ChatHistoryMessage {
 export function askChat(
   question: string,
   labContext?: string,
-  conversationHistory?: ChatHistoryMessage[]
+  conversationHistory?: ChatHistoryMessage[],
+  conversationId?: number | null
 ): Promise<ChatResponse> {
   return request<ChatResponse>("/chat/ask", {
     method: "POST",
@@ -83,6 +85,38 @@ export function askChat(
       question,
       lab_context: labContext || undefined,
       conversation_history: conversationHistory && conversationHistory.length > 0 ? conversationHistory : undefined,
+      conversation_id: conversationId ?? undefined,
     }),
   });
+}
+
+export interface ConversationSummary {
+  id: number;
+  title: string;
+  updated_at: string;
+}
+
+export interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+  sources: SourceOut[] | null;
+  created_at: string;
+}
+
+export interface ConversationDetail {
+  id: number;
+  title: string;
+  messages: ConversationMessage[];
+}
+
+export function listConversations(): Promise<ConversationSummary[]> {
+  return request<ConversationSummary[]>("/conversations");
+}
+
+export function getConversation(id: number): Promise<ConversationDetail> {
+  return request<ConversationDetail>(`/conversations/${id}`);
+}
+
+export function deleteConversation(id: number): Promise<{ detail: string }> {
+  return request<{ detail: string }>(`/conversations/${id}`, { method: "DELETE" });
 }
