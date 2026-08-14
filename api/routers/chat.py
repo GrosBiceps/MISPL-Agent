@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -26,21 +27,30 @@ def ask(payload: ChatRequest, user: User = Depends(get_current_user)):
 
     blocked, dlp_alerts = dlp_check(question_enriched)
     if blocked:
+        logger.warning(f"[DLP] Message bloqué — patterns: {dlp_alerts}")
         return ChatResponse(response=None, sources=[], blocked=True, dlp_alerts=dlp_alerts)
 
     access_mode = access_mode_for_user(user.can_use_dsi_mode)
+
+    history = (
+        [{"role": m.role, "content": m.content} for m in payload.conversation_history]
+        if payload.conversation_history
+        else None
+    )
 
     try:
         response_text, docs = ask_mispl(
             question_enriched,
             access_mode=access_mode,
             save_session=True,
+            conversation_history=history,
         )
     except Exception:
-        logger.exception("Erreur lors de l'appel ask_mispl")
+        error_id = str(uuid.uuid4())[:8]
+        logger.error(f"[{error_id}] Erreur ask_mispl", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service temporairement indisponible — réessayez dans quelques instants.",
+            detail=f"Service temporairement indisponible — réessayez dans quelques instants. (Référence : {error_id})",
         )
 
     sources = [
@@ -53,4 +63,4 @@ def ask(payload: ChatRequest, user: User = Depends(get_current_user)):
         for d in docs
     ]
 
-    return ChatResponse(response=response_text, sources=sources, blocked=False, dlp_alerts=[])
+    return ChatResponse(response=response_text, sources=sources, blocked=False, dlp_alerts=dlp_alerts)

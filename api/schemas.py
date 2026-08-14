@@ -57,9 +57,15 @@ class RevokeSessionsResponse(BaseModel):
     revoked: int
 
 
+class ChatHistoryMessage(BaseModel):
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
     question: str
     lab_context: str | None = None
+    conversation_history: list[ChatHistoryMessage] | None = None
 
 
 class SourceOut(BaseModel):
