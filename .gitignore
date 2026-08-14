@@ -54,3 +54,6 @@ data/*.db-journal
 
 # ── Worktrees Claude Code (isolation de branches) ────────────────────────────
 .claude/worktrees/
+
+# ── Scratch superpowers (ledgers SDD, maquettes brainstorming) ──────────────
+.superpowers/
