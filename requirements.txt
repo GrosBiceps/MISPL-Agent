@@ -28,3 +28,11 @@ plotly==6.8.0                           # Rapport HTML autonome
 # ── Dev & Tests ───────────────────────────────────────────────────────────────
 pytest==9.1.1
 pytest-cov==7.1.0
+
+# ── API & Authentification (comptes, sessions) ────────────────────────────────
+fastapi==0.141.1
+uvicorn[standard]==0.49.0
+sqlalchemy==2.0.52
+argon2-cffi==25.1.0
+email-validator==2.3.0                   # requis par pydantic.EmailStr
+httpx==0.28.1                             # requis par fastapi.testclient.TestClient
