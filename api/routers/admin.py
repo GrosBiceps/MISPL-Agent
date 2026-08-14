@@ -45,12 +45,14 @@ def create_user(
 ):
     if payload.platform_role not in ("admin", "user"):
         raise HTTPException(status_code=422, detail="platform_role doit être 'admin' ou 'user'")
-    if db.query(User).filter(User.email == payload.email).first() is not None:
+
+    email = payload.email.lower().strip()
+    if db.query(User).filter(User.email == email).first() is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email déjà utilisé")
 
     temp_password = generate_temp_password()
     user = User(
-        email=payload.email,
+        email=email,
         password_hash=hash_password(temp_password),
         display_name=payload.display_name,
         platform_role=payload.platform_role,
@@ -119,6 +121,7 @@ def reset_password(
     user.failed_login_count = 0
     user.locked_until = None
     db.commit()
+    revoke_all_sessions_for_user(db, user_id)
     return ResetPasswordResponse(temporary_password=temp_password)
 
 

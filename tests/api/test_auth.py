@@ -3,16 +3,18 @@
 import datetime
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+import api.auth as auth_module
 from api.auth import LOCK_DURATION_MINUTES, LOCK_THRESHOLD, AuthError, authenticate_user
 from api.db import Base
 from api.models import User
-from api.security import hash_password
+from api.security import hash_password, verify_password
 
 
 def make_session():
@@ -78,6 +80,31 @@ class TestFailedLogin:
         authenticate_user(db, "tech@labo.fr", "faux")
         db.refresh(u)
         assert u.failed_login_count == 1
+
+
+class TestTimingSideChannel:
+    def test_unknown_email_calls_verify_password_same_as_wrong_password(self):
+        # Un email inconnu doit déclencher le même nombre d'appels à
+        # verify_password (Argon2) qu'un mauvais mot de passe sur un compte
+        # existant, pour ne pas laisser fuir l'existence d'un compte par
+        # mesure du temps de réponse.
+        db_unknown = make_session()
+        with patch.object(auth_module, "verify_password", wraps=verify_password) as mock_unknown:
+            authenticate_user(db_unknown, "inconnu@labo.fr", "peuimporte")
+        assert mock_unknown.call_count == 1
+
+        db_known = make_session()
+        make_user(db_known, password="MotDePasseRobuste1!")
+        with patch.object(auth_module, "verify_password", wraps=verify_password) as mock_known:
+            authenticate_user(db_known, "tech@labo.fr", "MauvaisMdp")
+        assert mock_known.call_count == 1
+
+    def test_inactive_account_calls_verify_password(self):
+        db = make_session()
+        make_user(db, password="MotDePasseRobuste1!", is_active=False)
+        with patch.object(auth_module, "verify_password", wraps=verify_password) as mock_verify:
+            authenticate_user(db, "tech@labo.fr", "MotDePasseRobuste1!")
+        assert mock_verify.call_count == 1
 
 
 class TestLockout:

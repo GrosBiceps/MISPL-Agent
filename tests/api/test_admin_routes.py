@@ -70,6 +70,33 @@ class TestCreateUser:
         })
         assert resp.status_code == 409
 
+    def test_duplicate_email_rejected_case_insensitive_and_login_case_insensitive(
+        self, client, db_session_factory
+    ):
+        make_admin(db_session_factory)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+
+        resp = client.post("/admin/users", json={
+            "email": "nouveau.tech@labo.fr", "display_name": "Nouveau Tech",
+            "platform_role": "user", "can_use_dsi_mode": False,
+        })
+        assert resp.status_code == 201
+        temp_password = resp.json()["temporary_password"]
+
+        # Même email, casse différente -> rejeté (409), pas un doublon accepté.
+        resp = client.post("/admin/users", json={
+            "email": "Nouveau.Tech@Labo.FR", "display_name": "Doublon",
+            "platform_role": "user", "can_use_dsi_mode": False,
+        })
+        assert resp.status_code == 409
+
+        # Login avec une casse différente de celle utilisée à la création réussit.
+        client.post("/auth/logout")
+        resp = client.post("/auth/login", json={
+            "email": "Nouveau.Tech@Labo.FR", "password": temp_password,
+        })
+        assert resp.status_code == 200
+
 
 class TestListUsers:
     def test_admin_can_list_users(self, client, db_session_factory):
@@ -163,6 +190,24 @@ class TestResetPassword:
         client.post("/auth/logout")
         resp = client.post("/auth/login", json={"email": "tech@labo.fr", "password": "TechMdp1!"})
         assert resp.status_code == 401
+
+    def test_reset_password_revokes_existing_sessions(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+
+        # Le technicien a une session active dans un client séparé.
+        from fastapi.testclient import TestClient
+        from api.main import app
+        tech_client = TestClient(app)
+        login_as(tech_client, "tech@labo.fr", "TechMdp1!")
+        assert tech_client.get("/auth/me").status_code == 200
+
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+        resp = client.post(f"/admin/users/{user.id}/reset-password")
+        assert resp.status_code == 200
+
+        # L'ancienne session ne fonctionne plus après le reset.
+        assert tech_client.get("/auth/me").status_code == 401
 
 
 class TestRevokeSessions:
