@@ -33,7 +33,7 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
         <span
           style={{
             display: "inline-block",
-            background: "var(--accent)",
+            background: "#5a6656",
             color: "#fff",
             padding: "10px 14px",
             borderRadius: "12px 12px 3px 12px",

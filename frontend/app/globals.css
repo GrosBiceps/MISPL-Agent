@@ -203,3 +203,10 @@ textarea {
   color: #a8584f;
   border: 1px solid #a8584f;
 }
+
+.sticky-input-bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  padding: 16px 0 20px;
+}
