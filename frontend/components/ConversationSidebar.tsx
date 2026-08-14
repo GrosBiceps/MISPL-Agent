@@ -91,6 +91,11 @@ export default function ConversationSidebar({
                       onDelete(conv.id);
                     }
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.stopPropagation();
+                    }
+                  }}
                 >
                   ×
                 </button>
