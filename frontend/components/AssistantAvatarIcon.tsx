@@ -1,8 +1,9 @@
 interface Props {
   size?: number;
+  thinking?: boolean;
 }
 
-export default function AssistantAvatarIcon({ size = 32 }: Props) {
+export default function AssistantAvatarIcon({ size = 32, thinking = false }: Props) {
   return (
     <div
       style={{
@@ -26,9 +27,23 @@ export default function AssistantAvatarIcon({ size = 32 }: Props) {
       >
         <rect x="5" y="8" width="14" height="11" rx="3" stroke="currentColor" strokeWidth="1.6" />
         <line x1="12" y1="8" x2="12" y2="4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <circle cx="12" cy="3" r="1.3" fill="currentColor" />
-        <circle cx="9.5" cy="13" r="1.3" fill="currentColor" />
-        <circle cx="14.5" cy="13" r="1.3" fill="currentColor" />
+        <circle cx="12" cy="3" r="1.3" fill="currentColor" className={thinking ? "avatar-antenna" : undefined} />
+        <circle
+          cx="9.5"
+          cy="13"
+          r="1.3"
+          fill="currentColor"
+          className={thinking ? "avatar-eye" : undefined}
+          style={thinking ? { animationDelay: "0s" } : undefined}
+        />
+        <circle
+          cx="14.5"
+          cy="13"
+          r="1.3"
+          fill="currentColor"
+          className={thinking ? "avatar-eye" : undefined}
+          style={thinking ? { animationDelay: "0.6s" } : undefined}
+        />
         <line x1="9" y1="17" x2="15" y2="17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         <line x1="2" y1="12" x2="5" y2="12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         <line x1="19" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />

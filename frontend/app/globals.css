@@ -186,6 +186,38 @@ textarea {
   }
 }
 
+.avatar-antenna {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: avatar-antenna-glow 1.8s ease-in-out infinite;
+}
+@keyframes avatar-antenna-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+}
+
+.avatar-eye {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: avatar-eye-scan 1.8s ease-in-out infinite;
+}
+@keyframes avatar-eye-scan {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .code-block-wrapper {
   position: relative;
 }

@@ -3,7 +3,7 @@ import AssistantAvatarIcon from "./AssistantAvatarIcon";
 export default function ThinkingIndicator() {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "12px 0" }}>
-      <AssistantAvatarIcon />
+      <AssistantAvatarIcon thinking />
       <div className="thinking">
         <span className="dot" />
         <span className="dot" />
