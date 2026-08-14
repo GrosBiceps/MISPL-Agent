@@ -38,7 +38,7 @@ export default function Home() {
         href="/login"
         style={{
           display: "inline-block",
-          background: "var(--accent)",
+          background: "#5a6656",
           color: "#fff",
           fontFamily: "var(--sans)",
           fontSize: 14,
