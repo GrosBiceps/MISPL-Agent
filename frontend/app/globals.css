@@ -630,9 +630,37 @@ textarea {
   padding: 16px 12px;
 }
 .conv-sidebar-collapsed {
-  width: 44px;
+  width: 60px;
   align-items: center;
-  padding: 16px 6px;
+  padding: 16px 0 14px;
+  gap: 6px;
+}
+
+.rail-logo {
+  margin-bottom: 10px;
+}
+
+.rail-spacer {
+  flex: 1;
+}
+
+.rail-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.rail-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  opacity: 1;
 }
 .conv-sidebar-header {
   display: flex;

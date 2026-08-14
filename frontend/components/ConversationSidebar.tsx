@@ -3,6 +3,7 @@
 import { ConversationSummary } from "../lib/api";
 import { groupConversationsByDate } from "../lib/conversationGroups";
 import AccountMenu from "./AccountMenu";
+import AssistantAvatarIcon from "./AssistantAvatarIcon";
 
 interface Props {
   conversations: ConversationSummary[];
@@ -32,21 +33,55 @@ export default function ConversationSidebar({
   if (collapsed) {
     return (
       <aside className="conv-sidebar conv-sidebar-collapsed">
+        <div className="rail-logo" aria-hidden="true">
+          <AssistantAvatarIcon size={30} />
+        </div>
+
         <button
-          className="ghost conv-sidebar-toggle"
+          className="rail-btn"
           onClick={onToggleCollapse}
           aria-label="Afficher l'historique"
+          title="Afficher l'historique"
         >
-          »
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect
+              x="3"
+              y="4"
+              width="18"
+              height="16"
+              rx="2.5"
+              stroke="currentColor"
+              strokeWidth="1.7"
+            />
+            <line x1="9" y1="4" x2="9" y2="20" stroke="currentColor" strokeWidth="1.7" />
+          </svg>
         </button>
+
         <button
-          className="ghost conv-sidebar-toggle"
+          className="rail-btn"
           onClick={onNew}
           aria-label="Nouvelle conversation"
-          style={{ marginTop: 8 }}
+          title="Nouvelle conversation"
         >
-          +
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+            <path
+              d="M18.4 2.6a1.98 1.98 0 0 1 2.8 2.8L13.6 13l-3.5.7.7-3.5 7.6-7.6Z"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
+
+        <div className="rail-spacer" />
+
+        <AccountMenu displayName={userDisplayName} onLogout={onLogout} compact />
       </aside>
     );
   }
