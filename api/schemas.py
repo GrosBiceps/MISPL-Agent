@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -58,7 +60,7 @@ class RevokeSessionsResponse(BaseModel):
 
 
 class ChatHistoryMessage(BaseModel):
-    role: str
+    role: Literal["user", "assistant"]
     content: str
 
 

@@ -25,7 +25,8 @@ def ask(payload: ChatRequest, user: User = Depends(get_current_user)):
     if payload.lab_context:
         question_enriched = f"[Contexte labo: {payload.lab_context.strip()}]\n\n{payload.question}"
 
-    blocked, dlp_alerts = dlp_check(question_enriched)
+    history_text = "\n".join(m.content for m in (payload.conversation_history or []))
+    blocked, dlp_alerts = dlp_check(f"{question_enriched}\n{history_text}" if history_text else question_enriched)
     if blocked:
         logger.warning(f"[DLP] Message bloqué — patterns: {dlp_alerts}")
         return ChatResponse(response=None, sources=[], blocked=True, dlp_alerts=dlp_alerts)
