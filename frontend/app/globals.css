@@ -190,17 +190,17 @@ textarea {
 }
 .cert-certain {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: #5a6656;
   border: 1px solid var(--accent);
 }
 .cert-probable {
   background: #f7f1e3;
-  color: #a3791f;
+  color: #8a6413;
   border: 1px solid #d9b45c;
 }
 .cert-check {
   background: #f6ece9;
-  color: #a8584f;
+  color: #94473e;
   border: 1px solid #a8584f;
 }
 
