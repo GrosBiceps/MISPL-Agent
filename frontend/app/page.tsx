@@ -13,8 +13,23 @@ export default function Home() {
         textAlign: "center",
         padding: "0 20px",
         position: "relative",
+        overflow: "hidden",
       }}
     >
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          width: 640,
+          height: 640,
+          transform: "translate(-50%, -50%)",
+          background: "radial-gradient(circle, var(--accent-soft) 0%, transparent 70%)",
+          opacity: 0.6,
+          pointerEvents: "none",
+        }}
+      />
       <div
         style={{
           position: "absolute",
@@ -30,26 +45,31 @@ export default function Home() {
       <div style={{ position: "absolute", top: 26, right: 24 }}>
         <BetaBadge />
       </div>
-      <h1 style={{ fontSize: 32, marginBottom: 12 }}>Assistant MISPL pour GLIMS</h1>
-      <p style={{ color: "var(--ink-soft)", fontSize: 15, maxWidth: 400, margin: "0 0 28px" }}>
-        Réponses sourcées depuis la documentation MISPL — sans hallucination.
-      </p>
-      <Link
-        href="/login"
-        style={{
-          display: "inline-block",
-          background: "#5a6656",
-          color: "#fff",
-          fontFamily: "var(--sans)",
-          fontSize: 14,
-          fontWeight: 500,
-          padding: "12px 28px",
-          borderRadius: 10,
-          textDecoration: "none",
-        }}
-      >
-        Se connecter
-      </Link>
+      <div style={{ position: "relative" }}>
+        <h1 style={{ fontSize: 32, marginBottom: 12 }}>Assistant MISPL pour GLIMS</h1>
+        <p style={{ color: "var(--ink-soft)", fontSize: 15, maxWidth: 400, margin: "0 auto 16px" }}>
+          Réponses sourcées depuis la documentation MISPL — sans hallucination.
+        </p>
+        <p style={{ color: "var(--ink-soft)", fontSize: 12.5, marginBottom: 28 }}>
+          Sourcé documentation officielle · Zéro hallucination · Mode DSI / Technicien
+        </p>
+        <Link
+          href="/login"
+          style={{
+            display: "inline-block",
+            background: "var(--accent-solid)",
+            color: "var(--accent-solid-text)",
+            fontFamily: "var(--sans)",
+            fontSize: 14,
+            fontWeight: 500,
+            padding: "12px 28px",
+            borderRadius: 10,
+            textDecoration: "none",
+          }}
+        >
+          Se connecter
+        </Link>
+      </div>
     </main>
   );
 }
