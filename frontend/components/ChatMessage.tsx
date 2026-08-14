@@ -1,17 +1,21 @@
 import ReactMarkdown from "react-markdown";
 import { SourceOut } from "../lib/api";
+import { ASSISTANT_AVATAR, svgAvatar } from "../lib/avatar";
 
 interface Props {
   role: "user" | "assistant";
   content: string;
   sources?: SourceOut[];
   warning?: string[];
+  userInitials?: string;
 }
 
-export default function ChatMessage({ role, content, sources, warning }: Props) {
+const avatarStyle = { width: 32, height: 32, borderRadius: "50%", flexShrink: 0 } as const;
+
+export default function ChatMessage({ role, content, sources, warning, userInitials }: Props) {
   if (role === "user") {
     return (
-      <div style={{ textAlign: "right", margin: "12px 0" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-start", gap: 8, margin: "12px 0" }}>
         <span
           style={{
             display: "inline-block",
@@ -25,37 +29,41 @@ export default function ChatMessage({ role, content, sources, warning }: Props) 
         >
           {content}
         </span>
+        <img src={svgAvatar("#6f7d6a", "#ffffff", userInitials || "?")} alt="" style={avatarStyle} />
       </div>
     );
   }
 
   return (
-    <div style={{ margin: "12px 0" }}>
-      {warning && warning.length > 0 && (
-        <div className="warning-banner">
-          ⚠️ Donnée potentiellement sensible détectée ({warning.join(", ")})
+    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "12px 0" }}>
+      <img src={ASSISTANT_AVATAR} alt="" style={avatarStyle} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {warning && warning.length > 0 && (
+          <div className="warning-banner">
+            ⚠️ Donnée potentiellement sensible détectée ({warning.join(", ")})
+          </div>
+        )}
+        <div className="card" style={{ fontSize: 14, lineHeight: 1.6 }}>
+          <ReactMarkdown>{content}</ReactMarkdown>
         </div>
-      )}
-      <div className="card" style={{ fontSize: 14, lineHeight: 1.6 }}>
-        <ReactMarkdown>{content}</ReactMarkdown>
+        {sources && sources.length > 0 && (
+          <details style={{ marginTop: 6, fontSize: 12.5 }}>
+            <summary style={{ cursor: "pointer", color: "var(--ink-soft)" }}>
+              Sources documentaires ({sources.length})
+            </summary>
+            <ul style={{ marginTop: 8, paddingLeft: 18 }}>
+              {sources.map((s, i) => (
+                <li key={i} style={{ marginBottom: 4 }}>
+                  <strong>{s.exact_match ? "EXACT" : `#${i + 1}`}</strong>
+                  {s.function_name && ` · ${s.function_name}`}
+                  <br />
+                  <span style={{ color: "var(--ink-soft)" }}>{s.source}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
-      {sources && sources.length > 0 && (
-        <details style={{ marginTop: 6, fontSize: 12.5 }}>
-          <summary style={{ cursor: "pointer", color: "var(--ink-soft)" }}>
-            Sources documentaires ({sources.length})
-          </summary>
-          <ul style={{ marginTop: 8, paddingLeft: 18 }}>
-            {sources.map((s, i) => (
-              <li key={i} style={{ marginBottom: 4 }}>
-                <strong>{s.exact_match ? "EXACT" : `#${i + 1}`}</strong>
-                {s.function_name && ` · ${s.function_name}`}
-                <br />
-                <span style={{ color: "var(--ink-soft)" }}>{s.source}</span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
     </div>
   );
 }

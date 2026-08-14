@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { askChat, getMe, logout, ApiError, MeResponse, SourceOut } from "../../lib/api";
+import { getInitials } from "../../lib/avatar";
 import ChatMessage from "../../components/ChatMessage";
 import EmptyState from "../../components/EmptyState";
+import ThinkingIndicator from "../../components/ThinkingIndicator";
 
 interface Message {
   role: "user" | "assistant";
@@ -114,13 +116,21 @@ export default function ChatPage() {
         </div>
       </header>
 
-      {messages.length === 0 ? (
+      {messages.length === 0 && !loading ? (
         <EmptyState examples={EXAMPLES} onPick={handleAsk} />
       ) : (
         <div>
           {messages.map((m, i) => (
-            <ChatMessage key={i} role={m.role} content={m.content} sources={m.sources} warning={m.warning} />
+            <ChatMessage
+              key={i}
+              role={m.role}
+              content={m.content}
+              sources={m.sources}
+              warning={m.warning}
+              userInitials={getInitials(user.display_name)}
+            />
           ))}
+          {loading && <ThinkingIndicator />}
           <div ref={bottomRef} />
         </div>
       )}
