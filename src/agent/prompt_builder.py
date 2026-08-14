@@ -727,10 +727,12 @@ def build_system_prompt(
     active_skills: list[str] | None = None,
     include_rules: bool = True,
     max_tokens_budget: int = 4000,
+    access_mode: str = "dsi",
 ) -> str:
     """
     Construit le prompt système en assemblant :
       - Base anti-hallucination (toujours présente)
+      - Restrictions du mode d'accès (Technicien : pas de boucles)
       - Skills Markdown sélectionnés
       - Rules globales
 
@@ -738,6 +740,7 @@ def build_system_prompt(
         active_skills: Noms des skills à injecter (défaut: ['mispl-core'])
         include_rules: Injecter les règles globales (.claude/rules/)
         max_tokens_budget: Budget tokens approximatif pour les skills (1 token ≈ 4 chars)
+        access_mode: "dsi" (génération complète) ou "technicien" (bridé — pas de boucles)
 
     Returns:
         Prompt système complet prêt pour l'API Claude
@@ -746,6 +749,11 @@ def build_system_prompt(
         active_skills = ["mispl-core"]
 
     sections = [_BASE_SYSTEM]
+
+    from src.security.access_mode import build_restrictions_prompt
+    restrictions = build_restrictions_prompt(access_mode)
+    if restrictions:
+        sections.append(restrictions)
 
     if include_rules:
         rules = _load_rules()

@@ -19,7 +19,7 @@ if (Test-Path "$Root\.env") {
     }
     Write-Host "[OK] .env charge"
 } else {
-    Write-Warning ".env absent — copier .env.example vers .env et renseigner ANTHROPIC_API_KEY"
+    Write-Warning ".env absent — copier .env.example vers .env et renseigner OPENROUTER_API_KEY"
 }
 
 switch ($Mode) {

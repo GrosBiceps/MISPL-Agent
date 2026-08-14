@@ -8,6 +8,7 @@ __pycache__/
 # ── Secrets ─────────────────────────────────────────────────────────────────
 .env
 .env.*
+!.env.example
 
 # ── Documentation source propriétaire — JAMAIS dans le repo ─────────────────
 french/
@@ -45,3 +46,10 @@ outputs/monitoring/*.json
 *.tmp*
 *.bak
 *~
+
+# ── Base de données locale (comptes, sessions) — jamais dans le repo ────────
+data/*.db
+data/*.db-journal
+
+# ── Worktrees Claude Code (isolation de branches) ────────────────────────────
+.claude/worktrees/

@@ -1,6 +1,6 @@
 """MISPL Agent — Interface finale · thème natif dark + CSS minimal"""
 from __future__ import annotations
-import html, json, logging, os, re, sys, traceback, uuid
+import html, json, logging, os, sys, traceback, uuid
 from pathlib import Path
 
 import streamlit as st
@@ -9,24 +9,25 @@ import streamlit.components.v1 as components
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
-# ── DLP — filet de sécurité contre DCPS involontaires ─────────────────────────
-_DLP_PATTERNS: list[tuple[re.Pattern, str, bool]] = [
-    (re.compile(r'\b[12]\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{3}\s?\d{3}\s?\d{2}\b'), "NIR/Numéro Sécu", True),
-    (re.compile(r'\b\d{2}[01]\d[0-3]\d[-\s]?\d{3}[-\s]?\d{2}\b'), "NISS belge", True),
-    (re.compile(r'\b(?:IPP|NIP|ipp|nip)\s*[:\-=]?\s*\d{5,10}\b', re.IGNORECASE), "IPP/NIP patient", True),
-    (re.compile(r'n.{0,2}e\s+le\s+\d{1,2}[/\-]\d{1,2}[/\-]\d{4}', re.IGNORECASE), "Date de naissance nominative", False),
-    (re.compile(r'\b\d{2}[/\-]\d{2}[/\-]\d{4}\b'), "Date au format DD/MM/YYYY", False),
-    (re.compile(r'\b(?:Mr?|Mme?|Dr?|patient|patiente)\s+[A-Z][a-z]+\s+[A-Z]{2,}', re.IGNORECASE), "Nom patient potentiel", False),
-]
+from src.security.dlp import dlp_check
+from src.security.access_mode import (
+    MODE_DSI, MODE_TECHNICIEN, DEFAULT_MODE, verify_dsi_password,
+)
 
-def _dlp_check(text: str) -> tuple[bool, list[str]]:
-    blocked, alerts = False, []
-    for pattern, label, is_blocking in _DLP_PATTERNS:
-        if pattern.search(text):
-            alerts.append(label)
-            if is_blocking:
-                blocked = True
-    return blocked, alerts
+# ── Avatars — SVG inline (data URI), aucun appel réseau tiers (ex-DiceBear) ───
+from urllib.parse import quote as _urlquote
+
+def _svg_avatar(bg: str, fg: str, label: str) -> str:
+    svg = (
+        f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'>"
+        f"<circle cx='20' cy='20' r='20' fill='{bg}'/>"
+        f"<text x='50%' y='53%' font-family='sans-serif' font-size='15' font-weight='600' "
+        f"fill='{fg}' text-anchor='middle' dominant-baseline='middle'>{label}</text></svg>"
+    )
+    return "data:image/svg+xml," + _urlquote(svg)
+
+USER_AVATAR = _svg_avatar("#1e3a5f", "#60a5fa", "MF")
+ASSISTANT_AVATAR = _svg_avatar("#0f172a", "#6ee7b7", "AI")
 
 try:
     from dotenv import load_dotenv
@@ -51,7 +52,16 @@ def _start_resource_monitor():
         logging.getLogger(__name__).warning(f"Monitoring ressources indisponible : {e}")
         return None
 
-_start_resource_monitor()
+_mon = _start_resource_monitor()
+
+
+@st.cache_resource(show_spinner=False)
+def _purge_sessions_once():
+    # cache_resource garantit un seul passage par process, pas à chaque rerun
+    from src.agent.mispl_agent import purge_old_sessions
+    return purge_old_sessions()
+
+_purge_sessions_once()
 
 st.set_page_config(
     page_title="MISPL Agent",
@@ -66,21 +76,14 @@ _CSS = """
 (function(){
   var existing = window.parent.document.getElementById('mispl-css');
   if(existing) existing.remove();
-  var lnk = window.parent.document.createElement('link');
-  lnk.rel = 'stylesheet';
-  lnk.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap';
-  window.parent.document.head.appendChild(lnk);
-
-  var lnk2 = window.parent.document.createElement('link');
-  lnk2.rel = 'stylesheet';
-  lnk2.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
-  window.parent.document.head.appendChild(lnk2);
+  // Polices système uniquement — aucun appel réseau tiers (RGPD/SSI : évite
+  // de divulguer l'IP de l'utilisateur à Google Fonts à chaque visite).
 
   var css = `
     /* ── Layout ── */
     #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDecoration"],
     [data-testid="stHeader"], header, [data-testid="collapsedControl"] { display:none!important }
-    * { font-family:'Inter',sans-serif!important }
+    * { font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif!important }
     .block-container { padding:2rem 1.5rem 6rem!important; max-width:780px!important }
 
     /* ── Chat messages ── */
@@ -108,7 +111,7 @@ _CSS = """
 
     /* ── Inline code ── */
     code {
-      font-family:'JetBrains Mono',monospace!important;
+      font-family:'Cascadia Code','Consolas','SFMono-Regular',monospace!important;
       background:rgba(59,130,246,.13)!important; color:#93c5fd!important;
       padding:2px 6px!important; border-radius:5px!important;
       font-size:.82em!important; border:1px solid rgba(59,130,246,.22)
@@ -160,9 +163,9 @@ _CSS = """
       border-radius:8px; margin-bottom:5px; border-left:3px solid #3b82f6
     }
     .cite-exact { border-left-color:#10b981 }
-    .cite-fn { font-family:'JetBrains Mono',monospace; font-size:.77rem; color:#f1f5f9; font-weight:600 }
-    .cite-src { font-family:'JetBrains Mono',monospace; font-size:.69rem; color:#6b7591; margin-top:1px; word-break:break-all }
-    .cite-score { font-size:.68rem; color:#6b7591; white-space:nowrap; font-family:'JetBrains Mono',monospace; margin-left:auto; padding-left:6px }
+    .cite-fn { font-family:'Cascadia Code','Consolas','SFMono-Regular',monospace; font-size:.77rem; color:#f1f5f9; font-weight:600 }
+    .cite-src { font-family:'Cascadia Code','Consolas','SFMono-Regular',monospace; font-size:.69rem; color:#6b7591; margin-top:1px; word-break:break-all }
+    .cite-score { font-size:.68rem; color:#6b7591; white-space:nowrap; font-family:'Cascadia Code','Consolas','SFMono-Regular',monospace; margin-left:auto; padding-left:6px }
 
     /* ── Thinking animation ── */
     .thinking { display:flex; align-items:center; gap:8px; color:#6b7591; font-size:.83rem; padding:.4rem 0 }
@@ -289,8 +292,33 @@ EXAMPLES = [
 ICON_BOOK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
 
 
+# ── Mode d'accès (DSI / Technicien) ─────────────────────────────────────────
+if "access_mode" not in st.session_state:
+    st.session_state.access_mode = DEFAULT_MODE
+
 # ── Settings expander (clé API, modèle, RAG) ──────────────────────────────────
 with st.expander("Parametres", expanded=False):
+    st.markdown("**Mode d'accès**")
+    mode_pill = (
+        '<span class="pill pill-ok">Mode DSI — génération complète</span>'
+        if st.session_state.access_mode == MODE_DSI
+        else '<span class="pill pill-warn">Mode Technicien — boucles désactivées</span>'
+    )
+    st.markdown(mode_pill, unsafe_allow_html=True)
+    if st.session_state.access_mode == MODE_DSI:
+        if st.button("Repasser en mode Technicien"):
+            st.session_state.access_mode = MODE_TECHNICIEN
+            st.rerun()
+    else:
+        dsi_pwd = st.text_input("Mot de passe DSI", type="password", key="dsi_pwd_input")
+        if st.button("Activer le mode DSI"):
+            if verify_dsi_password(dsi_pwd):
+                st.session_state.access_mode = MODE_DSI
+                st.rerun()
+            else:
+                st.error("Mot de passe incorrect.")
+    st.markdown("---")
+
     c1, c2 = st.columns(2)
     with c1:
         # Toujours recharger depuis .env si session vide (fix après restart Streamlit)
@@ -346,7 +374,8 @@ with st.expander("Parametres", expanded=False):
     # ── Monitoring ressources ─────────────────────────────────────────────────
     st.markdown("---")
     st.markdown("**Ressources machine**")
-    _mon = _start_resource_monitor()
+    # Réutilise le moniteur déjà démarré au chargement du module (voir _mon plus
+    # haut) — ne pas rappeler _start_resource_monitor() ici, un seul point d'entrée.
     if _mon is None:
         st.caption("Monitoring désactivé (MISPL_MONITOR=0) ou indisponible.")
     else:
@@ -367,9 +396,9 @@ with st.expander("Parametres", expanded=False):
                 mc3.metric("GPU", "—")
         except Exception:
             pass
-        st.caption(f"Relevé continu · {len(_mon._samples)} points collectés.")
+        st.caption(f"Relevé continu · {_mon.sample_count()} points collectés.")
         if st.button("Générer le rapport ressources (Plotly HTML)"):
-            _report = _mon._write_report()
+            _report = _mon.write_report()
             if _report:
                 st.success(f"Rapport écrit : {_report}")
                 try:
@@ -429,10 +458,10 @@ def _render_sources(docs: list) -> None:
 # ── Historique ────────────────────────────────────────────────────────────────
 for msg in st.session_state.messages:
     if msg["role"] == "user":
-        with st.chat_message("user", avatar="https://api.dicebear.com/7.x/initials/svg?seed=MF&backgroundColor=1e3a5f&textColor=60a5fa&fontSize=40"):
+        with st.chat_message("user", avatar=USER_AVATAR):
             st.markdown(f'<div class="user-msg">{html.escape(msg["content"])}</div>', unsafe_allow_html=True)
     else:
-        with st.chat_message("assistant", avatar="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=mispl&backgroundColor=0f172a"):
+        with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
             st.markdown(msg["content"])
             idx = msg.get("src_idx")
             if idx is not None and idx < len(st.session_state.rag_sources):
@@ -505,18 +534,25 @@ if question:
 
     active_skills = None if skill_mode == "auto" else SKILL_PROFILES.get(skill_mode)
 
-    # DLP — vérification avant envoi au LLM
-    _dlp_blocked, _dlp_alerts = _dlp_check(question)
+    # Enrichir la question avec le contexte labo si renseigné (non affiché dans la bulle)
+    question_enriched = question
+    if st.session_state.get("lab_context", "").strip():
+        question_enriched = f"[Contexte labo: {st.session_state.lab_context.strip()}]\n\n{question}"
+
+    # DLP — vérification sur le texte réellement envoyé au LLM (question + contexte
+    # labo), pas uniquement la question brute : un IPP/NIR tapé dans le contexte
+    # labo doit être bloqué au même titre.
+    _dlp_blocked, _dlp_alerts = dlp_check(question_enriched)
     if _dlp_blocked:
         st.session_state.messages.append({"role": "user", "content": question})
-        with st.chat_message("user", avatar="https://api.dicebear.com/7.x/initials/svg?seed=MF&backgroundColor=1e3a5f&textColor=60a5fa&fontSize=40"):
+        with st.chat_message("user", avatar=USER_AVATAR):
             st.markdown(f'<div class="user-msg">{html.escape(question)}</div>', unsafe_allow_html=True)
-        with st.chat_message("assistant", avatar="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=mispl&backgroundColor=0f172a"):
+        with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
             st.error(
                 "🚫 **Message bloqué — Identifiant patient détecté**\n\n"
                 f"Donnée(s) détectée(s) : **{', '.join(_dlp_alerts)}**\n\n"
-                "Ne pas inclure de données patient (IPP, NIR...) dans les questions.\n"
-                "Reformulez avec des valeurs fictives ou génériques.",
+                "Ne pas inclure de données patient (IPP, NIR...) dans les questions "
+                "ou le contexte labo.\nReformulez avec des valeurs fictives ou génériques.",
                 icon=None,
             )
         logging.warning(f"[DLP] Message bloqué — patterns: {_dlp_alerts}")
@@ -525,18 +561,15 @@ if question:
         logging.warning(f"[DLP] Avertissement (non bloquant) — patterns: {_dlp_alerts}")
         st.toast(f"⚠️ Donnée potentiellement sensible détectée ({', '.join(_dlp_alerts)}). Fermez la page si envoi non voulu.", icon="⚠️")
 
-    # Enrichir la question avec le contexte labo si renseigné (non affiché dans la bulle)
-    question_enriched = question
-    if st.session_state.get("lab_context", "").strip():
-        question_enriched = f"[Contexte labo: {st.session_state.lab_context.strip()}]\n\n{question}"
-
-    # Historique AVANT d'ajouter la question courante (évite doublon dans le prompt LLM)
-    _history = list(st.session_state.messages[-12:])
+    # Historique AVANT d'ajouter la question courante (évite doublon dans le prompt LLM).
+    # Filtré sur role/content : les messages assistant portent aussi src_idx (métadonnée
+    # UI interne) que certaines API rejettent comme clé de message inconnue.
+    _history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[-12:]]
     st.session_state.messages.append({"role": "user", "content": question})
-    with st.chat_message("user", avatar="https://api.dicebear.com/7.x/initials/svg?seed=MF&backgroundColor=1e3a5f&textColor=60a5fa&fontSize=40"):
+    with st.chat_message("user", avatar=USER_AVATAR):
         st.markdown(f'<div class="user-msg">{html.escape(question)}</div>', unsafe_allow_html=True)
 
-    with st.chat_message("assistant", avatar="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=mispl&backgroundColor=0f172a"):
+    with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
         placeholder = st.empty()
         placeholder.markdown(
             '<div class="thinking"><span class="d"></span><span class="d"></span><span class="d"></span>'
@@ -546,19 +579,16 @@ if question:
         final = ""
         docs  = []
         try:
-            # Positionne la clé temporairement dans os.environ juste pour l'appel agent
-            _api_key = st.session_state.get("api_key", "")
-            _orig = os.environ.get("OPENROUTER_API_KEY", "")
-            os.environ["OPENROUTER_API_KEY"] = _api_key
-            try:
-                final, docs = _ask_mispl(
-                    question_enriched, use_openai_embeddings=False, top_k=top_k,
-                    model=model_choice, skill_profile=active_skills,
-                    save_session=True,
-                    conversation_history=_history,
-                )
-            finally:
-                os.environ["OPENROUTER_API_KEY"] = _orig
+            # api_key passée en paramètre direct (pas de mutation de os.environ,
+            # partagé entre toutes les sessions du process Streamlit)
+            final, docs = _ask_mispl(
+                question_enriched, use_openai_embeddings=False, top_k=top_k,
+                model=model_choice, skill_profile=active_skills,
+                save_session=True,
+                conversation_history=_history,
+                api_key=st.session_state.get("api_key", ""),
+                access_mode=st.session_state.access_mode,
+            )
             placeholder.markdown(final)
         except Exception as _exc:
             error_id = str(uuid.uuid4())[:8]

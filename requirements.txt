@@ -2,27 +2,29 @@
 # Installer : pip install -r requirements.txt
 
 # ── RAG & Vectorstore ──────────────────────────────────────────────────────────
-chromadb>=0.5.0
-rank-bm25>=0.2.2                        # BM25 pour recherche hybride
-sentence-transformers>=3.0.0            # Embeddings locaux offline
-PyYAML>=6.0.0                           # Parsing frontmatter YAML des fiches KB
-nltk>=3.9.0                             # Stemmer SnowballStemmer("french") pour BM25
+chromadb==1.5.9
+rank-bm25==0.2.2                        # BM25 pour recherche hybride
+sentence-transformers==5.6.0            # Embeddings locaux offline
+PyYAML==6.0.3                           # Parsing frontmatter YAML des fiches KB
+nltk==3.9.4                             # Stemmer SnowballStemmer("french") pour BM25
 
 # ── LLM via OpenRouter (API compatible OpenAI) ────────────────────────────────
-openai>=1.50.0                          # Client OpenAI — compatible OpenRouter
+openai==2.44.0                          # Client OpenAI — compatible OpenRouter
 
 # ── Interface ─────────────────────────────────────────────────────────────────
-streamlit>=1.40.0                       # Interface web
+streamlit==1.58.0                       # Interface web
 
 # ── Utilitaires ───────────────────────────────────────────────────────────────
-python-dotenv>=1.0.0                    # Chargement .env
-tqdm>=4.66.0                            # Progress bar ingestion
+python-dotenv==1.2.2                    # Chargement .env
+tqdm==4.68.3                            # Progress bar ingestion
 
 # ── Monitoring ressources (CPU/RAM/disque/réseau/GPU → rapport Plotly) ────────
-psutil>=5.9.0                           # Métriques CPU/RAM/disque/réseau
-GPUtil>=1.4.0                           # Charge & VRAM GPU NVIDIA
-plotly>=5.20.0                          # Rapport HTML autonome
+psutil==7.2.2                           # Métriques CPU/RAM/disque/réseau
+# GPUtil n'est plus maintenu depuis 2020 (dernier commit archivé) — envisager
+# nvidia-ml-py comme alternative à évaluer plus tard (hors périmètre de ce pin)
+GPUtil==1.4.0                           # Charge & VRAM GPU NVIDIA
+plotly==6.8.0                           # Rapport HTML autonome
 
 # ── Dev & Tests ───────────────────────────────────────────────────────────────
-pytest>=8.0.0
-pytest-cov>=5.0.0
+pytest==9.1.1
+pytest-cov==7.1.0

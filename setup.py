@@ -31,13 +31,13 @@ def main():
 
     # 3. Vérification des variables d'environnement
     print("\n[3/4] Variables d'environnement...")
-    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if not anthropic_key:
-        print("     ⚠️  ANTHROPIC_API_KEY non définie")
-        print("        Exporter : $env:ANTHROPIC_API_KEY='sk-ant-...'  (PowerShell)")
-        print("        Ou créer un fichier .env avec : ANTHROPIC_API_KEY=sk-ant-...")
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not openrouter_key:
+        print("     ⚠️  OPENROUTER_API_KEY non définie")
+        print("        Exporter : $env:OPENROUTER_API_KEY='sk-or-v1-...'  (PowerShell)")
+        print("        Ou créer un fichier .env avec : OPENROUTER_API_KEY=sk-or-v1-...")
     else:
-        print("     ✅ ANTHROPIC_API_KEY définie")
+        print("     ✅ OPENROUTER_API_KEY définie")
 
     # 4. Build du vectorstore
     print("\n[4/4] Construction du vectorstore RAG...")

@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT))
 from src.rag.retriever import get_retriever
 from src.agent.prompt_builder import build_system_prompt, SKILL_PROFILES
 from src.agent.linter import lint_response, autofix_mispl, Severity
+from src.security.access_mode import enforce_access_mode, MODE_DSI
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
@@ -59,16 +60,52 @@ DEFAULT_TOP_K = 6
 SESSIONS_DIR = ROOT / "outputs" / "sessions"
 CACHE_DIR = ROOT / "outputs" / "cache"
 
+# Durée de rétention des sessions journalisées (questions + réponses, potentiellement
+# des alertes DLP non bloquantes) avant purge automatique. Configurable via
+# MISPL_SESSION_RETENTION_DAYS.
+SESSION_RETENTION_DAYS = int(os.environ.get("MISPL_SESSION_RETENTION_DAYS", "30"))
+
+
+def purge_old_sessions(max_age_days: int = SESSION_RETENTION_DAYS) -> int:
+    """Supprime les fichiers de session plus anciens que max_age_days. Retourne le nombre supprimé."""
+    if not SESSIONS_DIR.exists():
+        return 0
+    cutoff = datetime.datetime.now().timestamp() - max_age_days * 86400
+    removed = 0
+    for f in SESSIONS_DIR.glob("session_*.json"):
+        try:
+            if f.stat().st_mtime < cutoff:
+                f.unlink()
+                removed += 1
+        except OSError:
+            continue
+    return removed
+
 
 # ── Cache question→réponse 24h ─────────────────────────────────────────────────
 
 # Version du pipeline de génération. À incrémenter dès que le system prompt,
 # le post-traitement (strip CoT) ou le format de réponse change → invalide
 # automatiquement tout le cache obsolète sans avoir à le vider à la main.
-CACHE_VERSION = "v23"
+CACHE_VERSION = "v24"
 
-def _cache_key(question: str, model: str, top_k: int) -> str:
-    raw = f"{CACHE_VERSION}|{question}|{model}|{top_k}"
+def _cache_key(
+    question: str,
+    model: str,
+    top_k: int,
+    skill_profile: list[str] | None,
+    access_mode: str,
+    conversation_history: list[dict] | None,
+) -> str:
+    # skill_profile et access_mode changent le prompt système ; l'historique
+    # change le contexte envoyé au LLM → tous doivent entrer dans la clé,
+    # sinon une réponse mise en cache dans un contexte fuite vers un autre
+    # (ex: réponse DSI servie telle quelle à un technicien).
+    skills_part = ",".join(sorted(skill_profile)) if skill_profile else "auto"
+    hist_part = hashlib.sha256(
+        json.dumps(conversation_history or [], ensure_ascii=False, sort_keys=True).encode()
+    ).hexdigest()[:12]
+    raw = f"{CACHE_VERSION}|{question}|{model}|{top_k}|{skills_part}|{access_mode}|{hist_part}"
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
@@ -76,12 +113,19 @@ def _cache_get(key: str) -> tuple[str, list] | None:
     path = CACHE_DIR / f"{key}.json"
     if not path.exists():
         return None
-    data = json.loads(path.read_text(encoding="utf-8"))
-    age = datetime.datetime.now().timestamp() - data["ts"]
-    if age > 86400:  # 24h
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        age = datetime.datetime.now().timestamp() - data["ts"]
+        if age > 86400:  # 24h
+            path.unlink(missing_ok=True)
+            return None
+        return data["response"], data["docs"]
+    except (json.JSONDecodeError, KeyError, OSError) as e:
+        # Fichier corrompu (écriture interrompue) → ne jamais planter la requête,
+        # juste ignorer le cache et le supprimer.
+        logger.warning(f"Cache corrompu ({key}), ignoré : {e}")
         path.unlink(missing_ok=True)
         return None
-    return data["response"], data["docs"]
 
 
 def _cache_set(key: str, response: str, docs: list) -> None:
@@ -228,8 +272,11 @@ def _build_fewshot_hint(docs: list) -> str:
 
 # ── Client OpenRouter ──────────────────────────────────────────────────────────
 
-def _get_client() -> OpenAI:
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+def _get_client(api_key: str | None = None) -> OpenAI:
+    # api_key explicite (passé par l'appelant) prioritaire sur l'environnement —
+    # évite de muter os.environ (partagé entre toutes les sessions du process
+    # Streamlit) pour transporter la clé d'une requête individuelle.
+    api_key = api_key or os.environ.get("OPENROUTER_API_KEY", "")
     if not api_key:
         raise ValueError(
             "OPENROUTER_API_KEY manquant.\n"
@@ -313,6 +360,8 @@ def ask_mispl(
     skill_profile: list[str] | None = None,
     save_session: bool = True,
     conversation_history: list[dict] | None = None,
+    api_key: str | None = None,
+    access_mode: str = MODE_DSI,
 ) -> tuple[str, list]:
     """
     Pose une question MISPL/GLIMS à l'agent RAG + LLM via OpenRouter.
@@ -327,17 +376,22 @@ def ask_mispl(
         conversation_history: Historique conversationnel (list de dicts role/content).
             Max 6 derniers échanges injectés entre system et user pour ne pas dépasser
             la context window.
+        api_key: Clé OpenRouter pour cette requête précise (prioritaire sur
+            OPENROUTER_API_KEY de l'environnement — évite la mutation partagée
+            entre sessions Streamlit concurrentes)
+        access_mode: "dsi" (génération complète) ou "technicien" (bridé — pas
+            de boucles WHILE/REPEAT, cf. src/security/access_mode.py)
 
     Returns:
         Tuple (response_text, docs) — docs réutilisable sans double RAG.
     """
-    client = _get_client()
+    client = _get_client(api_key)
 
     # top_k adaptatif : requêtes multi-fonction → plus de chunks (Pattern complet)
     effective_top_k = _adaptive_top_k(question, top_k)
 
     # Cache 24h — évite d'appeler le LLM pour une question déjà posée récemment
-    _key = _cache_key(question, model, effective_top_k)
+    _key = _cache_key(question, model, effective_top_k, skill_profile, access_mode, conversation_history)
     _cached = _cache_get(_key)
     if _cached:
         logger.info(f"Cache hit pour question ({_key})")
@@ -350,7 +404,7 @@ def ask_mispl(
 
     # 2. Prompt système depuis Skills Markdown
     active_skills = skill_profile or _detect_skill_profile(question)
-    system_prompt = build_system_prompt(active_skills=active_skills)
+    system_prompt = build_system_prompt(active_skills=active_skills, access_mode=access_mode)
 
     # 3.b Few-shot dynamique : signaler un pattern/cas d'usage complet présent
     fewshot_hint = _build_fewshot_hint(docs)
@@ -392,6 +446,11 @@ def ask_mispl(
     if autofixes:
         logger.info(f"Auto-corrections appliquées : {autofixes}")
 
+    # 3.6. Barrière dure mode d'accès — ne fait rien en mode DSI. En mode
+    # Technicien, remplace la réponse entière si une boucle est passée malgré
+    # la consigne du prompt système (le LLM ne suit pas toujours ses consignes).
+    response = enforce_access_mode(response, access_mode)
+
     # 4. Lint
     lint_result = lint_response(response)
     if not lint_result.is_clean:
@@ -402,7 +461,7 @@ def ask_mispl(
 
     # 5. Session
     if save_session:
-        _save_session(question, docs, response, model, active_skills, lint_result)
+        _save_session(question, docs, response, model, active_skills, lint_result, access_mode)
 
     # Mise en cache pour les 24h à venir
     _cache_set(_key, response, docs)
@@ -420,12 +479,14 @@ def _save_session(
     model: str,
     active_skills: list[str],
     lint_result,
+    access_mode: str = MODE_DSI,
 ) -> None:
     SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     session = {
         "timestamp": ts,
         "model": model,
+        "access_mode": access_mode,
         "active_skills": active_skills,
         "question": question,
         "rag_sources": [

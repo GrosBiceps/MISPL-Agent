@@ -130,6 +130,17 @@ class ResourceMonitor:
             return None
         return self._write_report()
 
+    # ── API publique (consommée par app.py — ne pas utiliser les attributs _*) ──
+
+    def sample_count(self) -> int:
+        return len(self._samples)
+
+    def write_report(self) -> Path | None:
+        """Écrit le rapport sans arrêter le thread de collecte (rapport intermédiaire)."""
+        if not self._samples:
+            return None
+        return self._write_report()
+
     # ── Génération du rapport ────────────────────────────────────────────────
 
     def _write_report(self) -> Path:
@@ -250,6 +261,11 @@ class ResourceMonitor:
 # ── API module (singleton process-wide) ──────────────────────────────────────
 
 _MONITOR: ResourceMonitor | None = None
+
+
+def get_monitor() -> ResourceMonitor | None:
+    """Retourne le moniteur déjà démarré sans en (re)démarrer un — None si jamais démarré."""
+    return _MONITOR
 
 
 def start_monitoring(interval: float = DEFAULT_INTERVAL) -> ResourceMonitor:
