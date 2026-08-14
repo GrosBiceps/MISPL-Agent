@@ -20,7 +20,6 @@ import EmptyState from "../../components/EmptyState";
 import ThinkingIndicator from "../../components/ThinkingIndicator";
 import BetaBadge from "../../components/BetaBadge";
 import ConversationSidebar from "../../components/ConversationSidebar";
-import AccountMenu from "../../components/AccountMenu";
 
 interface Message {
   role: "user" | "assistant";
@@ -203,14 +202,12 @@ export default function ChatPage() {
         onNew={handleReset}
         onSelect={handleSelectConversation}
         onDelete={handleDeleteConversation}
+        onLogout={handleLogout}
       />
       <main className="chat-main" style={{ maxWidth: 780, margin: "0 auto", padding: "2rem 1.5rem 1rem" }}>
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <h1 style={{ fontSize: 22 }}>Assistant MISPL</h1>
-            <BetaBadge />
-          </div>
-          <AccountMenu displayName={user.display_name} onLogout={handleLogout} />
+        <header style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
+          <h1 style={{ fontSize: 22 }}>Assistant MISPL</h1>
+          <BetaBadge />
         </header>
 
         {messages.length === 0 && !loading ? (

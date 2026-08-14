@@ -56,8 +56,8 @@ export default function AccountMenu({ displayName, onLogout }: Props) {
           className="card"
           style={{
             position: "absolute",
-            top: "calc(100% + 8px)",
-            right: 0,
+            bottom: "calc(100% + 8px)",
+            left: 0,
             width: 220,
             padding: 16,
             zIndex: 10,

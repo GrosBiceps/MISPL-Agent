@@ -2,6 +2,7 @@
 
 import { ConversationSummary } from "../lib/api";
 import { groupConversationsByDate } from "../lib/conversationGroups";
+import AccountMenu from "./AccountMenu";
 
 interface Props {
   conversations: ConversationSummary[];
@@ -13,6 +14,7 @@ interface Props {
   onNew: () => void;
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
+  onLogout: () => void;
 }
 
 export default function ConversationSidebar({
@@ -25,6 +27,7 @@ export default function ConversationSidebar({
   onNew,
   onSelect,
   onDelete,
+  onLogout,
 }: Props) {
   if (collapsed) {
     return (
@@ -112,7 +115,9 @@ export default function ConversationSidebar({
           </div>
         ))}
       </div>
-      <div className="conv-sidebar-footer">{userDisplayName}</div>
+      <div className="conv-sidebar-footer">
+        <AccountMenu displayName={userDisplayName} onLogout={onLogout} />
+      </div>
     </aside>
   );
 }
