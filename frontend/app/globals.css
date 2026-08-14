@@ -157,3 +157,56 @@ textarea {
     transform: scale(1);
   }
 }
+
+.code-block-wrapper {
+  position: relative;
+}
+.code-block-wrapper .copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 11px;
+  color: #9db4ac;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.code-block-wrapper .copy-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
+
+.cert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+.cert-certain {
+  background: var(--accent-soft);
+  color: #5a6656;
+  border: 1px solid var(--accent);
+}
+.cert-probable {
+  background: #f7f1e3;
+  color: #8a6413;
+  border: 1px solid #d9b45c;
+}
+.cert-check {
+  background: #f6ece9;
+  color: #94473e;
+  border: 1px solid #a8584f;
+}
+
+.sticky-input-bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  padding: 16px 0 20px;
+}

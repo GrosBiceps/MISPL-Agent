@@ -7,6 +7,7 @@ import { getInitials } from "../../lib/avatar";
 import ChatMessage from "../../components/ChatMessage";
 import EmptyState from "../../components/EmptyState";
 import ThinkingIndicator from "../../components/ThinkingIndicator";
+import BetaBadge from "../../components/BetaBadge";
 
 interface Message {
   role: "user" | "assistant";
@@ -100,10 +101,13 @@ export default function ChatPage() {
   }
 
   return (
-    <main style={{ maxWidth: 780, margin: "0 auto", padding: "2rem 1.5rem 6rem" }}>
+    <main style={{ maxWidth: 780, margin: "0 auto", padding: "2rem 1.5rem 1rem" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22 }}>Assistant MISPL</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <h1 style={{ fontSize: 22 }}>Assistant MISPL</h1>
+            <BetaBadge />
+          </div>
           <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>{user.display_name}</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -135,33 +139,35 @@ export default function ChatPage() {
         </div>
       )}
 
-      <div className="card" style={{ marginTop: 20 }}>
-        <label style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
-          Contexte labo (optionnel)
-        </label>
-        <input
-          value={labContext}
-          onChange={(e) => setLabContext(e.target.value)}
-          placeholder="ex: Analyseur Cobas c702, tube EDTA, unités SI"
-          style={{ marginBottom: 12 }}
-        />
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleAsk(question);
-          }}
-          style={{ display: "flex", gap: 8 }}
-        >
+      <div className="sticky-input-bar">
+        <div className="card">
+          <label style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
+            Contexte labo (optionnel)
+          </label>
           <input
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Posez votre question MISPL..."
-            style={{ flex: 1 }}
+            value={labContext}
+            onChange={(e) => setLabContext(e.target.value)}
+            placeholder="ex: Analyseur Cobas c702, tube EDTA, unités SI"
+            style={{ marginBottom: 12 }}
           />
-          <button type="submit" disabled={loading}>
-            {loading ? "..." : "Envoyer"}
-          </button>
-        </form>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAsk(question);
+            }}
+            style={{ display: "flex", gap: 8 }}
+          >
+            <input
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Posez votre question MISPL..."
+              style={{ flex: 1 }}
+            />
+            <button type="submit" disabled={loading}>
+              {loading ? "..." : "Envoyer"}
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   );
