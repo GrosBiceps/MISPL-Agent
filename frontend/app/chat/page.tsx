@@ -10,6 +10,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   sources?: SourceOut[];
+  warning?: string[];
 }
 
 const EXAMPLES = [
@@ -31,7 +32,7 @@ export default function ChatPage() {
   useEffect(() => {
     getMe()
       .then(setUser)
-      .catch(() => router.push("/login"));
+      .catch(() => router.push("/login?expired=1"));
   }, [router]);
 
   useEffect(() => {
@@ -40,11 +41,15 @@ export default function ChatPage() {
 
   async function handleAsk(q: string) {
     if (!q.trim() || loading) return;
+    const history = messages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .slice(-12)
+      .map((m) => ({ role: m.role, content: m.content }));
     setMessages((prev) => [...prev, { role: "user", content: q }]);
     setQuestion("");
     setLoading(true);
     try {
-      const result = await askChat(q, labContext || undefined);
+      const result = await askChat(q, labContext || undefined, history);
       if (result.blocked) {
         setMessages((prev) => [
           ...prev,
@@ -56,22 +61,24 @@ export default function ChatPage() {
       } else {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: result.response ?? "", sources: result.sources },
+          {
+            role: "assistant",
+            content: result.response ?? "",
+            sources: result.sources,
+            warning: result.dlp_alerts.length > 0 ? result.dlp_alerts : undefined,
+          },
         ]);
       }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        router.push("/login");
+        router.push("/login?expired=1");
         return;
       }
-      const refId = Math.random().toString(36).slice(2, 10);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `Service temporairement indisponible. Réessayez dans quelques instants. (Référence : ${refId})`,
-        },
-      ]);
+      const content =
+        err instanceof ApiError
+          ? err.message
+          : "Impossible de contacter le serveur — vérifiez votre connexion ou réessayez dans quelques instants.";
+      setMessages((prev) => [...prev, { role: "assistant", content }]);
     } finally {
       setLoading(false);
     }
@@ -112,7 +119,7 @@ export default function ChatPage() {
       ) : (
         <div>
           {messages.map((m, i) => (
-            <ChatMessage key={i} role={m.role} content={m.content} sources={m.sources} />
+            <ChatMessage key={i} role={m.role} content={m.content} sources={m.sources} warning={m.warning} />
           ))}
           <div ref={bottomRef} />
         </div>

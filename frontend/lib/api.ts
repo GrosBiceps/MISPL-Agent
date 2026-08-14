@@ -67,9 +67,22 @@ export interface ChatResponse {
   dlp_alerts: string[];
 }
 
-export function askChat(question: string, labContext?: string): Promise<ChatResponse> {
+export interface ChatHistoryMessage {
+  role: string;
+  content: string;
+}
+
+export function askChat(
+  question: string,
+  labContext?: string,
+  conversationHistory?: ChatHistoryMessage[]
+): Promise<ChatResponse> {
   return request<ChatResponse>("/chat/ask", {
     method: "POST",
-    body: JSON.stringify({ question, lab_context: labContext || undefined }),
+    body: JSON.stringify({
+      question,
+      lab_context: labContext || undefined,
+      conversation_history: conversationHistory && conversationHistory.length > 0 ? conversationHistory : undefined,
+    }),
   });
 }

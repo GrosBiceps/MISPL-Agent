@@ -1,12 +1,14 @@
+import ReactMarkdown from "react-markdown";
 import { SourceOut } from "../lib/api";
 
 interface Props {
   role: "user" | "assistant";
   content: string;
   sources?: SourceOut[];
+  warning?: string[];
 }
 
-export default function ChatMessage({ role, content, sources }: Props) {
+export default function ChatMessage({ role, content, sources, warning }: Props) {
   if (role === "user") {
     return (
       <div style={{ textAlign: "right", margin: "12px 0" }}>
@@ -29,8 +31,13 @@ export default function ChatMessage({ role, content, sources }: Props) {
 
   return (
     <div style={{ margin: "12px 0" }}>
-      <div className="card" style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>
-        {content}
+      {warning && warning.length > 0 && (
+        <div className="warning-banner">
+          ⚠️ Donnée potentiellement sensible détectée ({warning.join(", ")})
+        </div>
+      )}
+      <div className="card" style={{ fontSize: 14, lineHeight: 1.6 }}>
+        <ReactMarkdown>{content}</ReactMarkdown>
       </div>
       {sources && sources.length > 0 && (
         <details style={{ marginTop: 6, fontSize: 12.5 }}>

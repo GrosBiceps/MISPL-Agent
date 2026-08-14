@@ -1,14 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { login, ApiError } from "../../lib/api";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    searchParams.get("expired") === "1" ? "Session expirée, reconnectez-vous." : null
+  );
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -21,8 +32,10 @@ export default function LoginPage() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 423) {
         setError("Compte verrouillé temporairement — trop de tentatives. Réessayez dans 15 minutes.");
-      } else {
+      } else if (err instanceof ApiError) {
         setError("Email ou mot de passe incorrect.");
+      } else {
+        setError("Serveur indisponible — vérifiez que l'API est démarrée.");
       }
     } finally {
       setLoading(false);
