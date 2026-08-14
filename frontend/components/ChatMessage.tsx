@@ -1,6 +1,8 @@
 import ReactMarkdown from "react-markdown";
 import { SourceOut } from "../lib/api";
 import { ASSISTANT_AVATAR, svgAvatar } from "../lib/avatar";
+import { extractCertainty } from "../lib/certainty";
+import CodeBlock from "./CodeBlock";
 
 interface Props {
   role: "user" | "assistant";
@@ -11,6 +13,18 @@ interface Props {
 }
 
 const avatarStyle = { width: 32, height: 32, borderRadius: "50%", flexShrink: 0 } as const;
+
+const CERTAINTY_LABEL: Record<string, string> = {
+  certain: "✅ Certain",
+  probable: "⚠️ Probable",
+  check: "🔬 À vérifier",
+};
+
+const CERTAINTY_CLASS: Record<string, string> = {
+  certain: "cert-certain",
+  probable: "cert-probable",
+  check: "cert-check",
+};
 
 export default function ChatMessage({ role, content, sources, warning, userInitials }: Props) {
   if (role === "user") {
@@ -34,6 +48,8 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
     );
   }
 
+  const { level, cleanedContent } = extractCertainty(content);
+
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "12px 0" }}>
       <img src={ASSISTANT_AVATAR} alt="" style={avatarStyle} />
@@ -44,7 +60,8 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
           </div>
         )}
         <div className="card" style={{ fontSize: 14, lineHeight: 1.6 }}>
-          <ReactMarkdown>{content}</ReactMarkdown>
+          {level && <span className={`cert-badge ${CERTAINTY_CLASS[level]}`}>{CERTAINTY_LABEL[level]}</span>}
+          <ReactMarkdown components={{ pre: CodeBlock }}>{cleanedContent}</ReactMarkdown>
         </div>
         {sources && sources.length > 0 && (
           <details style={{ marginTop: 6, fontSize: 12.5 }}>
