@@ -4,6 +4,7 @@ import { extractCertainty } from "../lib/certainty";
 import CodeBlock from "./CodeBlock";
 import AssistantAvatarIcon from "./AssistantAvatarIcon";
 import UserAvatarBadge from "./UserAvatarBadge";
+import SourcesPanel from "./SourcesPanel";
 
 interface Props {
   role: "user" | "assistant";
@@ -68,23 +69,7 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
           )}
           <ReactMarkdown components={{ pre: CodeBlock }}>{cleanedContent}</ReactMarkdown>
         </div>
-        {sources && sources.length > 0 && (
-          <details style={{ marginTop: 6, fontSize: 12.5 }}>
-            <summary style={{ cursor: "pointer", color: "var(--ink-soft)" }}>
-              Sources documentaires ({sources.length})
-            </summary>
-            <ul style={{ marginTop: 8, paddingLeft: 18 }}>
-              {sources.map((s, i) => (
-                <li key={i} style={{ marginBottom: 4 }}>
-                  <strong>{s.exact_match ? "EXACT" : `#${i + 1}`}</strong>
-                  {s.function_name && ` · ${s.function_name}`}
-                  <br />
-                  <span style={{ color: "var(--ink-soft)" }}>{s.source}</span>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+        {sources && sources.length > 0 && <SourcesPanel sources={sources} />}
       </div>
     </div>
   );
