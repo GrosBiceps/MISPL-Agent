@@ -94,3 +94,9 @@ pytest tests/
 ```
 
 La suite couvre le cache et le linter de l'agent (`tests/agent/`), les modes d'accès et le DLP (`tests/security/`), ainsi que des exemples de fonctions MISPL validés (`tests/mispl_examples/`).
+
+## API — Authentification & comptes (nouveau)
+
+1. Lancer le serveur : `uvicorn api.main:app --host 0.0.0.0 --port 8000` — le schéma DB (`data/mispl.db`) est créé automatiquement au démarrage (voir `lifespan` dans `api/main.py`).
+2. Créer le premier compte admin : `python scripts/create_admin.py` (à exécuter après le premier démarrage du serveur, ou le script crée lui-même le schéma s'il est absent).
+3. **HTTPS obligatoire en production** — le cookie de session est marqué `Secure` (`COOKIE_SECURE = True` dans `api/routers/auth.py`). Sur un déploiement HTTP simple, le navigateur refuse silencieusement le cookie et l'authentification échoue sans message d'erreur explicite.

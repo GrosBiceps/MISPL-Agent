@@ -9,6 +9,7 @@ from src.security.access_mode import (
     MODE_DSI,
     MODE_TECHNICIEN,
     REFUSAL_MESSAGE,
+    access_mode_for_user,
     build_restrictions_prompt,
     enforce_access_mode,
     generate_salt,
@@ -84,3 +85,11 @@ class TestEnforceAccessMode:
         # le refus — seul le code MISPL exécutable compte.
         response = "Cette fonction ne nécessite pas de boucle while.\n```mispl\nRETURN Today();\n```"
         assert enforce_access_mode(response, MODE_TECHNICIEN) == response
+
+
+class TestAccessModeForUser:
+    def test_dsi_flag_true_gives_dsi_mode(self):
+        assert access_mode_for_user(True) == MODE_DSI
+
+    def test_dsi_flag_false_gives_technicien_mode(self):
+        assert access_mode_for_user(False) == MODE_TECHNICIEN
