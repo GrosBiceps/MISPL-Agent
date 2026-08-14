@@ -681,20 +681,27 @@ textarea {
 .conv-sidebar-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
+  gap: 9px;
+  margin-bottom: 14px;
 }
 .conv-sidebar-logo {
+  flex: 1;
+  min-width: 0;
   font-family: var(--serif);
   font-weight: 600;
   font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.conv-sidebar-toggle {
-  padding: 4px 8px;
-  font-size: 13px;
-  border-radius: 8px;
+.conv-sidebar-header .rail-btn {
+  width: 32px;
+  height: 32px;
 }
 .conv-sidebar-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   width: 100%;
   text-align: left;
   margin-bottom: 14px;

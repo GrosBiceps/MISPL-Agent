@@ -5,6 +5,30 @@ import { groupConversationsByDate } from "../lib/conversationGroups";
 import AccountMenu from "./AccountMenu";
 import AssistantAvatarIcon from "./AssistantAvatarIcon";
 
+const PanelIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+    <line x1="9" y1="4" x2="9" y2="20" stroke="currentColor" strokeWidth="1.7" />
+  </svg>
+);
+
+const ComposeIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+    />
+    <path
+      d="M18.4 2.6a1.98 1.98 0 0 1 2.8 2.8L13.6 13l-3.5.7.7-3.5 7.6-7.6Z"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 interface Props {
   conversations: ConversationSummary[];
   activeId: number | null;
@@ -43,18 +67,7 @@ export default function ConversationSidebar({
           aria-label="Afficher l'historique"
           title="Afficher l'historique"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <rect
-              x="3"
-              y="4"
-              width="18"
-              height="16"
-              rx="2.5"
-              stroke="currentColor"
-              strokeWidth="1.7"
-            />
-            <line x1="9" y1="4" x2="9" y2="20" stroke="currentColor" strokeWidth="1.7" />
-          </svg>
+          <PanelIcon />
         </button>
 
         <button
@@ -63,20 +76,7 @@ export default function ConversationSidebar({
           aria-label="Nouvelle conversation"
           title="Nouvelle conversation"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-            />
-            <path
-              d="M18.4 2.6a1.98 1.98 0 0 1 2.8 2.8L13.6 13l-3.5.7.7-3.5 7.6-7.6Z"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <ComposeIcon />
         </button>
 
         <div className="rail-spacer" />
@@ -91,17 +91,20 @@ export default function ConversationSidebar({
   return (
     <aside className="conv-sidebar">
       <div className="conv-sidebar-header">
+        <AssistantAvatarIcon size={30} />
         <span className="conv-sidebar-logo">MISPL Agent</span>
         <button
-          className="ghost conv-sidebar-toggle"
+          className="rail-btn"
           onClick={onToggleCollapse}
           aria-label="Masquer l'historique"
+          title="Masquer l'historique"
         >
-          «
+          <PanelIcon size={18} />
         </button>
       </div>
       <button className="conv-sidebar-new-btn" onClick={onNew}>
-        + Nouvelle conversation
+        <ComposeIcon size={16} />
+        <span>Nouvelle conversation</span>
       </button>
       {error && <div className="conv-sidebar-error">{error}</div>}
       <div className="conv-sidebar-list">
