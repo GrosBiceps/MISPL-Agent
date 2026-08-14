@@ -48,7 +48,7 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
     );
   }
 
-  const { level, cleanedContent } = extractCertainty(content);
+  const { level, rationale, cleanedContent } = extractCertainty(content);
 
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "12px 0" }}>
@@ -60,7 +60,12 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
           </div>
         )}
         <div className="card" style={{ fontSize: 14, lineHeight: 1.6 }}>
-          {level && <span className={`cert-badge ${CERTAINTY_CLASS[level]}`}>{CERTAINTY_LABEL[level]}</span>}
+          {level && (
+            <div style={{ marginBottom: 10 }}>
+              <span className={`cert-badge ${CERTAINTY_CLASS[level]}`}>{CERTAINTY_LABEL[level]}</span>
+              {rationale && <span style={{ marginLeft: 8, fontSize: 12.5, color: "var(--ink-soft)" }}>{rationale}</span>}
+            </div>
+          )}
           <ReactMarkdown components={{ pre: CodeBlock }}>{cleanedContent}</ReactMarkdown>
         </div>
         {sources && sources.length > 0 && (
