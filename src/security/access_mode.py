@@ -108,3 +108,15 @@ def enforce_access_mode(response: str, mode: str) -> str:
             return REFUSAL_MESSAGE
 
     return response
+
+
+def access_mode_for_user(can_use_dsi_mode: bool) -> str:
+    """
+    Dérive le mode de génération depuis l'attribut de compte can_use_dsi_mode.
+
+    Remplace, pour la future API de comptes, le mécanisme historique de mot
+    de passe DSI partagé (verify_dsi_password ci-dessus). Ce dernier reste en
+    place pour l'instant : app.py (Streamlit, toujours en production) en
+    dépend encore, et sa migration est un chantier séparé.
+    """
+    return MODE_DSI if can_use_dsi_mode else MODE_TECHNICIEN
