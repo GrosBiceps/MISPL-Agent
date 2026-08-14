@@ -16,7 +16,7 @@ except ImportError:
     pass
 
 from api.db import Base, engine
-from api.routers import admin, auth, chat
+from api.routers import admin, auth, chat, conversations
 
 
 @asynccontextmanager
@@ -43,3 +43,4 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(chat.router)
+app.include_router(conversations.router)

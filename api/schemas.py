@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr
@@ -68,6 +69,7 @@ class ChatRequest(BaseModel):
     question: str
     lab_context: str | None = None
     conversation_history: list[ChatHistoryMessage] | None = None
+    conversation_id: int | None = None
 
 
 class SourceOut(BaseModel):
@@ -82,3 +84,25 @@ class ChatResponse(BaseModel):
     sources: list[SourceOut]
     blocked: bool
     dlp_alerts: list[str]
+    conversation_id: int | None = None
+
+
+class ConversationSummaryOut(BaseModel):
+    id: int
+    title: str
+    updated_at: datetime.datetime
+
+    model_config = {"from_attributes": True}
+
+
+class MessageOut(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+    sources: list[SourceOut] | None = None
+    created_at: datetime.datetime
+
+
+class ConversationDetailOut(BaseModel):
+    id: int
+    title: str
+    messages: list[MessageOut]
