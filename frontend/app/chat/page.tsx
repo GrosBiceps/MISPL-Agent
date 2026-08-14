@@ -206,31 +206,29 @@ export default function ChatPage() {
       />
       <main className="chat-main">
         <div className="chat-content">
-          <header style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
+          <header className="chat-header-sticky" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, paddingBottom: 4 }}>
             <h1 style={{ fontSize: 22 }}>Assistant MISPL</h1>
             <BetaBadge />
           </header>
 
-          <div className="chat-scroll-area">
-            {messages.length === 0 && !loading ? (
-              <EmptyState examples={EXAMPLES} onPick={handleAsk} />
-            ) : (
-              <div>
-                {messages.map((m, i) => (
-                  <ChatMessage
-                    key={i}
-                    role={m.role}
-                    content={m.content}
-                    sources={m.sources}
-                    warning={m.warning}
-                    userInitials={getInitials(user.display_name)}
-                  />
-                ))}
-                {loading && <ThinkingIndicator />}
-                <div ref={bottomRef} />
-              </div>
-            )}
-          </div>
+          {messages.length === 0 && !loading ? (
+            <EmptyState examples={EXAMPLES} onPick={handleAsk} />
+          ) : (
+            <div>
+              {messages.map((m, i) => (
+                <ChatMessage
+                  key={i}
+                  role={m.role}
+                  content={m.content}
+                  sources={m.sources}
+                  warning={m.warning}
+                  userInitials={getInitials(user.display_name)}
+                />
+              ))}
+              {loading && <ThinkingIndicator />}
+              <div ref={bottomRef} />
+            </div>
+          )}
 
           <div className="sticky-input-bar">
             <div className="card">

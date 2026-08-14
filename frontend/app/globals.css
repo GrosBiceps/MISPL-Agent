@@ -289,19 +289,19 @@ textarea {
   margin: 0 auto;
   height: 100%;
   padding: 2rem 1.5rem 1rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-scroll-area {
-  flex: 1;
-  min-height: 0;
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.chat-scroll-area::-webkit-scrollbar {
+.chat-content::-webkit-scrollbar {
   display: none;
+}
+
+.chat-header-sticky {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 5;
 }
 
 .conv-sidebar {
