@@ -11,7 +11,7 @@ export default function EmptyState({ examples, onPick }: Props) {
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, textAlign: "left" }}>
         {examples.map((ex) => (
-          <button key={ex} className="ghost" onClick={() => onPick(ex)} style={{ fontSize: 13 }}>
+          <button key={ex} className="example-card" onClick={() => onPick(ex)} style={{ fontSize: 13 }}>
             {ex}
           </button>
         ))}

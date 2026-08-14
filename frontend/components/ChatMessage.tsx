@@ -28,7 +28,7 @@ const CERTAINTY_CLASS: Record<string, string> = {
 export default function ChatMessage({ role, content, sources, warning, userInitials }: Props) {
   if (role === "user") {
     return (
-      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-start", gap: 8, margin: "12px 0" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-start", gap: 8, margin: "16px 0" }}>
         <span
           style={{
             display: "inline-block",
@@ -36,8 +36,9 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
             color: "var(--accent-solid-text)",
             padding: "10px 14px",
             borderRadius: "12px 12px 3px 12px",
-            maxWidth: "80%",
+            maxWidth: "72%",
             fontSize: 14,
+            boxShadow: "var(--shadow)",
           }}
         >
           {content}
@@ -50,7 +51,7 @@ export default function ChatMessage({ role, content, sources, warning, userIniti
   const { level, rationale, cleanedContent } = extractCertainty(content);
 
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "12px 0" }}>
+    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "16px 0" }}>
       <AssistantAvatarIcon />
       <div style={{ flex: 1, minWidth: 0 }}>
         {warning && warning.length > 0 && (
