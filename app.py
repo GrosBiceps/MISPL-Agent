@@ -539,10 +539,19 @@ if question:
     if st.session_state.get("lab_context", "").strip():
         question_enriched = f"[Contexte labo: {st.session_state.lab_context.strip()}]\n\n{question}"
 
-    # DLP — vérification sur le texte réellement envoyé au LLM (question + contexte
-    # labo), pas uniquement la question brute : un IPP/NIR tapé dans le contexte
-    # labo doit être bloqué au même titre.
-    _dlp_blocked, _dlp_alerts = dlp_check(question_enriched)
+    # Historique AVANT d'ajouter la question courante (évite doublon dans le prompt LLM).
+    # Filtré sur role/content : les messages assistant portent aussi src_idx (métadonnée
+    # UI interne) que certaines API rejettent comme clé de message inconnue.
+    _history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[-12:]]
+
+    # DLP — vérification sur le texte réellement envoyé au LLM : question + contexte
+    # labo + historique de conversation de la session, pas uniquement la question
+    # brute. Un IPP/NIR (ou toute donnée détectée) déjà présent dans l'historique
+    # doit être re-évalué à chaque tour, pas seulement au moment où il a été tapé
+    # (miroir du comportement de api/routers/chat.py).
+    _history_text = "\n".join(m["content"] for m in _history)
+    _dlp_text = f"{question_enriched}\n{_history_text}" if _history_text else question_enriched
+    _dlp_blocked, _dlp_alerts = dlp_check(_dlp_text)
     if _dlp_blocked:
         st.session_state.messages.append({"role": "user", "content": question})
         with st.chat_message("user", avatar=USER_AVATAR):
@@ -561,10 +570,6 @@ if question:
         logging.warning(f"[DLP] Avertissement (non bloquant) — patterns: {_dlp_alerts}")
         st.toast(f"⚠️ Donnée potentiellement sensible détectée ({', '.join(_dlp_alerts)}). Fermez la page si envoi non voulu.", icon="⚠️")
 
-    # Historique AVANT d'ajouter la question courante (évite doublon dans le prompt LLM).
-    # Filtré sur role/content : les messages assistant portent aussi src_idx (métadonnée
-    # UI interne) que certaines API rejettent comme clé de message inconnue.
-    _history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[-12:]]
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user", avatar=USER_AVATAR):
         st.markdown(f'<div class="user-msg">{html.escape(question)}</div>', unsafe_allow_html=True)
