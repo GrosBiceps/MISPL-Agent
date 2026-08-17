@@ -550,10 +550,17 @@ if question:
     # doit être re-évalué à chaque tour, pas seulement au moment où il a été tapé
     # (miroir du comportement de api/routers/chat.py).
     _history_text = "\n".join(m["content"] for m in _history)
-    _dlp_text = f"{question_enriched}\n{_history_text}" if _history_text else question_enriched
-    _dlp_blocked, _dlp_alerts = dlp_check(_dlp_text)
+    # Même logique que api/routers/chat.py : escalade combinatoire complète sur
+    # le texte courant uniquement, désactivée sur l'historique déjà persisté
+    # (évite qu'une combinaison fortuite sur plusieurs tours ne verrouille
+    # définitivement la session).
+    _current_blocked, _current_alerts = dlp_check(question_enriched)
+    _history_blocked, _history_alerts = (
+        dlp_check(_history_text, escalate_combinations=False) if _history_text else (False, [])
+    )
+    _dlp_blocked = _current_blocked or _history_blocked
+    _dlp_alerts = list(dict.fromkeys(_current_alerts + _history_alerts))
     if _dlp_blocked:
-        st.session_state.messages.append({"role": "user", "content": question})
         with st.chat_message("user", avatar=USER_AVATAR):
             st.markdown(f'<div class="user-msg">{html.escape(question)}</div>', unsafe_allow_html=True)
         with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):

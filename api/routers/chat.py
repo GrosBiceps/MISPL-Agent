@@ -90,7 +90,19 @@ def ask(payload: ChatRequest, db: DBSession = Depends(get_db), user: User = Depe
         )
 
     history_text = "\n".join(m["content"] for m in history_messages)
-    blocked, dlp_alerts = dlp_check(f"{question_enriched}\n{history_text}" if history_text else question_enriched)
+    # Le texte courant (question + contexte labo) est vérifié avec l'escalade
+    # combinatoire complète. L'historique déjà persisté est vérifié séparément,
+    # SANS escalade combinatoire (escalate_combinations=False) : des motifs
+    # identifiants fortuits dispersés sur plusieurs messages (dont des réponses
+    # générées par le LLM) ne doivent pas verrouiller définitivement toute
+    # question future dans cette conversation. Les patterns réellement bloquants
+    # (NIR, IPP...) restent bloquants dans l'historique quoi qu'il arrive.
+    current_blocked, current_alerts = dlp_check(question_enriched)
+    history_blocked, history_alerts = (
+        dlp_check(history_text, escalate_combinations=False) if history_text else (False, [])
+    )
+    blocked = current_blocked or history_blocked
+    dlp_alerts = list(dict.fromkeys(current_alerts + history_alerts))
     if blocked:
         logger.warning(f"[DLP] Message bloqué — patterns: {dlp_alerts}")
         return ChatResponse(response=None, sources=[], blocked=True, dlp_alerts=dlp_alerts, conversation_id=None)

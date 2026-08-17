@@ -216,6 +216,7 @@ export default function ChatPage() {
     requestGenerationRef.current++;
     setMessages([]);
     setActiveConversationId(null);
+    setLoading(false);
   }
 
   async function handleSelectConversation(id: number) {

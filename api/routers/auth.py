@@ -36,24 +36,30 @@ _login_attempts: dict[str, list[float]] = {}
 _login_attempts_lock = threading.Lock()
 
 
-def _check_login_rate_limit(client_ip: str) -> None:
+def _check_login_rate_limit(rate_limit_key: str) -> None:
     now = time.monotonic()
     with _login_attempts_lock:
-        attempts = [t for t in _login_attempts.get(client_ip, []) if now - t < _LOGIN_RATE_WINDOW_SECONDS]
+        attempts = [t for t in _login_attempts.get(rate_limit_key, []) if now - t < _LOGIN_RATE_WINDOW_SECONDS]
         if len(attempts) >= _LOGIN_RATE_LIMIT:
-            _login_attempts[client_ip] = attempts
+            _login_attempts[rate_limit_key] = attempts
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="too_many_login_attempts",
             )
         attempts.append(now)
-        _login_attempts[client_ip] = attempts
+        _login_attempts[rate_limit_key] = attempts
 
 
 @router.post("/login", response_model=MeResponse)
 def login(payload: LoginRequest, request: Request, response: Response, db: DBSession = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
-    _check_login_rate_limit(client_ip)
+    # Clé (IP, email) plutôt qu'IP seule : derrière un reverse proxy/NAT interne,
+    # plusieurs comptes/utilisateurs légitimes peuvent partager la même IP visible
+    # — une clé IP seule ferait qu'un utilisateur en échec verrouille tous les
+    # autres. La limite reste pleinement efficace contre le credential-stuffing
+    # ciblant UN compte donné depuis une source donnée.
+    rate_limit_key = f"{client_ip}:{payload.email.lower().strip()}"
+    _check_login_rate_limit(rate_limit_key)
 
     user, error = authenticate_user(db, payload.email, payload.password)
     if error is not None:

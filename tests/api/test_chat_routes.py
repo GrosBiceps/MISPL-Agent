@@ -37,7 +37,7 @@ class TestDLPBlocking:
         login(client)
 
         calls = []
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (True, ["IPP/NIP patient"]))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (True, ["IPP/NIP patient"]))
         monkeypatch.setattr(
             chat_router, "ask_mispl",
             lambda *a, **kw: (calls.append(1), ("ne doit jamais arriver", []))[1],
@@ -87,7 +87,7 @@ class TestSuccessfulAsk:
                 {"function_name": "Substr", "source": "doc.md", "score": 0.9, "exact_match": True}
             ]
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(chat_router, "ask_mispl", fake_ask_mispl)
 
         resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
@@ -108,7 +108,7 @@ class TestSuccessfulAsk:
             captured.update(kwargs)
             return "ok", []
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(chat_router, "ask_mispl", fake_ask_mispl)
 
         resp = client.post("/chat/ask", json={"question": "Boucle WHILE ?"})
@@ -125,7 +125,7 @@ class TestSuccessfulAsk:
             captured["question"] = question
             return "ok", []
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(chat_router, "ask_mispl", fake_ask_mispl)
 
         client.post(
@@ -140,7 +140,7 @@ class TestSuccessfulAsk:
         login(client)
 
         monkeypatch.setattr(
-            chat_router, "dlp_check", lambda text: (False, ["Date suspecte", "Nom potentiel"])
+            chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, ["Date suspecte", "Nom potentiel"])
         )
         monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("ok", []))
 
@@ -160,7 +160,7 @@ class TestSuccessfulAsk:
             captured.update(kwargs)
             return "ok", []
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(chat_router, "ask_mispl", fake_ask_mispl)
 
         history = [
@@ -181,7 +181,7 @@ class TestSuccessfulAsk:
         login(client)
 
         captured = {}
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
 
         def fake_ask_mispl(question, **kwargs):
             captured.update(kwargs)
@@ -219,7 +219,7 @@ class TestConversationHistoryValidation:
         login(client)
 
         calls = []
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(
             chat_router, "ask_mispl",
             lambda *a, **kw: (calls.append(1), ("ne doit jamais arriver", []))[1],
@@ -242,7 +242,7 @@ class TestLLMError:
         def raising_ask_mispl(*a, **kw):
             raise RuntimeError("OpenRouter down")
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(chat_router, "ask_mispl", raising_ask_mispl)
 
         resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
@@ -254,7 +254,7 @@ class TestConversationPersistence:
         make_user(db_session_factory)
         login(client)
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("Voici la réponse", []))
 
         resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
@@ -277,7 +277,7 @@ class TestConversationPersistence:
         make_user(db_session_factory)
         login(client)
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("réponse 1", []))
         first = client.post("/chat/ask", json={"question": "Question initiale ?"})
         conversation_id = first.json()["conversation_id"]
@@ -306,7 +306,7 @@ class TestConversationPersistence:
         other_conv_id = other_conv.id
 
         login(client, email="b@labo.fr")
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("ok", []))
 
         resp = client.post(
@@ -319,7 +319,7 @@ class TestConversationPersistence:
         make_user(db_session_factory)
         login(client)
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (True, ["IPP/NIP patient"]))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (True, ["IPP/NIP patient"]))
         monkeypatch.setattr(chat_router, "ask_mispl", lambda *a, **kw: ("ne doit jamais arriver", []))
 
         resp = client.post("/chat/ask", json={"question": "IPP:1234567 quoi faire ?"})
@@ -342,7 +342,7 @@ class TestUsageTracking:
                 )
             return "reponse", []
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(chat_router, "ask_mispl", fake_ask_mispl)
 
         resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
@@ -371,7 +371,7 @@ class TestUsageTracking:
                 )
             return "ok", []
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
         monkeypatch.setattr(chat_router, "ask_mispl", fake_ask_mispl)
 
         client.post("/chat/ask", json={"question": "Question 1 ?"})
@@ -394,7 +394,7 @@ class TestUsageTracking:
         make_user(db_session_factory)
         login(client)
 
-        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (True, ["IPP/NIP patient"]))
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (True, ["IPP/NIP patient"]))
         monkeypatch.setattr(
             chat_router, "ask_mispl",
             lambda *a, **kw: (_ for _ in ()).throw(AssertionError("ne doit jamais être appelé")),

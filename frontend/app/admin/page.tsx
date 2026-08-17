@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   getMe,
@@ -120,6 +120,7 @@ export default function AdminPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
+  const pendingTogglesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     getMe()
@@ -154,7 +155,8 @@ export default function AdminPage() {
 
   async function handleToggle(id: number, field: "can_use_dsi_mode" | "is_active", value: boolean) {
     const key = `${id}:${field}`;
-    if (pendingToggles.has(key)) return; // ignore un second clic tant que la requête précédente est en cours
+    if (pendingTogglesRef.current.has(key)) return; // ignore un second clic tant que la requête précédente est en cours
+    pendingTogglesRef.current.add(key);
     const previousValue = users.find((u) => u.id === id)?.[field];
     setPendingToggles((prev) => new Set(prev).add(key));
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, [field]: value } : u)));
@@ -172,6 +174,7 @@ export default function AdminPage() {
       }
       setActionError(err instanceof ApiError ? err.message : "Échec de la mise à jour");
     } finally {
+      pendingTogglesRef.current.delete(key);
       setPendingToggles((prev) => {
         const next = new Set(prev);
         next.delete(key);
