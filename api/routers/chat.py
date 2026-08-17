@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from api.db import get_db
 from api.dependencies import get_current_user
-from api.models import Conversation, Message, User
+from api.models import Conversation, Message, UsageDaily, User
 from api.schemas import ChatRequest, ChatResponse, SourceOut
 from src.agent.mispl_agent import ask_mispl
 from src.security.access_mode import access_mode_for_user
@@ -39,6 +39,21 @@ def _make_title(question: str) -> str:
     return stripped[:TITLE_MAX_LENGTH].rstrip() + "…"
 
 
+def _record_usage(db: DBSession, user_id: int, usage: dict) -> None:
+    today = datetime.datetime.utcnow().date()
+    row = (
+        db.query(UsageDaily)
+        .filter(UsageDaily.user_id == user_id, UsageDaily.date == today)
+        .first()
+    )
+    if row is None:
+        row = UsageDaily(user_id=user_id, date=today, prompt_tokens=0, completion_tokens=0, request_count=0)
+        db.add(row)
+    row.prompt_tokens += usage.get("prompt_tokens", 0)
+    row.completion_tokens += usage.get("completion_tokens", 0)
+    row.request_count += 1
+
+
 @router.post("/ask", response_model=ChatResponse)
 def ask(payload: ChatRequest, db: DBSession = Depends(get_db), user: User = Depends(get_current_user)):
     conversation = None
@@ -63,12 +78,14 @@ def ask(payload: ChatRequest, db: DBSession = Depends(get_db), user: User = Depe
         else None
     )
 
+    usage: dict = {}
     try:
         response_text, docs = ask_mispl(
             question_enriched,
             access_mode=access_mode,
             save_session=True,
             conversation_history=history,
+            usage_out=usage,
         )
     except Exception:
         error_id = str(uuid.uuid4())[:8]
@@ -105,6 +122,7 @@ def ask(payload: ChatRequest, db: DBSession = Depends(get_db), user: User = Depe
         )
     )
     conversation.updated_at = now
+    _record_usage(db, user.id, usage)
     db.commit()
 
     return ChatResponse(

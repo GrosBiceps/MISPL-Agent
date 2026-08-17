@@ -1,6 +1,8 @@
 """Tests de la route /chat/ask — auth requise, DLP, dérivation du mode d'accès, erreurs LLM."""
 
-from api.models import Conversation, Message, User
+import datetime
+
+from api.models import Conversation, Message, UsageDaily, User
 from api.security import hash_password
 import api.routers.chat as chat_router
 
@@ -289,3 +291,81 @@ class TestConversationPersistence:
 
         db = db_session_factory()
         assert db.query(Conversation).count() == 0
+
+
+class TestUsageTracking:
+    def test_successful_ask_records_usage_for_today(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+
+        def fake_ask_mispl(question, **kwargs):
+            if kwargs.get("usage_out") is not None:
+                kwargs["usage_out"].update(
+                    {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
+                )
+            return "reponse", []
+
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "ask_mispl", fake_ask_mispl)
+
+        resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
+        assert resp.status_code == 200
+
+        db = db_session_factory()
+        user = db.query(User).filter(User.email == "tech@labo.fr").one()
+        today = datetime.datetime.utcnow().date()
+        row = (
+            db.query(UsageDaily)
+            .filter(UsageDaily.user_id == user.id, UsageDaily.date == today)
+            .one()
+        )
+        assert row.prompt_tokens == 100
+        assert row.completion_tokens == 50
+        assert row.request_count == 1
+
+    def test_second_ask_same_day_increments_existing_row(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+
+        def fake_ask_mispl(question, **kwargs):
+            if kwargs.get("usage_out") is not None:
+                kwargs["usage_out"].update(
+                    {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
+                )
+            return "ok", []
+
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+        monkeypatch.setattr(chat_router, "ask_mispl", fake_ask_mispl)
+
+        client.post("/chat/ask", json={"question": "Question 1 ?"})
+        client.post("/chat/ask", json={"question": "Question 2 ?"})
+
+        db = db_session_factory()
+        user = db.query(User).filter(User.email == "tech@labo.fr").one()
+        today = datetime.datetime.utcnow().date()
+        rows = (
+            db.query(UsageDaily)
+            .filter(UsageDaily.user_id == user.id, UsageDaily.date == today)
+            .all()
+        )
+        assert len(rows) == 1
+        assert rows[0].prompt_tokens == 20
+        assert rows[0].completion_tokens == 10
+        assert rows[0].request_count == 2
+
+    def test_blocked_dlp_message_does_not_record_usage(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (True, ["IPP/NIP patient"]))
+        monkeypatch.setattr(
+            chat_router, "ask_mispl",
+            lambda *a, **kw: (_ for _ in ()).throw(AssertionError("ne doit jamais être appelé")),
+        )
+
+        resp = client.post("/chat/ask", json={"question": "IPP:1234567 quoi faire ?"})
+        assert resp.status_code == 200
+        assert resp.json()["blocked"] is True
+
+        db = db_session_factory()
+        assert db.query(UsageDaily).count() == 0
