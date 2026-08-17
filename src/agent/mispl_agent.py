@@ -350,6 +350,18 @@ def _call_with_fallback(
     raise last_error or RuntimeError("Tous les modèles OpenRouter sont indisponibles")
 
 
+def _extract_usage(completion) -> dict:
+    """Extrait les compteurs de tokens d'un objet completion OpenAI-compatible.
+    Retourne des zéros si absent (ne devrait pas arriver hors tests, mais
+    OpenRouter ne garantit pas formellement le champ pour tous les modèles)."""
+    usage = getattr(completion, "usage", None)
+    return {
+        "prompt_tokens": getattr(usage, "prompt_tokens", 0) or 0,
+        "completion_tokens": getattr(usage, "completion_tokens", 0) or 0,
+        "total_tokens": getattr(usage, "total_tokens", 0) or 0,
+    }
+
+
 # ── Core agent ─────────────────────────────────────────────────────────────────
 
 def ask_mispl(
@@ -362,6 +374,7 @@ def ask_mispl(
     conversation_history: list[dict] | None = None,
     api_key: str | None = None,
     access_mode: str = MODE_DSI,
+    usage_out: dict | None = None,
 ) -> tuple[str, list]:
     """
     Pose une question MISPL/GLIMS à l'agent RAG + LLM via OpenRouter.
@@ -381,6 +394,9 @@ def ask_mispl(
             entre sessions Streamlit concurrentes)
         access_mode: "dsi" (génération complète) ou "technicien" (bridé — pas
             de boucles WHILE/REPEAT, cf. src/security/access_mode.py)
+        usage_out: si fourni, rempli avec {"prompt_tokens", "completion_tokens",
+            "total_tokens"} après l'appel LLM (zéros si réponse servie depuis
+            le cache — aucun appel OpenRouter n'a eu lieu).
 
     Returns:
         Tuple (response_text, docs) — docs réutilisable sans double RAG.
@@ -395,6 +411,8 @@ def ask_mispl(
     _cached = _cache_get(_key)
     if _cached:
         logger.info(f"Cache hit pour question ({_key})")
+        if usage_out is not None:
+            usage_out.update({"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})
         return _cached
 
     # 1. Retrieval hybride BM25 + dense
@@ -434,6 +452,8 @@ def ask_mispl(
 
     # Appel non-streaming avec retry + fallback
     used_model, completion = _call_with_fallback(client, model, messages, stream=False)
+    if usage_out is not None:
+        usage_out.update(_extract_usage(completion))
     response = completion.choices[0].message.content or ""
     # Filet de sécurité : strip le chain-of-thought que nemotron/autres laissent fuiter
     # (le system prompt l'interdit mais les modèles l'ignorent parfois)

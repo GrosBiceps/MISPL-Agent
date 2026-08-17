@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.db import Base
@@ -83,3 +83,17 @@ class Message(Base):
     )
 
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")
+
+
+class UsageDaily(Base):
+    __tablename__ = "usage_daily"
+    __table_args__ = (
+        UniqueConstraint("user_id", "date", name="uq_usage_daily_user_date"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
+    prompt_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    completion_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    request_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

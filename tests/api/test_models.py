@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from api.db import Base
-from api.models import Conversation, Message, User, UserSession
+from api.models import Conversation, Message, UsageDaily, User, UserSession
 
 
 def make_session():
@@ -129,3 +129,41 @@ class TestMessageModel:
         db.commit()
 
         assert db.query(Message).filter(Message.conversation_id == conv_id).count() == 0
+
+
+class TestUsageDailyModel:
+    def test_create_and_query_usage_row(self):
+        db = make_session()
+        user = User(email="tech6@labo.fr", password_hash="h", display_name="Tech Six", platform_role="user")
+        db.add(user)
+        db.commit()
+
+        today = datetime.date.today()
+        db.add(
+            UsageDaily(
+                user_id=user.id, date=today,
+                prompt_tokens=100, completion_tokens=50, request_count=1,
+            )
+        )
+        db.commit()
+
+        fetched = db.query(UsageDaily).filter(UsageDaily.user_id == user.id).one()
+        assert fetched.date == today
+        assert fetched.prompt_tokens == 100
+        assert fetched.completion_tokens == 50
+        assert fetched.request_count == 1
+
+    def test_unique_constraint_on_user_and_date(self):
+        db = make_session()
+        user = User(email="tech7@labo.fr", password_hash="h", display_name="Tech Sept", platform_role="user")
+        db.add(user)
+        db.commit()
+
+        today = datetime.date.today()
+        db.add(UsageDaily(user_id=user.id, date=today, prompt_tokens=10, completion_tokens=5, request_count=1))
+        db.commit()
+
+        db.add(UsageDaily(user_id=user.id, date=today, prompt_tokens=20, completion_tokens=10, request_count=1))
+        import pytest
+        with pytest.raises(Exception):
+            db.commit()
