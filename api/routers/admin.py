@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
+import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session as DBSession
 
 from api.db import get_db
 from api.dependencies import require_admin
-from api.models import User
+from api.models import UsageDaily, User
 from api.schemas import (
+    AdminUserOut,
     CreateUserRequest,
     CreateUserResponse,
     ResetPasswordResponse,
     RevokeSessionsResponse,
     UpdateUserRequest,
+    UsageDayOut,
     UserOut,
 )
 from api.security import generate_temp_password, hash_password
@@ -68,9 +73,39 @@ def create_user(
     )
 
 
-@router.get("/users", response_model=list[UserOut])
+@router.get("/users", response_model=list[AdminUserOut])
 def list_users(db: DBSession = Depends(get_db), _admin: User = Depends(require_admin)):
-    return db.query(User).order_by(User.id).all()
+    users = db.query(User).order_by(User.id).all()
+
+    cutoff = datetime.datetime.utcnow().date() - datetime.timedelta(days=30)
+    rows = (
+        db.query(
+            UsageDaily.user_id,
+            func.sum(UsageDaily.prompt_tokens + UsageDaily.completion_tokens).label("total_tokens"),
+            func.max(UsageDaily.date).label("last_active"),
+        )
+        .filter(UsageDaily.date >= cutoff)
+        .group_by(UsageDaily.user_id)
+        .all()
+    )
+    usage_by_user = {r.user_id: (r.total_tokens or 0, r.last_active) for r in rows}
+
+    result = []
+    for u in users:
+        total_tokens, last_active = usage_by_user.get(u.id, (0, None))
+        result.append(
+            AdminUserOut(
+                id=u.id,
+                email=u.email,
+                display_name=u.display_name,
+                platform_role=u.platform_role,
+                can_use_dsi_mode=u.can_use_dsi_mode,
+                is_active=u.is_active,
+                total_tokens_30d=total_tokens,
+                last_active_at=last_active,
+            )
+        )
+    return result
 
 
 @router.patch("/users/{user_id}", response_model=UserOut)
@@ -132,3 +167,36 @@ def revoke_sessions(
     _get_user_or_404(db, user_id)
     count = revoke_all_sessions_for_user(db, user_id)
     return RevokeSessionsResponse(revoked=count)
+
+
+@router.get("/users/{user_id}/usage-daily", response_model=list[UsageDayOut])
+def get_usage_daily(
+    user_id: int,
+    days: int = 30,
+    db: DBSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    _get_user_or_404(db, user_id)
+
+    today = datetime.datetime.utcnow().date()
+    start = today - datetime.timedelta(days=days - 1)
+    rows = (
+        db.query(UsageDaily)
+        .filter(UsageDaily.user_id == user_id, UsageDaily.date >= start)
+        .all()
+    )
+    by_date = {r.date: r for r in rows}
+
+    result = []
+    for i in range(days):
+        d = start + datetime.timedelta(days=i)
+        row = by_date.get(d)
+        result.append(
+            UsageDayOut(
+                date=d,
+                prompt_tokens=row.prompt_tokens if row else 0,
+                completion_tokens=row.completion_tokens if row else 0,
+                request_count=row.request_count if row else 0,
+            )
+        )
+    return result

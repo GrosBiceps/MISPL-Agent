@@ -106,3 +106,15 @@ class ConversationDetailOut(BaseModel):
     id: int
     title: str
     messages: list[MessageOut]
+
+
+class AdminUserOut(UserOut):
+    total_tokens_30d: int = 0
+    last_active_at: datetime.date | None = None
+
+
+class UsageDayOut(BaseModel):
+    date: datetime.date
+    prompt_tokens: int
+    completion_tokens: int
+    request_count: int

@@ -1,6 +1,8 @@
 """Tests d'intégration des routes /admin/users."""
 
-from api.models import User
+import datetime
+
+from api.models import UsageDaily, User
 from api.security import hash_password
 
 
@@ -228,3 +230,93 @@ class TestRevokeSessions:
         assert resp.json()["revoked"] == 1
 
         assert tech_client.get("/auth/me").status_code == 401
+
+
+def add_usage(db_session_factory, user_id, date, prompt_tokens, completion_tokens, request_count=1):
+    db = db_session_factory()
+    db.add(
+        UsageDaily(
+            user_id=user_id, date=date,
+            prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+            request_count=request_count,
+        )
+    )
+    db.commit()
+    db.close()
+
+
+class TestListUsersUsageFields:
+    def test_new_user_has_zero_usage_and_no_last_active(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        make_regular_user(db_session_factory)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+
+        resp = client.get("/admin/users")
+        assert resp.status_code == 200
+        tech = next(u for u in resp.json() if u["email"] == "tech@labo.fr")
+        assert tech["total_tokens_30d"] == 0
+        assert tech["last_active_at"] is None
+
+    def test_usage_aggregated_over_30_days(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        today = datetime.date.today()
+        add_usage(db_session_factory, user.id, today, prompt_tokens=100, completion_tokens=50)
+        add_usage(db_session_factory, user.id, today - datetime.timedelta(days=5), prompt_tokens=30, completion_tokens=20)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+
+        resp = client.get("/admin/users")
+        tech = next(u for u in resp.json() if u["email"] == "tech@labo.fr")
+        assert tech["total_tokens_30d"] == 200
+        assert tech["last_active_at"] == today.isoformat()
+
+    def test_usage_older_than_30_days_excluded(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        old_date = datetime.date.today() - datetime.timedelta(days=45)
+        add_usage(db_session_factory, user.id, old_date, prompt_tokens=999, completion_tokens=999)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+
+        resp = client.get("/admin/users")
+        tech = next(u for u in resp.json() if u["email"] == "tech@labo.fr")
+        assert tech["total_tokens_30d"] == 0
+
+
+class TestUsageDailyRoute:
+    def test_returns_window_length_zero_filled(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        today = datetime.date.today()
+        add_usage(db_session_factory, user.id, today, prompt_tokens=100, completion_tokens=50, request_count=2)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+
+        resp = client.get(f"/admin/users/{user.id}/usage-daily?days=7")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body) == 7
+        assert body[-1]["date"] == today.isoformat()
+        assert body[-1]["prompt_tokens"] == 100
+        assert body[-1]["request_count"] == 2
+        assert body[0]["prompt_tokens"] == 0
+        assert body[0]["request_count"] == 0
+
+    def test_chronological_order(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+
+        resp = client.get(f"/admin/users/{user.id}/usage-daily?days=5")
+        dates = [row["date"] for row in resp.json()]
+        assert dates == sorted(dates)
+
+    def test_404_for_nonexistent_user(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+        resp = client.get("/admin/users/999/usage-daily")
+        assert resp.status_code == 404
+
+    def test_403_for_non_admin(self, client, db_session_factory):
+        user = make_regular_user(db_session_factory)
+        login_as(client, "tech@labo.fr", "TechMdp1!")
+        resp = client.get(f"/admin/users/{user.id}/usage-daily")
+        assert resp.status_code == 403
