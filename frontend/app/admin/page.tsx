@@ -17,6 +17,7 @@ import { getInitials } from "../../lib/avatar";
 import { formatTokenCount, formatLastActive } from "../../lib/format";
 import UserAvatarBadge from "../../components/UserAvatarBadge";
 import Toggle from "../../components/Toggle";
+import AdminUserDetailPanel from "../../components/AdminUserDetailPanel";
 
 function CreateUserModal({
   onClose,
@@ -117,6 +118,7 @@ export default function AdminPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [tempPasswordBanner, setTempPasswordBanner] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     getMe()
@@ -226,13 +228,15 @@ export default function AdminPage() {
             {users.map((u) => (
               <tr key={u.id}>
                 <td>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button className="link-cell" onClick={() => setSelectedUser(u)}>
                     <UserAvatarBadge initials={getInitials(u.display_name)} size={28} />
                     <div>
-                      <div style={{ fontSize: 13.5 }}>{u.display_name}</div>
+                      <div className="link-cell-name" style={{ fontSize: 13.5 }}>
+                        {u.display_name}
+                      </div>
                       <div style={{ fontSize: 11.5, color: "var(--ink-soft)" }}>{u.email}</div>
                     </div>
-                  </div>
+                  </button>
                 </td>
                 <td>
                   <span className={`role-badge${u.platform_role === "admin" ? " admin" : ""}`}>
@@ -288,6 +292,9 @@ export default function AdminPage() {
             setShowCreateModal(false);
           }}
         />
+      )}
+      {selectedUser && (
+        <AdminUserDetailPanel user={selectedUser} onClose={() => setSelectedUser(null)} />
       )}
     </main>
   );
