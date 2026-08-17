@@ -8,6 +8,7 @@ import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session as DBSession
 
 from api.db import get_db
@@ -41,17 +42,24 @@ def _make_title(question: str) -> str:
 
 def _record_usage(db: DBSession, user_id: int, usage: dict) -> None:
     today = datetime.datetime.utcnow().date()
-    row = (
-        db.query(UsageDaily)
-        .filter(UsageDaily.user_id == user_id, UsageDaily.date == today)
-        .first()
+    prompt_tokens = usage.get("prompt_tokens", 0)
+    completion_tokens = usage.get("completion_tokens", 0)
+    stmt = sqlite_insert(UsageDaily).values(
+        user_id=user_id,
+        date=today,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        request_count=1,
     )
-    if row is None:
-        row = UsageDaily(user_id=user_id, date=today, prompt_tokens=0, completion_tokens=0, request_count=0)
-        db.add(row)
-    row.prompt_tokens += usage.get("prompt_tokens", 0)
-    row.completion_tokens += usage.get("completion_tokens", 0)
-    row.request_count += 1
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["user_id", "date"],
+        set_={
+            "prompt_tokens": UsageDaily.prompt_tokens + prompt_tokens,
+            "completion_tokens": UsageDaily.completion_tokens + completion_tokens,
+            "request_count": UsageDaily.request_count + 1,
+        },
+    )
+    db.execute(stmt)
 
 
 @router.post("/ask", response_model=ChatResponse)

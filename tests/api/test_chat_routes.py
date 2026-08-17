@@ -369,3 +369,25 @@ class TestUsageTracking:
 
         db = db_session_factory()
         assert db.query(UsageDaily).count() == 0
+
+    def test_record_usage_upsert_on_conflict_sums_values(self, db_session_factory):
+        from api.routers.chat import _record_usage
+
+        make_user(db_session_factory)
+        db = db_session_factory()
+        user = db.query(User).filter(User.email == "tech@labo.fr").one()
+
+        _record_usage(db, user.id, {"prompt_tokens": 100, "completion_tokens": 50})
+        db.commit()
+        _record_usage(db, user.id, {"prompt_tokens": 20, "completion_tokens": 5})
+        db.commit()
+
+        today = datetime.datetime.utcnow().date()
+        row = (
+            db.query(UsageDaily)
+            .filter(UsageDaily.user_id == user.id, UsageDaily.date == today)
+            .one()
+        )
+        assert row.prompt_tokens == 120
+        assert row.completion_tokens == 55
+        assert row.request_count == 2
