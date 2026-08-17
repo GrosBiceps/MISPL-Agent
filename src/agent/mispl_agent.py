@@ -295,6 +295,14 @@ def _get_client(api_key: str | None = None) -> OpenAI:
 
 # ── Appel LLM avec retry + fallback modèle ────────────────────────────────────
 
+# Budget de temps total pour tous les modèles/tentatives combinés : évite qu'un
+# worker FastAPI (thread synchrone) reste bloqué plusieurs minutes si tous les
+# modèles gratuits sont rate-limités simultanément (6 modèles x 2 tentatives x
+# jusqu'à 20s d'attente = plusieurs minutes dans le pire cas, ce qui peut
+# épuiser le threadpool sous charge concurrente — cf. audit sécurité).
+_MAX_TOTAL_WAIT_SECONDS = 60
+
+
 def _call_with_fallback(
     client: OpenAI,
     model: str,
@@ -313,6 +321,7 @@ def _call_with_fallback(
             models_to_try.append(fb)
 
     last_error = None
+    deadline = time.monotonic() + _MAX_TOTAL_WAIT_SECONDS
     for current_model in models_to_try:
         for attempt in range(max_retries):
             try:
@@ -333,19 +342,25 @@ def _call_with_fallback(
                 except Exception:
                     pass
                 logger.warning(f"RateLimit sur {current_model}, retry dans {retry_after}s")
-                if attempt < max_retries - 1:
-                    time.sleep(min(retry_after, 20))
+                remaining = deadline - time.monotonic()
+                if attempt < max_retries - 1 and remaining > 0:
+                    time.sleep(max(0, min(retry_after, 20, remaining)))
                 break  # prochain modèle
             except Exception as e:
                 last_error = e
-                status = getattr(e, "status_code", 0)
-                if status == 404:
+                status_code = getattr(e, "status_code", 0)
+                logger.warning(f"Échec sur {current_model} (status={status_code or 'n/a'}): {e}")
+                if status_code == 404:
                     logger.warning(f"Modèle {current_model} introuvable (404), fallback")
                     break  # modèle inexistant → prochain sans retry
-                if attempt < max_retries - 1:
-                    time.sleep(2)
+                remaining = deadline - time.monotonic()
+                if attempt < max_retries - 1 and remaining > 0:
+                    time.sleep(max(0, min(2, remaining)))
                 else:
                     break
+        if time.monotonic() >= deadline:
+            logger.warning("Budget de temps total des fallbacks OpenRouter épuisé, abandon des modèles restants")
+            break
 
     raise last_error or RuntimeError("Tous les modèles OpenRouter sont indisponibles")
 
