@@ -146,14 +146,16 @@ export default function AdminPage() {
   }
 
   async function handleToggle(id: number, field: "can_use_dsi_mode" | "is_active", value: boolean) {
-    const previous = users;
+    const previousValue = users.find((u) => u.id === id)?.[field];
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, [field]: value } : u)));
     setActionError(null);
     try {
       const updated = await updateAdminUser(id, { [field]: value });
       setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updated } : u)));
     } catch (err) {
-      setUsers(previous);
+      if (previousValue !== undefined) {
+        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, [field]: previousValue } : u)));
+      }
       setActionError(err instanceof ApiError ? err.message : "Échec de la mise à jour");
     }
   }
