@@ -58,8 +58,8 @@ _mon = _start_resource_monitor()
 @st.cache_resource(show_spinner=False)
 def _purge_sessions_once():
     # cache_resource garantit un seul passage par process, pas à chaque rerun
-    from src.agent.mispl_agent import purge_old_sessions
-    return purge_old_sessions()
+    from src.agent.mispl_agent import purge_old_cache, purge_old_sessions
+    return purge_old_sessions(), purge_old_cache()
 
 _purge_sessions_once()
 

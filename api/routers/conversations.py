@@ -4,22 +4,16 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session as DBSession
 
 from api.db import get_db
 from api.dependencies import get_current_user
 from api.models import Conversation, User
+from api.ownership import get_owned_conversation_or_404
 from api.schemas import ConversationDetailOut, ConversationSummaryOut, MessageOut, SourceOut
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
-
-
-def _get_owned_conversation_or_404(db: DBSession, conversation_id: int, user_id: int) -> Conversation:
-    conversation = db.get(Conversation, conversation_id)
-    if conversation is None or conversation.user_id != user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation introuvable")
-    return conversation
 
 
 @router.get("", response_model=list[ConversationSummaryOut])
@@ -36,7 +30,7 @@ def list_conversations(db: DBSession = Depends(get_db), user: User = Depends(get
 def get_conversation(
     conversation_id: int, db: DBSession = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    conversation = _get_owned_conversation_or_404(db, conversation_id, user.id)
+    conversation = get_owned_conversation_or_404(db, conversation_id, user.id)
     messages = [
         MessageOut(
             role=m.role,
@@ -53,7 +47,7 @@ def get_conversation(
 def delete_conversation(
     conversation_id: int, db: DBSession = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    conversation = _get_owned_conversation_or_404(db, conversation_id, user.id)
+    conversation = get_owned_conversation_or_404(db, conversation_id, user.id)
     db.delete(conversation)
     db.commit()
     return {"detail": "Conversation supprimée"}

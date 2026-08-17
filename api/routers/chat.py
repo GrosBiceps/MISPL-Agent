@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session as DBSession
 from api.db import get_db
 from api.dependencies import get_current_user
 from api.models import Conversation, Message, UsageDaily, User
+from api.ownership import get_owned_conversation_or_404
 from api.schemas import ChatRequest, ChatResponse, SourceOut
 from src.agent.mispl_agent import ask_mispl
 from src.security.access_mode import access_mode_for_user
@@ -24,13 +25,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 TITLE_MAX_LENGTH = 50
-
-
-def _get_owned_conversation_or_404(db: DBSession, conversation_id: int, user_id: int) -> Conversation:
-    conversation = db.get(Conversation, conversation_id)
-    if conversation is None or conversation.user_id != user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation introuvable")
-    return conversation
 
 
 def _make_title(question: str) -> str:
@@ -66,7 +60,7 @@ def _record_usage(db: DBSession, user_id: int, usage: dict) -> None:
 def ask(payload: ChatRequest, db: DBSession = Depends(get_db), user: User = Depends(get_current_user)):
     conversation = None
     if payload.conversation_id is not None:
-        conversation = _get_owned_conversation_or_404(db, payload.conversation_id, user.id)
+        conversation = get_owned_conversation_or_404(db, payload.conversation_id, user.id)
 
     question_enriched = payload.question
     if payload.lab_context:

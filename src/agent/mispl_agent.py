@@ -82,6 +82,30 @@ def purge_old_sessions(max_age_days: int = SESSION_RETENTION_DAYS) -> int:
     return removed
 
 
+CACHE_RETENTION_HOURS = int(os.environ.get("MISPL_CACHE_RETENTION_HOURS", "24"))
+
+
+def purge_old_cache(max_age_hours: int = CACHE_RETENTION_HOURS) -> int:
+    """Supprime les fichiers de cache plus anciens que max_age_hours (par défaut
+    la même fenêtre que la fraîcheur du cache lui-même, cf. _cache_get). Sans
+    purge périodique, chaque combinaison unique (question, historique, modèle,
+    mode d'accès) laisse un fichier .json permanent sur disque — croissance non
+    bornée qui peut aussi retenir indéfiniment du contexte labo en clair sans
+    contrôle d'accès (cf. audit sécurité). Retourne le nombre de fichiers supprimés."""
+    if not CACHE_DIR.exists():
+        return 0
+    cutoff = datetime.datetime.now().timestamp() - max_age_hours * 3600
+    removed = 0
+    for f in CACHE_DIR.glob("*.json"):
+        try:
+            if f.stat().st_mtime < cutoff:
+                f.unlink()
+                removed += 1
+        except OSError:
+            continue
+    return removed
+
+
 # ── Cache question→réponse 24h ─────────────────────────────────────────────────
 
 # Version du pipeline de génération. À incrémenter dès que le system prompt,

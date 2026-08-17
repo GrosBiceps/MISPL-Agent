@@ -18,9 +18,12 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 @event.listens_for(engine, "connect")
 def _set_sqlite_pragma(dbapi_connection, connection_record):
-    """Active l'enforcement des clés étrangères SQLite (désactivé par défaut)."""
+    """Active l'enforcement des clés étrangères SQLite (désactivé par défaut) et
+    un délai d'attente sur verrou plutôt qu'un échec immédiat sous charge
+    concurrente (plusieurs utilisateurs écrivant en même temps)."""
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.execute("PRAGMA busy_timeout=5000")
     cursor.close()
 
 

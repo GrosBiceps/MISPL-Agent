@@ -26,6 +26,9 @@ async def lifespan(app: FastAPI):
     # leurs propres tables sur un moteur SQLite en mémoire séparé (cf.
     # tests/api/conftest.py) et n'instancient/démarrent jamais ce serveur.
     Base.metadata.create_all(bind=engine)
+    from src.agent.mispl_agent import purge_old_cache, purge_old_sessions
+    purge_old_sessions()
+    purge_old_cache()
     yield
 
 

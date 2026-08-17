@@ -13,6 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import src.agent.mispl_agent as agent_mod
 from src.agent.mispl_agent import _cache_get, _cache_key
 
 
@@ -75,3 +76,32 @@ class TestCacheGetRobustness:
         }), encoding="utf-8")
         result = _cache_get("fresh")
         assert result == ("reponse test", [{"function_name": "Substr"}])
+
+
+class TestCachePurge:
+    def test_purges_files_older_than_retention(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(agent_mod, "CACHE_DIR", tmp_path)
+        old_file = tmp_path / "old.json"
+        old_file.write_text("{}", encoding="utf-8")
+        import os as _os
+        import time as _time
+        old_time = _time.time() - 2 * 3600  # 2h dans le passé
+        _os.utime(old_file, (old_time, old_time))
+
+        removed = agent_mod.purge_old_cache(max_age_hours=1)
+        assert removed == 1
+        assert not old_file.exists()
+
+    def test_keeps_recent_files(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(agent_mod, "CACHE_DIR", tmp_path)
+        recent_file = tmp_path / "recent.json"
+        recent_file.write_text("{}", encoding="utf-8")
+
+        removed = agent_mod.purge_old_cache(max_age_hours=24)
+        assert removed == 0
+        assert recent_file.exists()
+
+    def test_missing_cache_dir_returns_zero(self, tmp_path, monkeypatch):
+        missing = tmp_path / "does-not-exist"
+        monkeypatch.setattr(agent_mod, "CACHE_DIR", missing)
+        assert agent_mod.purge_old_cache() == 0
