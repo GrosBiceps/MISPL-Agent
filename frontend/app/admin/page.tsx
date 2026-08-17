@@ -164,9 +164,12 @@ export default function AdminPage() {
 
   async function handleResetPassword(id: number) {
     setActionError(null);
+    const target = users.find((u) => u.id === id);
     try {
       const result = await resetAdminPassword(id);
-      setTempPasswordBanner(`Nouveau mot de passe temporaire : ${result.temporary_password}`);
+      setTempPasswordBanner(
+        `Mot de passe temporaire pour ${target?.email ?? "ce compte"} : ${result.temporary_password}`
+      );
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Échec de la réinitialisation");
     }

@@ -279,7 +279,11 @@ class TestListUsersUsageFields:
 
         resp = client.get("/admin/users")
         tech = next(u for u in resp.json() if u["email"] == "tech@labo.fr")
+        # total_tokens_30d reste correctement fenêtré...
         assert tech["total_tokens_30d"] == 0
+        # ...mais last_active_at n'est PAS limité à la fenêtre de 30 jours :
+        # il reflète la dernière activité réelle, quelle que soit son ancienneté.
+        assert tech["last_active_at"] == old_date.isoformat()
 
     def test_usage_exactly_29_days_ago_included(self, client, db_session_factory):
         make_admin(db_session_factory)

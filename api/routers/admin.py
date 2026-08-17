@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session as DBSession
 
@@ -78,21 +78,29 @@ def list_users(db: DBSession = Depends(get_db), _admin: User = Depends(require_a
     users = db.query(User).order_by(User.id).all()
 
     cutoff = datetime.datetime.utcnow().date() - datetime.timedelta(days=29)
-    rows = (
+    token_rows = (
         db.query(
             UsageDaily.user_id,
             func.sum(UsageDaily.prompt_tokens + UsageDaily.completion_tokens).label("total_tokens"),
-            func.max(UsageDaily.date).label("last_active"),
         )
         .filter(UsageDaily.date >= cutoff)
         .group_by(UsageDaily.user_id)
         .all()
     )
-    usage_by_user = {r.user_id: (r.total_tokens or 0, r.last_active) for r in rows}
+    tokens_by_user = {r.user_id: (r.total_tokens or 0) for r in token_rows}
+
+    last_active_rows = (
+        db.query(
+            UsageDaily.user_id,
+            func.max(UsageDaily.date).label("last_active"),
+        )
+        .group_by(UsageDaily.user_id)
+        .all()
+    )
+    last_active_by_user = {r.user_id: r.last_active for r in last_active_rows}
 
     result = []
     for u in users:
-        total_tokens, last_active = usage_by_user.get(u.id, (0, None))
         result.append(
             AdminUserOut(
                 id=u.id,
@@ -101,8 +109,8 @@ def list_users(db: DBSession = Depends(get_db), _admin: User = Depends(require_a
                 platform_role=u.platform_role,
                 can_use_dsi_mode=u.can_use_dsi_mode,
                 is_active=u.is_active,
-                total_tokens_30d=total_tokens,
-                last_active_at=last_active,
+                total_tokens_30d=tokens_by_user.get(u.id, 0),
+                last_active_at=last_active_by_user.get(u.id),
             )
         )
     return result
@@ -172,7 +180,7 @@ def revoke_sessions(
 @router.get("/users/{user_id}/usage-daily", response_model=list[UsageDayOut])
 def get_usage_daily(
     user_id: int,
-    days: int = 30,
+    days: int = Query(30, ge=1, le=365),
     db: DBSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
