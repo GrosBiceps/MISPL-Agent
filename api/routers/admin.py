@@ -77,7 +77,7 @@ def create_user(
 def list_users(db: DBSession = Depends(get_db), _admin: User = Depends(require_admin)):
     users = db.query(User).order_by(User.id).all()
 
-    cutoff = datetime.datetime.utcnow().date() - datetime.timedelta(days=30)
+    cutoff = datetime.datetime.utcnow().date() - datetime.timedelta(days=29)
     rows = (
         db.query(
             UsageDaily.user_id,

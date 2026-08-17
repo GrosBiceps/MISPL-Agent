@@ -281,6 +281,28 @@ class TestListUsersUsageFields:
         tech = next(u for u in resp.json() if u["email"] == "tech@labo.fr")
         assert tech["total_tokens_30d"] == 0
 
+    def test_usage_exactly_29_days_ago_included(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        boundary_date = datetime.date.today() - datetime.timedelta(days=29)
+        add_usage(db_session_factory, user.id, boundary_date, prompt_tokens=40, completion_tokens=10)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+
+        resp = client.get("/admin/users")
+        tech = next(u for u in resp.json() if u["email"] == "tech@labo.fr")
+        assert tech["total_tokens_30d"] == 50
+
+    def test_usage_exactly_30_days_ago_excluded(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        boundary_date = datetime.date.today() - datetime.timedelta(days=30)
+        add_usage(db_session_factory, user.id, boundary_date, prompt_tokens=40, completion_tokens=10)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+
+        resp = client.get("/admin/users")
+        tech = next(u for u in resp.json() if u["email"] == "tech@labo.fr")
+        assert tech["total_tokens_30d"] == 0
+
 
 class TestUsageDailyRoute:
     def test_returns_window_length_zero_filled(self, client, db_session_factory):
