@@ -112,6 +112,7 @@ export default function ChatPage() {
   const [sidebarError, setSidebarError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const requestGenerationRef = useRef(0);
 
   useEffect(() => {
     getMe()
@@ -153,6 +154,7 @@ export default function ChatPage() {
 
   async function handleAsk(q: string) {
     if (!q.trim() || loading) return;
+    const generation = ++requestGenerationRef.current;
     const history = messages
       .filter((m) => m.role === "user" || m.role === "assistant")
       .slice(-12)
@@ -162,6 +164,7 @@ export default function ChatPage() {
     setLoading(true);
     try {
       const result = await askChat(q, labContext || undefined, history, activeConversationId);
+      if (requestGenerationRef.current !== generation) return;
       if (result.blocked) {
         setMessages((prev) => [
           ...prev,
@@ -190,17 +193,19 @@ export default function ChatPage() {
         router.push("/login?expired=1");
         return;
       }
+      if (requestGenerationRef.current !== generation) return;
       const content =
         err instanceof ApiError
           ? err.message
           : "Impossible de contacter le serveur — vérifiez votre connexion ou réessayez dans quelques instants.";
       setMessages((prev) => [...prev, { role: "assistant", content }]);
     } finally {
-      setLoading(false);
+      if (requestGenerationRef.current === generation) setLoading(false);
     }
   }
 
   function handleReset() {
+    requestGenerationRef.current++;
     setMessages([]);
     setActiveConversationId(null);
   }
@@ -208,8 +213,10 @@ export default function ChatPage() {
   async function handleSelectConversation(id: number) {
     if (loading) return;
     if (id === activeConversationId) return;
+    const generation = ++requestGenerationRef.current;
     try {
       const detail = await getConversation(id);
+      if (requestGenerationRef.current !== generation) return;
       setMessages(
         detail.messages.map((m) => ({
           role: m.role,
@@ -223,6 +230,7 @@ export default function ChatPage() {
         router.push("/login?expired=1");
         return;
       }
+      if (requestGenerationRef.current !== generation) return;
       setSidebarError("Impossible de charger cette conversation");
     }
   }
