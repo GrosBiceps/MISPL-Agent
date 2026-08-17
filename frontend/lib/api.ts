@@ -120,3 +120,74 @@ export function getConversation(id: number): Promise<ConversationDetail> {
 export function deleteConversation(id: number): Promise<{ detail: string }> {
   return request<{ detail: string }>(`/conversations/${id}`, { method: "DELETE" });
 }
+
+export interface UserBase {
+  id: number;
+  email: string;
+  display_name: string;
+  platform_role: string;
+  can_use_dsi_mode: boolean;
+  is_active: boolean;
+}
+
+export interface AdminUser extends UserBase {
+  total_tokens_30d: number;
+  last_active_at: string | null;
+}
+
+export interface CreateUserResult extends UserBase {
+  temporary_password: string;
+}
+
+export interface UpdateUserPayload {
+  display_name?: string;
+  platform_role?: string;
+  can_use_dsi_mode?: boolean;
+  is_active?: boolean;
+}
+
+export interface UsageDay {
+  date: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  request_count: number;
+}
+
+export function listAdminUsers(): Promise<AdminUser[]> {
+  return request<AdminUser[]>("/admin/users");
+}
+
+export function createAdminUser(payload: {
+  email: string;
+  display_name: string;
+  platform_role: string;
+  can_use_dsi_mode: boolean;
+}): Promise<CreateUserResult> {
+  return request<CreateUserResult>("/admin/users", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAdminUser(id: number, payload: UpdateUserPayload): Promise<UserBase> {
+  return request<UserBase>(`/admin/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resetAdminPassword(id: number): Promise<{ temporary_password: string }> {
+  return request<{ temporary_password: string }>(`/admin/users/${id}/reset-password`, {
+    method: "POST",
+  });
+}
+
+export function revokeAdminSessions(id: number): Promise<{ revoked: number }> {
+  return request<{ revoked: number }>(`/admin/users/${id}/revoke-sessions`, {
+    method: "POST",
+  });
+}
+
+export function getUserUsageDaily(id: number, days = 30): Promise<UsageDay[]> {
+  return request<UsageDay[]>(`/admin/users/${id}/usage-daily?days=${days}`);
+}

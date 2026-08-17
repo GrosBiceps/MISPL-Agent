@@ -35,6 +35,7 @@ interface Props {
   collapsed: boolean;
   error: string | null;
   userDisplayName: string;
+  isAdmin: boolean;
   onToggleCollapse: () => void;
   onNew: () => void;
   onSelect: (id: number) => void;
@@ -48,6 +49,7 @@ export default function ConversationSidebar({
   collapsed,
   error,
   userDisplayName,
+  isAdmin,
   onToggleCollapse,
   onNew,
   onSelect,
@@ -81,7 +83,7 @@ export default function ConversationSidebar({
 
         <div className="rail-spacer" />
 
-        <AccountMenu displayName={userDisplayName} onLogout={onLogout} compact />
+        <AccountMenu displayName={userDisplayName} onLogout={onLogout} compact isAdmin={isAdmin} />
       </aside>
     );
   }
@@ -154,7 +156,7 @@ export default function ConversationSidebar({
         ))}
       </div>
       <div className="conv-sidebar-footer">
-        <AccountMenu displayName={userDisplayName} onLogout={onLogout} />
+        <AccountMenu displayName={userDisplayName} onLogout={onLogout} isAdmin={isAdmin} />
       </div>
     </aside>
   );

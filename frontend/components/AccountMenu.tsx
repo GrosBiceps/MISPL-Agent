@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useTheme, Theme } from "../lib/theme-context";
 import { getInitials } from "../lib/avatar";
 import UserAvatarBadge from "./UserAvatarBadge";
@@ -15,9 +16,10 @@ interface Props {
   displayName: string;
   onLogout: () => void;
   compact?: boolean;
+  isAdmin?: boolean;
 }
 
-export default function AccountMenu({ displayName, onLogout, compact = false }: Props) {
+export default function AccountMenu({ displayName, onLogout, compact = false, isAdmin = false }: Props) {
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -140,6 +142,23 @@ export default function AccountMenu({ displayName, onLogout, compact = false }: 
               />
             ))}
           </div>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              style={{
+                display: "block",
+                padding: "8px 0",
+                fontSize: 13.5,
+                color: "var(--ink)",
+                textDecoration: "none",
+                borderTop: "1px solid var(--line)",
+                marginTop: 4,
+                marginBottom: 4,
+              }}
+            >
+              Administration
+            </Link>
+          )}
           <button
             onClick={onLogout}
             style={{

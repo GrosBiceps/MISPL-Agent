@@ -266,6 +266,7 @@ export default function ChatPage() {
         collapsed={sidebarCollapsed}
         error={sidebarError}
         userDisplayName={user.display_name}
+        isAdmin={user.platform_role === "admin"}
         onToggleCollapse={toggleSidebar}
         onNew={handleReset}
         onSelect={handleSelectConversation}
