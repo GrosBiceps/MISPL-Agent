@@ -981,6 +981,13 @@ textarea:focus {
 .toggle input:checked ~ .toggle-thumb {
   transform: translateX(16px);
 }
+.toggle-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.toggle-disabled .toggle-track {
+  cursor: not-allowed;
+}
 
 /* ── Dashboard admin ───────────────────────────────────────────── */
 

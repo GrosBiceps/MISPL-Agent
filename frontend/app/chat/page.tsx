@@ -121,8 +121,12 @@ export default function ChatPage() {
   }, [router]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-    if (stored === "true") setSidebarCollapsed(true);
+    try {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (stored === "true") setSidebarCollapsed(true);
+    } catch {
+      // localStorage indisponible — la sidebar reste dépliée par défaut pour cette session.
+    }
   }, []);
 
   useEffect(() => {
@@ -147,7 +151,11 @@ export default function ChatPage() {
   function toggleSidebar() {
     setSidebarCollapsed((prev) => {
       const next = !prev;
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch {
+        // localStorage indisponible — l'état reste correct en mémoire pour cette session.
+      }
       return next;
     });
   }

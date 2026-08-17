@@ -22,13 +22,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("green");
 
   useEffect(() => {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (isTheme(stored)) setThemeState(stored);
+    try {
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      if (isTheme(stored)) setThemeState(stored);
+    } catch {
+      // localStorage indisponible (navigation privée stricte, iframe cross-origin...) — reste sur le thème par défaut.
+    }
   }, []);
 
   function setTheme(next: Theme) {
     setThemeState(next);
-    localStorage.setItem(THEME_STORAGE_KEY, next);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      // localStorage indisponible — le thème change quand même pour cette session en mémoire.
+    }
     document.documentElement.setAttribute("data-theme", next);
   }
 

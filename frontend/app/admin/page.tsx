@@ -119,6 +119,7 @@ export default function AdminPage() {
   const [tempPasswordBanner, setTempPasswordBanner] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     getMe()
@@ -142,23 +143,40 @@ export default function AdminPage() {
       const list = await listAdminUsers();
       setUsers(list);
       setLoadError(null);
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push("/login?expired=1");
+        return;
+      }
       setLoadError("Impossible de charger la liste des comptes");
     }
   }
 
   async function handleToggle(id: number, field: "can_use_dsi_mode" | "is_active", value: boolean) {
+    const key = `${id}:${field}`;
+    if (pendingToggles.has(key)) return; // ignore un second clic tant que la requête précédente est en cours
     const previousValue = users.find((u) => u.id === id)?.[field];
+    setPendingToggles((prev) => new Set(prev).add(key));
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, [field]: value } : u)));
     setActionError(null);
     try {
       const updated = await updateAdminUser(id, { [field]: value });
       setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updated } : u)));
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push("/login?expired=1");
+        return;
+      }
       if (previousValue !== undefined) {
         setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, [field]: previousValue } : u)));
       }
       setActionError(err instanceof ApiError ? err.message : "Échec de la mise à jour");
+    } finally {
+      setPendingToggles((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     }
   }
 
@@ -171,6 +189,10 @@ export default function AdminPage() {
         `Mot de passe temporaire pour ${target?.email ?? "ce compte"} : ${result.temporary_password}`
       );
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push("/login?expired=1");
+        return;
+      }
       setActionError(err instanceof ApiError ? err.message : "Échec de la réinitialisation");
     }
   }
@@ -180,6 +202,10 @@ export default function AdminPage() {
     try {
       await revokeAdminSessions(id);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push("/login?expired=1");
+        return;
+      }
       setActionError(err instanceof ApiError ? err.message : "Échec de la révocation des sessions");
     }
   }
@@ -251,6 +277,7 @@ export default function AdminPage() {
                     checked={u.can_use_dsi_mode}
                     onChange={(v) => handleToggle(u.id, "can_use_dsi_mode", v)}
                     label={`Mode DSI pour ${u.display_name}`}
+                    disabled={pendingToggles.has(`${u.id}:can_use_dsi_mode`)}
                   />
                 </td>
                 <td>
@@ -258,6 +285,7 @@ export default function AdminPage() {
                     checked={u.is_active}
                     onChange={(v) => handleToggle(u.id, "is_active", v)}
                     label={`Compte actif pour ${u.display_name}`}
+                    disabled={pendingToggles.has(`${u.id}:is_active`)}
                   />
                 </td>
                 <td>{formatTokenCount(u.total_tokens_30d)}</td>
