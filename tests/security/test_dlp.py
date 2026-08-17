@@ -28,9 +28,21 @@ class TestDLPBlocking:
         blocked, alerts = dlp_check(enriched)
         assert blocked is True
 
+    def test_bare_dossier_number_blocks(self):
+        blocked, alerts = dlp_check("le dossier 4582910 a un resultat aberrant sur Cobas 8000")
+        assert blocked is True
+
+    def test_name_and_dob_combination_blocks(self):
+        blocked, alerts = dlp_check("Mme DUPONT Marie, nee le 12/03/1980, resultat glycemie anormal")
+        assert blocked is True
+
 
 class TestDLPWarningsNonBlocking:
     def test_date_triggers_warning_not_block(self):
         blocked, alerts = dlp_check("livraison prevue le 12/03/2026")
         assert blocked is False
         assert len(alerts) >= 1
+
+    def test_name_alone_still_warning_not_block(self):
+        blocked, alerts = dlp_check("Dr Martin BERNARD a valide ce resultat")
+        assert blocked is False
