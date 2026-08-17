@@ -35,6 +35,27 @@ class TestLogin:
         resp = client.post("/auth/login", json={"email": "inconnu@labo.fr", "password": "peuimporte"})
         assert resp.status_code == 401
 
+    def test_locked_account_and_wrong_password_return_same_status_and_detail(self, client, db_session_factory):
+        make_user(db_session_factory)
+        # Verrouille le compte : 5 mauvais mots de passe
+        for _ in range(5):
+            client.post("/auth/login", json={"email": "tech@labo.fr", "password": "faux"})
+        locked_resp = client.post("/auth/login", json={"email": "tech@labo.fr", "password": "faux"})
+        unknown_resp = client.post("/auth/login", json={"email": "inconnu@labo.fr", "password": "peuimporte"})
+        assert locked_resp.status_code == unknown_resp.status_code == 401
+        assert locked_resp.json()["detail"] == unknown_resp.json()["detail"]
+
+    def test_oversized_password_rejected_before_hashing(self, client, db_session_factory):
+        make_user(db_session_factory)
+        resp = client.post("/auth/login", json={"email": "tech@labo.fr", "password": "x" * 300})
+        assert resp.status_code == 422
+
+    def test_login_rate_limited_after_threshold_per_ip(self, client, db_session_factory):
+        for _ in range(10):
+            client.post("/auth/login", json={"email": "ratelimit-probe@labo.fr", "password": "whatever"})
+        resp = client.post("/auth/login", json={"email": "ratelimit-probe@labo.fr", "password": "whatever"})
+        assert resp.status_code == 429
+
 
 class TestMe:
     def test_me_without_login_returns_401(self, client, db_session_factory):

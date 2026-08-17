@@ -19,6 +19,23 @@ from api.main import app
 import api.routers.auth as auth_router
 
 
+@pytest.fixture(autouse=True)
+def _reset_login_rate_limiter():
+    # `_login_attempts` (api/routers/auth.py) est un dict module-level qui vit
+    # pour toute la durée du process pytest, indexé par IP source. TestClient
+    # utilise systématiquement la même IP factice ("testclient") pour toutes
+    # les requêtes de tous les fichiers de tests API. Sans ce reset, les
+    # connexions cumulées d'un test à l'autre (potentiellement de fichiers
+    # différents) finissent par dépasser le seuil de rate limiting par IP et
+    # font échouer en cascade des tests sans rapport (ex. login() dans un
+    # helper de test_admin_routes.py renvoyant 429 au lieu de 200). Ce n'est
+    # pas un contournement du rate limiting lui-même (toujours testé
+    # explicitement dans test_auth_routes.py) mais une remise à zéro de l'état
+    # partagé entre tests, nécessaire pour l'isolation.
+    auth_router._login_attempts.clear()
+    yield
+
+
 @pytest.fixture
 def db_session_factory(monkeypatch):
     # Cookie non-Secure en test : TestClient tourne sur http://testserver,
