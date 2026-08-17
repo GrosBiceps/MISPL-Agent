@@ -72,7 +72,30 @@ def ask(payload: ChatRequest, db: DBSession = Depends(get_db), user: User = Depe
     if payload.lab_context:
         question_enriched = f"[Contexte labo: {payload.lab_context.strip()}]\n\n{payload.question}"
 
-    history_text = "\n".join(m.content for m in (payload.conversation_history or []))
+    if conversation is not None:
+        # Historique dérivé des messages persistés en base, pas du payload
+        # client : pour une conversation existante, le client ne doit pas
+        # pouvoir faire raisonner le LLM (ni contourner le DLP) sur un
+        # historique fabriqué ou édité qui diverge de ce qui est réellement
+        # enregistré pour cette conversation (frontière de confiance — cf.
+        # audit sécurité). Pour une conversation NOUVELLE (conversation_id
+        # absent), rien n'est encore persisté côté serveur : l'historique
+        # fourni par le client reste la seule source disponible.
+        persisted_messages = (
+            db.query(Message)
+            .filter(Message.conversation_id == conversation.id)
+            .order_by(Message.created_at, Message.id)
+            .all()
+        )
+        history_messages = [{"role": m.role, "content": m.content} for m in persisted_messages[-12:]]
+    else:
+        history_messages = (
+            [{"role": m.role, "content": m.content} for m in payload.conversation_history]
+            if payload.conversation_history
+            else []
+        )
+
+    history_text = "\n".join(m["content"] for m in history_messages)
     blocked, dlp_alerts = dlp_check(f"{question_enriched}\n{history_text}" if history_text else question_enriched)
     if blocked:
         logger.warning(f"[DLP] Message bloqué — patterns: {dlp_alerts}")
@@ -80,11 +103,7 @@ def ask(payload: ChatRequest, db: DBSession = Depends(get_db), user: User = Depe
 
     access_mode = access_mode_for_user(user.can_use_dsi_mode)
 
-    history = (
-        [{"role": m.role, "content": m.content} for m in payload.conversation_history]
-        if payload.conversation_history
-        else None
-    )
+    history = history_messages or None
 
     usage: dict = {}
     try:

@@ -34,16 +34,29 @@ def create_session(db: DBSession, user: User) -> str:
 
 
 def validate_session(db: DBSession, token: str) -> User | None:
-    row = db.get(UserSession, token)
-    if row is None or row.revoked_at is not None:
-        return None
     now = datetime.datetime.utcnow()
-    if row.expires_at < now:
+    new_expiry = now + datetime.timedelta(hours=SESSION_TTL_HOURS)
+    # UPDATE atomique conditionné sur l'état courant (non révoquée, non expirée) :
+    # élimine le check-then-act entre la lecture de la ligne et l'écriture du
+    # renouvellement glissant, cohérent avec le pattern d'upsert atomique déjà
+    # utilisé pour UsageDaily (cf. api/routers/chat.py::_record_usage).
+    updated = (
+        db.query(UserSession)
+        .filter(
+            UserSession.token == token,
+            UserSession.revoked_at.is_(None),
+            UserSession.expires_at >= now,
+        )
+        .update({"expires_at": new_expiry}, synchronize_session=False)
+    )
+    if updated == 0:
+        db.rollback()
         return None
-    user = db.get(User, row.user_id)
+    row = db.get(UserSession, token)
+    user = db.get(User, row.user_id) if row is not None else None
     if user is None or not user.is_active:
+        db.rollback()
         return None
-    row.expires_at = now + datetime.timedelta(hours=SESSION_TTL_HOURS)  # glissant
     db.commit()
     return user
 

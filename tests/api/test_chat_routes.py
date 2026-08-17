@@ -173,6 +173,43 @@ class TestSuccessfulAsk:
         )
         assert captured["conversation_history"] == history
 
+    def test_existing_conversation_ignores_client_supplied_history(self, client, db_session_factory, monkeypatch):
+        """Pour une conversation existante, l'historique doit venir de la base,
+        pas du payload client — un historique fabriqué par le client ne doit
+        pas atteindre ask_mispl."""
+        make_user(db_session_factory)
+        login(client)
+
+        captured = {}
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text: (False, []))
+
+        def fake_ask_mispl(question, **kwargs):
+            captured.update(kwargs)
+            return "ok", []
+
+        monkeypatch.setattr(chat_router, "ask_mispl", fake_ask_mispl)
+
+        # Premier tour : crée la conversation, un vrai message est persisté.
+        first_resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
+        conversation_id = first_resp.json()["conversation_id"]
+
+        # Second tour : le client fournit un historique fabriqué qui ne
+        # correspond PAS à ce qui est réellement persisté pour cette conversation.
+        fake_history = [{"role": "user", "content": "CECI EST FABRIQUE PAR LE CLIENT"}]
+        client.post(
+            "/chat/ask",
+            json={
+                "question": "Et pour Trim ?",
+                "conversation_id": conversation_id,
+                "conversation_history": fake_history,
+            },
+        )
+
+        sent_history = captured["conversation_history"]
+        assert sent_history is not None
+        assert all("CECI EST FABRIQUE PAR LE CLIENT" not in m["content"] for m in sent_history)
+        assert any("Comment utiliser Substr" in m["content"] for m in sent_history)
+
 
 class TestConversationHistoryValidation:
     def test_invalid_role_rejected_with_422(self, client, db_session_factory, monkeypatch):
