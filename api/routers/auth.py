@@ -25,41 +25,54 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # observable côté test).
 COOKIE_SECURE = os.environ.get("MISPL_COOKIE_SECURE", "true").strip().lower() not in ("false", "0", "no")
 
-# Limite de tentatives de connexion par IP, distincte du verrouillage par compte
-# (LOCK_THRESHOLD dans api/auth.py). Le verrouillage par compte protège un
-# compte connu contre le bruteforce ciblé ; cette limite protège le serveur
-# contre le credential-stuffing distribué sur de nombreux comptes différents
-# depuis une même source, qui resterait sous le seuil par-compte.
-_LOGIN_RATE_LIMIT = 10
+# Deux niveaux de limite de tentatives de connexion, distincts du verrouillage
+# par compte (LOCK_THRESHOLD dans api/auth.py) :
+#   1. par (IP, email) : protège un compte ciblé contre le bruteforce, sans
+#      verrouiller les autres utilisateurs partageant la même IP visible
+#      (reverse proxy/NAT interne) — une clé IP seule ferait qu'un utilisateur
+#      en échec verrouille tous les autres.
+#   2. par IP seule, seuil plus permissif : la limite (1) seule ne détecte
+#      JAMAIS le credential-stuffing qui fait tourner de nombreux emails
+#      différents depuis une même source, puisque chaque email obtient son
+#      propre compartiment neuf — ce niveau plafonne le volume total de
+#      tentatives par source, tous comptes confondus (cf. audit sécurité).
+_LOGIN_RATE_LIMIT_PER_ACCOUNT = 10
+_LOGIN_RATE_LIMIT_PER_IP = 30
 _LOGIN_RATE_WINDOW_SECONDS = 300
 _login_attempts: dict[str, list[float]] = {}
+_login_attempts_by_ip: dict[str, list[float]] = {}
 _login_attempts_lock = threading.Lock()
 
 
-def _check_login_rate_limit(rate_limit_key: str) -> None:
+def _prune_and_record(store: dict[str, list[float]], key: str, limit: int, now: float) -> bool:
+    """Purge les tentatives hors fenêtre, enregistre la tentative courante, et
+    retourne True si la limite est dépassée pour cette clé."""
+    attempts = [t for t in store.get(key, []) if now - t < _LOGIN_RATE_WINDOW_SECONDS]
+    if len(attempts) >= limit:
+        store[key] = attempts
+        return True
+    attempts.append(now)
+    store[key] = attempts
+    return False
+
+
+def _check_login_rate_limit(client_ip: str, email: str) -> None:
     now = time.monotonic()
     with _login_attempts_lock:
-        attempts = [t for t in _login_attempts.get(rate_limit_key, []) if now - t < _LOGIN_RATE_WINDOW_SECONDS]
-        if len(attempts) >= _LOGIN_RATE_LIMIT:
-            _login_attempts[rate_limit_key] = attempts
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="too_many_login_attempts",
-            )
-        attempts.append(now)
-        _login_attempts[rate_limit_key] = attempts
+        rate_limit_key = f"{client_ip}:{email}"
+        over_account_limit = _prune_and_record(_login_attempts, rate_limit_key, _LOGIN_RATE_LIMIT_PER_ACCOUNT, now)
+        over_ip_limit = _prune_and_record(_login_attempts_by_ip, client_ip, _LOGIN_RATE_LIMIT_PER_IP, now)
+    if over_account_limit or over_ip_limit:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="too_many_login_attempts",
+        )
 
 
 @router.post("/login", response_model=MeResponse)
 def login(payload: LoginRequest, request: Request, response: Response, db: DBSession = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
-    # Clé (IP, email) plutôt qu'IP seule : derrière un reverse proxy/NAT interne,
-    # plusieurs comptes/utilisateurs légitimes peuvent partager la même IP visible
-    # — une clé IP seule ferait qu'un utilisateur en échec verrouille tous les
-    # autres. La limite reste pleinement efficace contre le credential-stuffing
-    # ciblant UN compte donné depuis une source donnée.
-    rate_limit_key = f"{client_ip}:{payload.email.lower().strip()}"
-    _check_login_rate_limit(rate_limit_key)
+    _check_login_rate_limit(client_ip, payload.email.lower().strip())
 
     user, error = authenticate_user(db, payload.email, payload.password)
     if error is not None:

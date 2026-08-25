@@ -56,6 +56,16 @@ class TestLogin:
         resp = client.post("/auth/login", json={"email": "ratelimit-probe@labo.fr", "password": "whatever"})
         assert resp.status_code == 429
 
+    def test_login_rate_limited_by_ip_after_many_different_emails(self, client, db_session_factory):
+        """Un attaquant faisant tourner 30+ emails différents depuis la même IP
+        doit finir par être bloqué, même si aucun email individuel n'atteint
+        la limite par-compte — c'est exactement le credential-stuffing que la
+        limite (IP, email) seule ne détectait pas."""
+        for i in range(30):
+            client.post("/auth/login", json={"email": f"probe-{i}@labo.fr", "password": "whatever"})
+        resp = client.post("/auth/login", json={"email": "probe-final@labo.fr", "password": "whatever"})
+        assert resp.status_code == 429
+
 
 class TestMe:
     def test_me_without_login_returns_401(self, client, db_session_factory):

@@ -33,6 +33,7 @@ def _reset_login_rate_limiter():
     # explicitement dans test_auth_routes.py) mais une remise à zéro de l'état
     # partagé entre tests, nécessaire pour l'isolation.
     auth_router._login_attempts.clear()
+    auth_router._login_attempts_by_ip.clear()
     yield
 
 
