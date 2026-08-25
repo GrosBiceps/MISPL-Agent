@@ -3,6 +3,10 @@ export function formatTokenCount(n: number): string {
   return `${(n / 1000).toFixed(1).replace(".", ",")}k`;
 }
 
+export function formatCount(n: number): string {
+  return n.toLocaleString("fr-FR");
+}
+
 export function formatLastActive(dateStr: string | null): string {
   if (!dateStr) return "Jamais";
   const date = new Date(dateStr);

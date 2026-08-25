@@ -185,6 +185,7 @@ export default function AdminUserDetailPanel({ user, onClose, onUpdated }: Props
                 key={preset}
                 type="button"
                 className="ghost"
+                aria-pressed={preset === days}
                 onClick={() => setDays(preset)}
                 style={{
                   fontSize: 11,
@@ -198,6 +199,7 @@ export default function AdminUserDetailPanel({ user, onClose, onUpdated }: Props
             ))}
             <input
               type="date"
+              aria-label="Date de fin de la période"
               value={endDate}
               max={todayIso()}
               onChange={(e) => setEndDate(e.target.value)}

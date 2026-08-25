@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getUserUsageDaily, UsageDay, ApiError } from "../lib/api";
-import { formatTokenCount } from "../lib/format";
+import { formatTokenCount, formatCount } from "../lib/format";
 
 interface Props {
   userId: number;
@@ -94,7 +94,7 @@ export default function UsageChart({ userId, days = 30, endDate }: Props) {
         </div>
         <div>
           <div style={{ color: "var(--ink-soft)" }}>Total requêtes</div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>{formatTokenCount(totalRequests)}</div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>{formatCount(totalRequests)}</div>
         </div>
         <div>
           <div style={{ color: "var(--ink-soft)" }}>Moyenne / jour</div>
@@ -152,8 +152,13 @@ export default function UsageChart({ userId, days = 30, endDate }: Props) {
             {bars.map(({ d, i, total, x, barY }) => (
               <g
                 key={d.date}
+                tabIndex={0}
+                role="button"
+                aria-label={`${d.date} — ${total} tokens, ${d.request_count} requête${d.request_count === 1 ? "" : "s"}`}
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex((prev) => (prev === i ? null : prev))}
+                onFocus={() => setHoveredIndex(i)}
+                onBlur={() => setHoveredIndex((prev) => (prev === i ? null : prev))}
                 style={{ cursor: "pointer" }}
               >
                 {/* Zone de survol invisible sur toute la largeur de la colonne — plus
