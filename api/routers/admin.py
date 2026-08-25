@@ -181,13 +181,15 @@ def revoke_sessions(
 def get_usage_daily(
     user_id: int,
     days: int = Query(30, ge=1, le=365),
+    end_date: datetime.date | None = Query(None),
     db: DBSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
     _get_user_or_404(db, user_id)
 
     today = datetime.datetime.utcnow().date()
-    start = today - datetime.timedelta(days=days - 1)
+    end = end_date or today
+    start = end - datetime.timedelta(days=days - 1)
     rows = (
         db.query(UsageDaily)
         .filter(UsageDaily.user_id == user_id, UsageDaily.date >= start)

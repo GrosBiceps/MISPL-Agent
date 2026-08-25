@@ -188,6 +188,8 @@ export function revokeAdminSessions(id: number): Promise<{ revoked: number }> {
   });
 }
 
-export function getUserUsageDaily(id: number, days = 30): Promise<UsageDay[]> {
-  return request<UsageDay[]>(`/admin/users/${id}/usage-daily?days=${days}`);
+export function getUserUsageDaily(id: number, days = 30, endDate?: string): Promise<UsageDay[]> {
+  const params = new URLSearchParams({ days: String(days) });
+  if (endDate) params.set("end_date", endDate);
+  return request<UsageDay[]>(`/admin/users/${id}/usage-daily?${params.toString()}`);
 }

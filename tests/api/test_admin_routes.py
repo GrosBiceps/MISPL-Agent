@@ -346,3 +346,37 @@ class TestUsageDailyRoute:
         login_as(client, "tech@labo.fr", "TechMdp1!")
         resp = client.get(f"/admin/users/{user.id}/usage-daily")
         assert resp.status_code == 403
+
+    def test_end_date_shifts_window(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        today = datetime.date.today()
+        seeded_date = today - datetime.timedelta(days=5)
+        add_usage(db_session_factory, user.id, seeded_date, prompt_tokens=70, completion_tokens=30, request_count=3)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+
+        # end_date = today, days=7 -> window is [today-6, today], seeded_date (today-5) is index 1
+        resp = client.get(f"/admin/users/{user.id}/usage-daily?days=7&end_date={today.isoformat()}")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body) == 7
+        assert body[1]["date"] == seeded_date.isoformat()
+        assert body[1]["prompt_tokens"] == 70
+        assert body[1]["request_count"] == 3
+        # everything else stays zero
+        assert body[0]["prompt_tokens"] == 0
+        assert body[-1]["prompt_tokens"] == 0
+
+    def test_omitting_end_date_defaults_to_today(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        today = datetime.date.today()
+        add_usage(db_session_factory, user.id, today, prompt_tokens=100, completion_tokens=50, request_count=2)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+
+        resp = client.get(f"/admin/users/{user.id}/usage-daily?days=7")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body[-1]["date"] == today.isoformat()
+        assert body[-1]["prompt_tokens"] == 100
+        assert body[-1]["request_count"] == 2

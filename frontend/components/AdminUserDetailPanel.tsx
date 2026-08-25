@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AdminUser } from "../lib/api";
 import { formatTokenCount, formatLastActive } from "../lib/format";
 import UsageChart from "./UsageChart";
@@ -9,7 +10,16 @@ interface Props {
   onClose: () => void;
 }
 
+const PERIOD_PRESETS = [7, 30, 90];
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function AdminUserDetailPanel({ user, onClose }: Props) {
+  const [days, setDays] = useState(30);
+  const [endDate, setEndDate] = useState(todayIso());
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="card modal-card" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
@@ -34,18 +44,54 @@ export default function AdminUserDetailPanel({ user, onClose }: Props) {
           </div>
         </div>
 
-        <p
+        <div
           style={{
-            fontSize: 11,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            color: "var(--ink-soft)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 8,
             marginBottom: 8,
           }}
         >
-          Consommation — 30 derniers jours
-        </p>
-        <UsageChart userId={user.id} days={30} />
+          <p
+            style={{
+              fontSize: 11,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              color: "var(--ink-soft)",
+              margin: 0,
+            }}
+          >
+            Consommation — {days} derniers jours
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {PERIOD_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className="ghost"
+                onClick={() => setDays(preset)}
+                style={{
+                  fontSize: 11,
+                  padding: "3px 8px",
+                  borderColor: preset === days ? "var(--accent)" : undefined,
+                  color: preset === days ? "var(--accent)" : undefined,
+                }}
+              >
+                {preset} jours
+              </button>
+            ))}
+            <input
+              type="date"
+              value={endDate}
+              max={todayIso()}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={{ fontSize: 11, padding: "2px 6px" }}
+            />
+          </div>
+        </div>
+        <UsageChart userId={user.id} days={days} endDate={endDate} />
       </div>
     </div>
   );
