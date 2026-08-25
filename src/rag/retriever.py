@@ -975,33 +975,38 @@ class MISPLRetriever:
     # ── Boost d'inclusion par catégorie (skill actif) ──────────────────────────
 
     def _category_widen(
-        self, relevant_categories: set[str], exclude_ids: set[str], limit: int
+        self, question: str, relevant_categories: set[str], exclude_ids: set[str], limit: int
     ) -> list[dict[str, Any]]:
         """Récupère jusqu'à `limit` chunks des catégories pertinentes pour le(s)
-        skill(s) actif(s), même s'ils n'ont pas été remontés par la recherche
-        dense/BM25 — garantit leur présence dans le pool envoyé au reranker sans
-        jamais retirer de candidat déjà sélectionné. Score neutre (0.0) : c'est
-        le reranker cross-encoder qui tranche leur pertinence réelle."""
+        skill(s) actif(s), classés par pertinence réelle à la question (pas un
+        échantillonnage arbitraire) — garantit leur présence dans le pool envoyé
+        au reranker sans jamais retirer de candidat déjà sélectionné. Sur-fetch
+        au-delà de `limit` pour compenser les candidats déjà présents dans
+        `exclude_ids` : sans cette marge, une limite entièrement absorbée par des
+        candidats déjà sélectionnés viderait silencieusement la garantie
+        d'inclusion (cf. revue finale, finding F3)."""
         if not relevant_categories:
             return []
+        fetch_n = limit + len(exclude_ids) + limit
         try:
-            results = self._state.collection.get(
+            results = self._state.collection.query(
+                query_texts=[question],
+                n_results=fetch_n,
                 where={"category": {"$in": sorted(relevant_categories)}},
-                limit=limit,
-                include=["documents", "metadatas"],
+                include=["documents", "metadatas", "distances"],
             )
         except Exception:
             return []
         docs = []
-        ids = results.get("ids", [])
+        ids = results["ids"][0] if results.get("ids") else []
         for i, doc_id in enumerate(ids):
             if doc_id in exclude_ids:
                 continue
-            meta = results["metadatas"][i]
+            meta = results["metadatas"][0][i]
             docs.append({
                 "id": doc_id,
-                "text": results["documents"][i],
-                "score": 0.0,
+                "text": results["documents"][0][i],
+                "score": float(1.0 - results["distances"][0][i]),
                 "exact_match": False,
                 **{k: meta.get(k, "") for k in [
                     "source", "source_file", "section", "doc_title", "function_name",
@@ -1009,6 +1014,8 @@ class MISPLRetriever:
                     "has_examples", "is_table_independent",
                 ]},
             })
+            if len(docs) >= limit:
+                break
         return docs
 
     # ── Query principal ────────────────────────────────────────────────────────
@@ -1112,7 +1119,7 @@ class MISPLRetriever:
         for skill in active_skills or []:
             relevant_categories |= SKILL_CATEGORY_BOOST.get(skill, set())
         if relevant_categories:
-            widened = self._category_widen(relevant_categories, exclude_ids=seen_ids, limit=4)
+            widened = self._category_widen(expanded_question, relevant_categories, exclude_ids=seen_ids, limit=4)
             for doc in widened:
                 if doc["id"] not in seen_ids:
                     rrf_docs.append(doc)
@@ -1122,13 +1129,15 @@ class MISPLRetriever:
         # remplace les anciens boosts heuristiques arbitraires post-RRF.
         rrf_docs = rerank(question, rrf_docs)
 
-        # Fusionner : exact_docs en tête (score 1.0, non passés au reranker),
-        # puis les candidats rerankés, tronqué au top_k final.
-        combined = exact_docs + rrf_docs
-        combined = combined[:k]
-
-        # Reorder anti-Lost-in-the-Middle
-        return _reorder_for_llm(combined)
+        # Fusionner : exact_docs TOUJOURS épinglés en tête, quel que soit leur
+        # score relatif aux candidats rerankés — le cross-encoder produit des
+        # logits non bornés qui peuvent dépasser le score sentinelle 1.0 des
+        # exact-match ; les mélanger dans un tri par score casserait l'épinglage
+        # (cf. revue finale, finding F1). Seule la partie rerankée est réordonnée
+        # anti-Lost-in-the-Middle, après troncature au budget restant.
+        remaining_budget = max(k - len(exact_docs), 0)
+        reranked_slice = _reorder_for_llm(rrf_docs[:remaining_budget]) if remaining_budget else []
+        return exact_docs[:k] + reranked_slice
 
     # ── Formatage contexte pour LLM ────────────────────────────────────────────
 

@@ -57,6 +57,31 @@ class TestQueryUsesReranker:
         result = retriever.query("une question", top_k=2)
         assert [d["id"] for d in result] == ["a", "b"]
 
+    def test_exact_match_always_stays_first_even_with_high_reranker_scores(self, monkeypatch):
+        """Régression pour le finding F1 : un score de reranker élevé (logit
+        cross-encoder non borné, peut dépasser le score sentinelle 1.0 des
+        exact-match) ne doit jamais faire passer un candidat reranké devant un
+        résultat exact-match."""
+        exact = [{"id": "exact-1", "text": "fonction exacte", "score": 1.0,
+                  "exact_match": True, "category": "misc", "function_name": "Substr",
+                  "has_examples": False}]
+        pool_docs = [
+            {"id": "z", "text": "tres pertinent selon le reranker", "score": 0.0,
+             "category": "misc", "function_name": "", "has_examples": False},
+        ]
+        retriever = _make_retriever_with_fake_state(dense_docs=pool_docs, bm25_docs=[])
+        retriever._exact_match_search = lambda fn: exact
+        retriever._detect_function_name = lambda q: "Substr"
+
+        def _high_score_rerank(query, pool):
+            # Simule un logit cross-encoder très supérieur au score sentinelle 1.0
+            return [{**d, "score": 9.87} for d in pool]
+
+        monkeypatch.setattr(retriever_mod, "rerank", _high_score_rerank)
+        result = retriever.query("Substr question", top_k=3)
+        assert result[0]["id"] == "exact-1"
+        assert result[0]["exact_match"] is True
+
     def test_category_filter_param_removed(self):
         import inspect
 

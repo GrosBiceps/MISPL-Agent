@@ -15,6 +15,7 @@ erreur d'inférence, désactivation via variable d'env) — ne doit jamais faire
 from __future__ import annotations
 
 import logging
+import math
 import os
 import time
 from typing import Any
@@ -72,7 +73,12 @@ def rerank(query: str, docs: list[dict[str, Any]]) -> list[dict[str, Any]]:
         reranked = []
         for doc, score in zip(docs, scores):
             new_doc = dict(doc)
-            new_doc["score"] = float(score)
+            # Le cross-encoder retourne un logit non borné ; le prompt LLM et
+            # ses seuils de certitude ✅/⚠️/🔬 (cf. src/agent/prompt_builder.py)
+            # supposent un score dans (0,1) comme l'ancien score RRF/cosinus —
+            # sans cette normalisation, tout chunk topiquement pertinent
+            # dépasserait le seuil "Certain" (cf. revue finale, finding F2).
+            new_doc["score"] = 1.0 / (1.0 + math.exp(-float(score)))
             reranked.append(new_doc)
         reranked.sort(key=lambda d: d["score"], reverse=True)
         return reranked
