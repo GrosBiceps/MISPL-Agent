@@ -140,9 +140,9 @@ export default function UsageChart({ userId, days = 30, endDate }: Props) {
               </rect>
               {showBarLabels && total > 0 && (
                 <text
-                  x={x + barWidth / 2}
+                  x={i === 0 ? x + barWidth * 0.15 : i === data.length - 1 ? x + barWidth * 0.85 : x + barWidth / 2}
                   y={Math.max(barY - 2, 5)}
-                  textAnchor="middle"
+                  textAnchor={i === 0 ? "start" : i === data.length - 1 ? "end" : "middle"}
                   fontSize={5}
                   fill="var(--ink-soft)"
                 >
