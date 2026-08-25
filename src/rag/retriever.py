@@ -21,6 +21,8 @@ import chromadb
 from chromadb.utils import embedding_functions
 from rank_bm25 import BM25Okapi
 
+from src.rag.reranker import rerank
+
 
 ROOT = Path(__file__).parent.parent.parent
 VECTORSTORE_PATH = ROOT / "docs" / "chunks" / "vectorstore"
@@ -30,13 +32,11 @@ COLLECTION_NAME = "glims_mispl_docs"
 # Coefficient RRF — k=25 optimisé corpus technique dense (k=60 dilue trop sur ~300 chunks pertinents)
 RRF_K = 25
 
-# Catégories considérées "MISPL pur" — boost score RRF +0.05
-_MISPL_PURE_CATEGORIES = {
-    "string", "datetime", "math", "conversion", "misc", "interactive",
-    "error", "billing", "variables", "syntax", "order_table", "result_table",
-    "specimen_table", "action_table", "specificsite_table", "nonconformity_table",
-    "regex", "mail", "texts",
-}
+# Taille du pool de candidats envoyés au reranker cross-encoder après RRF
+# (avant troncature au top_k final) — plus large que top_k pour laisser le
+# reranker choisir parmi un ensemble représentatif, pas seulement les k
+# premiers du score RRF brut.
+RERANK_POOL_SIZE = 20
 
 
 # ── Tokenisation simple pour BM25 (FR + EN + identifiants techniques) ─────────
@@ -938,7 +938,6 @@ class MISPLRetriever:
         self,
         question: str,
         top_k: int | None = None,
-        category_filter: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Recherche hybride BM25 + dense + exact-match avec reorder anti-LiM.
@@ -946,7 +945,6 @@ class MISPLRetriever:
         Args:
             question: Question en langage naturel ou nom de fonction MISPL
             top_k: Nombre de résultats finaux (défaut: self.top_k)
-            category_filter: Filtrer par catégorie ('string', 'datetime', 'math'...)
 
         Returns:
             Liste de chunks triés, reordonnés pour minimiser lost-in-middle
@@ -1007,7 +1005,9 @@ class MISPLRetriever:
             if d["id"] not in all_docs_map:
                 all_docs_map[d["id"]] = d
 
-        # Assembler résultats RRF
+        # Assembler pool de candidats RRF élargi (pour laisser le reranker
+        # cross-encoder trancher parmi un choix plus large que k)
+        pool_size = max(k * 3, RERANK_POOL_SIZE)
         rrf_docs: list[dict[str, Any]] = []
         seen_ids: set[str] = set(d["id"] for d in exact_docs)
         for doc_id, rrf_score in rrf_ranked:
@@ -1017,27 +1017,17 @@ class MISPLRetriever:
                 doc = all_docs_map[doc_id].copy()
                 doc["score"] = rrf_score
                 doc["exact_match"] = False
-                if category_filter and doc.get("category") != category_filter:
-                    continue
                 rrf_docs.append(doc)
                 seen_ids.add(doc_id)
-            if len(rrf_docs) >= k * 2:  # récupérer plus pour le tri suivant
+            if len(rrf_docs) >= pool_size:
                 break
 
-        # Boost multiplicatif post-RRF (préserve la distribution ordinale RRF) :
-        #   ×1.12 function_name · ×1.08 catégorie MISPL pure · ×1.04 exemples de code
-        for doc in rrf_docs:
-            multiplier = 1.0
-            if doc.get("function_name"):
-                multiplier *= 1.12
-            if doc.get("category") in _MISPL_PURE_CATEGORIES:
-                multiplier *= 1.08
-            if doc.get("has_examples"):
-                multiplier *= 1.04
-            doc["score"] = doc["score"] * multiplier
-        rrf_docs.sort(key=lambda d: d["score"], reverse=True)
+        # Reranking cross-encoder — score de pertinence sémantique réel,
+        # remplace les anciens boosts heuristiques arbitraires post-RRF.
+        rrf_docs = rerank(question, rrf_docs)
 
-        # Fusionner : exact_docs en tête, puis RRF
+        # Fusionner : exact_docs en tête (score 1.0, non passés au reranker),
+        # puis les candidats rerankés, tronqué au top_k final.
         combined = exact_docs + rrf_docs
         combined = combined[:k]
 
