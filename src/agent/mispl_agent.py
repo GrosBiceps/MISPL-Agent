@@ -454,13 +454,17 @@ def ask_mispl(
             usage_out.update({"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})
         return _cached
 
-    # 1. Retrieval hybride BM25 + dense
+    # 1. Skills actifs déterminés AVANT le retrieval — sert de signal
+    # d'inclusion par catégorie pour le retriever (SKILL_CATEGORY_BOOST), en
+    # plus de son usage existant pour le prompt système ci-dessous.
+    active_skills = skill_profile or _detect_skill_profile(question)
+
+    # 2. Retrieval hybride BM25 + dense
     retriever = get_retriever(use_openai=use_openai_embeddings, top_k=effective_top_k)
-    docs = retriever.query(question)
+    docs = retriever.query(question, active_skills=active_skills)
     context = retriever.format_context(docs)
 
-    # 2. Prompt système depuis Skills Markdown
-    active_skills = skill_profile or _detect_skill_profile(question)
+    # 3. Prompt système depuis Skills Markdown
     system_prompt = build_system_prompt(active_skills=active_skills, access_mode=access_mode)
 
     # 3.b Few-shot dynamique : signaler un pattern/cas d'usage complet présent

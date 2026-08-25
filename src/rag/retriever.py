@@ -38,6 +38,40 @@ RRF_K = 25
 # premiers du score RRF brut.
 RERANK_POOL_SIZE = 20
 
+# Mapping skill (nom de fichier .md sous .claude/skills/) → catégories de la
+# base pertinentes pour ce skill. Utilisé pour GARANTIR l'inclusion de chunks
+# de ces catégories dans le pool envoyé au reranker (jamais pour exclure —
+# cf. spec docs/superpowers/specs/2026-08-25-rag-metadata-filtering-reranking-design.md
+# section A). Estimation sémantique à partir des vraies valeurs de `category`
+# (frontmatter `domaine`) présentes dans rag_knowledge_base/ — ajustable ici
+# sans toucher à la logique de retrieval.
+SKILL_CATEGORY_BOOST: dict[str, set[str]] = {
+    "mispl-core": {
+        "structure_programme", "manipulation_chaines", "date_heure",
+        "calculs_mathematiques", "conversion_types", "patterns_courants",
+        "patterns_complexes", "variables_partagees", "contexte_execution",
+        "interactions_utilisateur", "fonctions_diverses",
+    },
+    "mispl-reports": {
+        "table_result", "table_result_extended", "result_missing",
+        "table_correspondent", "correspondent_extended", "tables_diverses",
+    },
+    "mispl-erd-safety": {
+        "table_order", "table_order_extended", "table_order_navigation",
+        "order_missing", "table_object", "table_object_extended",
+        "object_missing", "table_specimen", "table_specimen_extended",
+        "specimen_missing", "table_action", "table_microbiology",
+        "microbiology_missing", "table_blood_transfusion",
+        "table_pathology_nonconformity", "table_person_site",
+        "site_extended", "person_extended", "genetique_moleculaire",
+        "tables_diverses",
+    },
+    "mispl-performance": {
+        "reflexe_analytique", "validation_automatique_garde",
+        "patterns_complexes",
+    },
+}
+
 
 # ── Tokenisation simple pour BM25 (FR + EN + identifiants techniques) ─────────
 
@@ -932,12 +966,52 @@ class MISPLRetriever:
         except Exception:
             return []
 
+    # ── Boost d'inclusion par catégorie (skill actif) ──────────────────────────
+
+    def _category_widen(
+        self, relevant_categories: set[str], exclude_ids: set[str], limit: int
+    ) -> list[dict[str, Any]]:
+        """Récupère jusqu'à `limit` chunks des catégories pertinentes pour le(s)
+        skill(s) actif(s), même s'ils n'ont pas été remontés par la recherche
+        dense/BM25 — garantit leur présence dans le pool envoyé au reranker sans
+        jamais retirer de candidat déjà sélectionné. Score neutre (0.0) : c'est
+        le reranker cross-encoder qui tranche leur pertinence réelle."""
+        if not relevant_categories:
+            return []
+        try:
+            results = self._state.collection.get(
+                where={"category": {"$in": sorted(relevant_categories)}},
+                limit=limit,
+                include=["documents", "metadatas"],
+            )
+        except Exception:
+            return []
+        docs = []
+        ids = results.get("ids", [])
+        for i, doc_id in enumerate(ids):
+            if doc_id in exclude_ids:
+                continue
+            meta = results["metadatas"][i]
+            docs.append({
+                "id": doc_id,
+                "text": results["documents"][i],
+                "score": 0.0,
+                "exact_match": False,
+                **{k: meta.get(k, "") for k in [
+                    "source", "source_file", "section", "doc_title", "function_name",
+                    "return_type", "signature", "category", "priority",
+                    "has_examples", "is_table_independent",
+                ]},
+            })
+        return docs
+
     # ── Query principal ────────────────────────────────────────────────────────
 
     def query(
         self,
         question: str,
         top_k: int | None = None,
+        active_skills: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         """
         Recherche hybride BM25 + dense + exact-match avec reorder anti-LiM.
@@ -945,6 +1019,9 @@ class MISPLRetriever:
         Args:
             question: Question en langage naturel ou nom de fonction MISPL
             top_k: Nombre de résultats finaux (défaut: self.top_k)
+            active_skills: Skills actifs (ex. ["mispl-core"]) — élargit le pool
+                de candidats avec des chunks des catégories associées, sans
+                jamais en exclure d'autres.
 
         Returns:
             Liste de chunks triés, reordonnés pour minimiser lost-in-middle
@@ -1021,6 +1098,19 @@ class MISPLRetriever:
                 seen_ids.add(doc_id)
             if len(rrf_docs) >= pool_size:
                 break
+
+        # Garantie d'inclusion par catégorie selon les skills actifs — n'exclut
+        # jamais de candidat existant, ajoute seulement des candidats manquants
+        # avant le reranking, qui tranchera leur pertinence réelle.
+        relevant_categories: set[str] = set()
+        for skill in active_skills or []:
+            relevant_categories |= SKILL_CATEGORY_BOOST.get(skill, set())
+        if relevant_categories:
+            widened = self._category_widen(relevant_categories, exclude_ids=seen_ids, limit=4)
+            for doc in widened:
+                if doc["id"] not in seen_ids:
+                    rrf_docs.append(doc)
+                    seen_ids.add(doc["id"])
 
         # Reranking cross-encoder — score de pertinence sémantique réel,
         # remplace les anciens boosts heuristiques arbitraires post-RRF.
