@@ -153,13 +153,13 @@ export default function UsageChart({ userId, days = 30, endDate }: Props) {
               <g
                 key={d.date}
                 tabIndex={0}
-                role="button"
+                role="img"
                 aria-label={`${d.date} — ${total} tokens, ${d.request_count} requête${d.request_count === 1 ? "" : "s"}`}
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex((prev) => (prev === i ? null : prev))}
                 onFocus={() => setHoveredIndex(i)}
                 onBlur={() => setHoveredIndex((prev) => (prev === i ? null : prev))}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "default" }}
               >
                 {/* Zone de survol invisible sur toute la largeur de la colonne — plus
                     facile à cibler qu'une barre fine de 70% de large. */}
