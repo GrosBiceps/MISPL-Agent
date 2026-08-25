@@ -12,19 +12,19 @@ interface Props {
 
 const CHART_HEIGHT = 120;
 const BAR_MIN_HEIGHT = 3;
-const AXIS_WIDTH = 12; // percentage of viewBox width reserved for Y-axis labels
-const VIEW_WIDTH = 100;
-const PLOT_WIDTH = VIEW_WIDTH - AXIS_WIDTH;
-const LABEL_TOP_MARGIN = 12; // reserve space above bars for per-bar value labels
+const TOP_PAD = 10; // headroom above the tallest bar
+const AXIS_COL_WIDTH = 42; // px, HTML column for Y-axis labels (outside the SVG)
 
 export default function UsageChart({ userId, days = 30, endDate }: Props) {
   const [data, setData] = useState<UsageDay[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setData(null);
     setError(null);
+    setHoveredIndex(null);
     getUserUsageDaily(userId, days, endDate)
       .then((rows) => {
         if (!cancelled) setData(rows);
@@ -46,7 +46,7 @@ export default function UsageChart({ userId, days = 30, endDate }: Props) {
 
   const totals = data.map((d) => d.prompt_tokens + d.completion_tokens);
   const max = Math.max(...totals, 1);
-  const barWidth = PLOT_WIDTH / data.length;
+  const barWidth = 100 / data.length;
   const allZero = totals.every((t) => t === 0);
   const showBarLabels = data.length <= 14;
 
@@ -54,12 +54,22 @@ export default function UsageChart({ userId, days = 30, endDate }: Props) {
   const totalRequests = data.reduce((sum, d) => sum + d.request_count, 0);
   const avgPerDay = data.length > 0 ? Math.round(totalTokens / data.length) : 0;
 
-  const plotHeight = CHART_HEIGHT - LABEL_TOP_MARGIN;
+  const plotHeight = CHART_HEIGHT - TOP_PAD;
   const axisLines = [0, 0.5, 1].map((frac) => ({
     frac,
     value: Math.round(max * frac),
-    y: LABEL_TOP_MARGIN + plotHeight * (1 - frac),
+    y: TOP_PAD + plotHeight * (1 - frac),
   }));
+
+  const bars = data.map((d, i) => {
+    const total = d.prompt_tokens + d.completion_tokens;
+    const h = Math.max((total / max) * (plotHeight - 4), BAR_MIN_HEIGHT);
+    const x = i * barWidth;
+    const barY = CHART_HEIGHT - h;
+    return { d, i, total, x, barY };
+  });
+
+  const hovered = hoveredIndex !== null ? bars[hoveredIndex] : null;
 
   return (
     <div>
@@ -90,69 +100,130 @@ export default function UsageChart({ userId, days = 30, endDate }: Props) {
           Aucune activité sur cette période.
         </p>
       )}
-      <svg
-        viewBox={`0 0 ${VIEW_WIDTH} ${CHART_HEIGHT}`}
-        preserveAspectRatio="none"
-        style={{ width: "100%", height: CHART_HEIGHT, display: "block" }}
-      >
-        {axisLines.map(({ frac, value, y }) => (
-          <g key={frac}>
-            <line
-              x1={AXIS_WIDTH}
-              x2={VIEW_WIDTH}
-              y1={y}
-              y2={y}
-              stroke="var(--ink-soft)"
-              strokeOpacity={0.2}
-              strokeWidth={0.3}
-              vectorEffect="non-scaling-stroke"
-            />
-            <text
-              x={AXIS_WIDTH - 1}
-              y={y}
-              textAnchor="end"
-              dominantBaseline="middle"
-              fontSize={5}
-              fill="var(--ink-soft)"
+
+      <div style={{ display: "flex" }}>
+        {/* Axe Y — libellés HTML (hors SVG) pour éviter la déformation du
+            texte causée par preserveAspectRatio="none" sur un viewBox non carré. */}
+        <div style={{ position: "relative", width: AXIS_COL_WIDTH, height: CHART_HEIGHT, flexShrink: 0 }}>
+          {axisLines.map(({ frac, value, y }) => (
+            <div
+              key={frac}
+              style={{
+                position: "absolute",
+                top: `${(y / CHART_HEIGHT) * 100}%`,
+                right: 6,
+                transform: "translateY(-50%)",
+                fontSize: 10.5,
+                color: "var(--ink-soft)",
+                whiteSpace: "nowrap",
+              }}
             >
               {formatTokenCount(value)}
-            </text>
-          </g>
-        ))}
-        {data.map((d, i) => {
-          const total = d.prompt_tokens + d.completion_tokens;
-          const h = Math.max((total / max) * (plotHeight - 4), BAR_MIN_HEIGHT);
-          const x = AXIS_WIDTH + i * barWidth;
-          const barY = CHART_HEIGHT - h;
-          return (
-            <g key={d.date}>
-              <rect
-                x={x + barWidth * 0.15}
-                y={barY}
-                width={barWidth * 0.7}
-                height={h}
-                fill="var(--accent)"
-                rx="1"
+            </div>
+          ))}
+        </div>
+
+        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+          <svg
+            viewBox={`0 0 100 ${CHART_HEIGHT}`}
+            preserveAspectRatio="none"
+            style={{ width: "100%", height: CHART_HEIGHT, display: "block" }}
+          >
+            {axisLines.map(({ frac, y }) => (
+              <line
+                key={frac}
+                x1={0}
+                x2={100}
+                y1={y}
+                y2={y}
+                stroke="var(--ink-soft)"
+                strokeOpacity={0.2}
+                strokeWidth={0.3}
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+            {bars.map(({ d, i, total, x, barY }) => (
+              <g
+                key={d.date}
+                onMouseEnter={() => setHoveredIndex(i)}
+                onMouseLeave={() => setHoveredIndex((prev) => (prev === i ? null : prev))}
+                style={{ cursor: "pointer" }}
               >
-                <title>
-                  {d.date} — {total} tokens ({d.prompt_tokens} prompt / {d.completion_tokens} réponse), {d.request_count} requête(s)
-                </title>
-              </rect>
-              {showBarLabels && total > 0 && (
-                <text
-                  x={i === 0 ? x + barWidth * 0.15 : i === data.length - 1 ? x + barWidth * 0.85 : x + barWidth / 2}
-                  y={Math.max(barY - 2, 5)}
-                  textAnchor={i === 0 ? "start" : i === data.length - 1 ? "end" : "middle"}
-                  fontSize={5}
-                  fill="var(--ink-soft)"
+                {/* Zone de survol invisible sur toute la largeur de la colonne — plus
+                    facile à cibler qu'une barre fine de 70% de large. */}
+                <rect x={x} y={0} width={barWidth} height={CHART_HEIGHT} fill="transparent" />
+                <rect
+                  x={x + barWidth * 0.15}
+                  y={barY}
+                  width={barWidth * 0.7}
+                  height={Math.max(CHART_HEIGHT - barY, BAR_MIN_HEIGHT)}
+                  fill={hoveredIndex === i ? "var(--accent-solid)" : "var(--accent)"}
+                  rx="1"
                 >
-                  {formatTokenCount(total)}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
+                  <title>
+                    {d.date} — {total} tokens ({d.prompt_tokens} prompt / {d.completion_tokens} réponse), {d.request_count} requête(s)
+                  </title>
+                </rect>
+              </g>
+            ))}
+          </svg>
+
+          {/* Libellés de valeur par barre — HTML, affichés en permanence pour les
+              périodes courtes (≤14 jours). */}
+          {showBarLabels &&
+            bars.map(
+              ({ d, i, total, x, barY }) =>
+                total > 0 && (
+                  <div
+                    key={d.date}
+                    style={{
+                      position: "absolute",
+                      left: `${x + barWidth / 2}%`,
+                      top: `${Math.max((barY / CHART_HEIGHT) * 100 - 3, 0)}%`,
+                      transform:
+                        i === 0 ? "translate(0, -100%)" : i === bars.length - 1 ? "translate(-100%, -100%)" : "translate(-50%, -100%)",
+                      fontSize: 10.5,
+                      color: "var(--ink-soft)",
+                      whiteSpace: "nowrap",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    {formatTokenCount(total)}
+                  </div>
+                )
+            )}
+
+          {/* Infobulle de survol — nombre exact de tokens du jour survolé. */}
+          {hovered && (
+            <div
+              style={{
+                position: "absolute",
+                left: `${Math.min(Math.max(hovered.x + barWidth / 2, 8), 92)}%`,
+                top: `${Math.max((hovered.barY / CHART_HEIGHT) * 100 - 4, 0)}%`,
+                transform: "translate(-50%, -100%)",
+                background: "var(--surface)",
+                border: "1px solid var(--line)",
+                borderRadius: 6,
+                padding: "6px 9px",
+                fontSize: 11.5,
+                lineHeight: 1.4,
+                whiteSpace: "nowrap",
+                boxShadow: "var(--shadow)",
+                pointerEvents: "none",
+                zIndex: 1,
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>{hovered.d.date}</div>
+              <div>{formatTokenCount(hovered.total)} tokens</div>
+              <div style={{ color: "var(--ink-soft)" }}>
+                {hovered.d.prompt_tokens} prompt / {hovered.d.completion_tokens} réponse
+              </div>
+              <div style={{ color: "var(--ink-soft)" }}>{hovered.d.request_count} requête(s)</div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div
         style={{
           display: "flex",
@@ -160,7 +231,7 @@ export default function UsageChart({ userId, days = 30, endDate }: Props) {
           fontSize: 10,
           color: "var(--ink-soft)",
           marginTop: 4,
-          paddingLeft: `${AXIS_WIDTH}%`,
+          paddingLeft: AXIS_COL_WIDTH,
         }}
       >
         <span>{data[0].date}</span>
