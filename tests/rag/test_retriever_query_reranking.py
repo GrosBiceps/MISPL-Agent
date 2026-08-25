@@ -102,3 +102,21 @@ class TestQueryUsesReranker:
 
     def test_pool_size_constant_defined(self):
         assert retriever_mod.RERANK_POOL_SIZE >= 15
+
+    def test_reorder_uses_list_order_not_raw_score(self):
+        """_reorder_for_llm ne doit JAMAIS re-trier par score — seul l'ordre
+        de la liste d'entrée compte. Ici les scores sont délibérément dans
+        l'ordre INVERSE de la position pour prouver qu'ils sont ignorés."""
+        from src.rag.retriever import _reorder_for_llm
+
+        docs = [
+            {"id": "first", "score": 0.01},
+            {"id": "second", "score": 0.5},
+            {"id": "third", "score": 0.3},
+            {"id": "fourth", "score": 0.99},
+        ]
+        result = _reorder_for_llm(docs)
+        # Attendu : position 1 reste "first" (position 0 d'entrée), "second"
+        # (position 1 d'entrée) passe en dernier, le reste garde son ordre —
+        # peu importe que "fourth" ait le score le plus élevé.
+        assert [d["id"] for d in result] == ["first", "third", "fourth", "second"]

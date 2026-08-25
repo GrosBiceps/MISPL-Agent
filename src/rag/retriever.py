@@ -469,8 +469,17 @@ class _RetrieverState:
         self.bm25_chunks: list[dict[str, Any]] = data["chunks"]
         self.known_functions: set[str] = set(data.get("known_functions", []))
 
-        # Construire index BM25 avec texte enrichi (function_name boosté x3)
-        tokenized_corpus = [_tokenize(_enrich_bm25_text(c)) for c in self.bm25_chunks]
+        # Construire index BM25 avec texte enrichi (function_name boosté x3).
+        # Les chunks chunk_type="md_kb" ont déjà leur texte pré-enrichi à
+        # l'ingestion (cf. ingest_knowledge_base.py::_build_bm25_text, stocké
+        # directement dans le champ "text" de bm25_corpus.json) — leur
+        # ré-appliquer _enrich_bm25_text ici doublerait l'enrichissement
+        # (boost TF x6 au lieu de x3, synonymes dupliqués). Seuls les chunks
+        # legacy (HTML, non pré-enrichis) passent encore par cette fonction.
+        tokenized_corpus = [
+            _tokenize(c["text"]) if c.get("chunk_type") == "md_kb" else _tokenize(_enrich_bm25_text(c))
+            for c in self.bm25_chunks
+        ]
         self.bm25 = BM25Okapi(tokenized_corpus)
 
     @classmethod
@@ -511,13 +520,20 @@ def _reorder_for_llm(docs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     Liu et al. 2023 : LLM lit mieux position #1 et #last.
     Meilleur chunk → position 1, second meilleur → position last.
     Reste au milieu (moins important mais nécessaire pour recall).
+
+    Repose sur l'ORDRE DE LA LISTE D'ENTRÉE, pas sur un tri par score : par
+    construction, l'appelant (MISPL Retriever.query()) passe toujours une
+    liste déjà triée dans l'ordre final voulu (fusion RRF pré/post-reranking).
+    Re-trier ici par doc["score"] a longtemps réintroduit un bug de mélange
+    d'échelles (score sigmoïde du reranker vs score fraction RRF si le
+    reranker est indisponible) qui pouvait silencieusement défaire ce tri —
+    cf. audit sécurité/qualité.
     """
     if len(docs) <= 2:
         return docs
-    sorted_docs = sorted(docs, key=lambda d: d["score"], reverse=True)
-    reordered = [sorted_docs[0]]
-    reordered.extend(sorted_docs[2:])
-    reordered.append(sorted_docs[1])
+    reordered = [docs[0]]
+    reordered.extend(docs[2:])
+    reordered.append(docs[1])
     return reordered
 
 
@@ -979,15 +995,19 @@ class MISPLRetriever:
     ) -> list[dict[str, Any]]:
         """Récupère jusqu'à `limit` chunks des catégories pertinentes pour le(s)
         skill(s) actif(s), classés par pertinence réelle à la question (pas un
-        échantillonnage arbitraire) — garantit leur présence dans le pool envoyé
-        au reranker sans jamais retirer de candidat déjà sélectionné. Sur-fetch
-        au-delà de `limit` pour compenser les candidats déjà présents dans
-        `exclude_ids` : sans cette marge, une limite entièrement absorbée par des
-        candidats déjà sélectionnés viderait silencieusement la garantie
-        d'inclusion (cf. revue finale, finding F3)."""
+        échantillonnage arbitraire) — tente d'assurer leur présence dans le pool
+        envoyé au reranker sans jamais retirer de candidat déjà sélectionné.
+        Sur-fetch au-delà de `limit` pour compenser les candidats déjà présents
+        dans `exclude_ids` (cf. revue finale, finding F3). Limite structurelle
+        connue : cette requête utilise le même texte de question que la
+        recherche dense principale, donc ses meilleurs résultats sont souvent
+        déjà présents dans `exclude_ids` — ce n'est PAS une garantie absolue,
+        seulement un best-effort ; pour une garantie stricte il faudrait une
+        requête indépendante de la question (ex: par catégorie seule, non
+        classée par pertinence), hors périmètre de ce correctif."""
         if not relevant_categories:
             return []
-        fetch_n = limit + len(exclude_ids) + limit
+        fetch_n = min((limit + len(exclude_ids)) * 3, 100)
         try:
             results = self._state.collection.query(
                 query_texts=[question],
@@ -1182,7 +1202,8 @@ class MISPLRetriever:
             block += f"\n\n{doc['text']}"
             parts.append(block)
 
-        return "\n\n" + ("─" * 60) + "\n\n".join(parts)
+        divider = "\n\n" + ("─" * 60) + "\n\n"
+        return divider.join(parts)
 
     @property
     def known_functions(self) -> set[str]:
