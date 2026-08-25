@@ -6,6 +6,7 @@ import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DBSession
 
 from api.db import get_db
@@ -162,7 +163,11 @@ def update_user(
     if payload.is_active is not None:
         user.is_active = payload.is_active
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email déjà utilisé")
     db.refresh(user)
     return user
 

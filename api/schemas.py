@@ -67,8 +67,8 @@ class ChatHistoryMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    question: str
-    lab_context: str | None = None
+    question: str = Field(min_length=1, max_length=8000)
+    lab_context: str | None = Field(default=None, max_length=4000)
     conversation_history: list[ChatHistoryMessage] | None = None
     conversation_id: int | None = None
 

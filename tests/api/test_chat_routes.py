@@ -31,6 +31,29 @@ class TestAuthRequired:
         assert resp.status_code == 401
 
 
+class TestRequestValidation:
+    def test_oversized_question_rejected_with_422(self, client, db_session_factory):
+        make_user(db_session_factory)
+        login(client)
+        resp = client.post("/chat/ask", json={"question": "x" * 8001})
+        assert resp.status_code == 422
+
+    def test_oversized_lab_context_rejected_with_422(self, client, db_session_factory):
+        make_user(db_session_factory)
+        login(client)
+        resp = client.post(
+            "/chat/ask",
+            json={"question": "Comment utiliser Substr ?", "lab_context": "x" * 4001},
+        )
+        assert resp.status_code == 422
+
+    def test_empty_question_rejected_with_422(self, client, db_session_factory):
+        make_user(db_session_factory)
+        login(client)
+        resp = client.post("/chat/ask", json={"question": ""})
+        assert resp.status_code == 422
+
+
 class TestDLPBlocking:
     def test_dlp_blocked_does_not_call_ask_mispl(self, client, db_session_factory, monkeypatch):
         make_user(db_session_factory)
