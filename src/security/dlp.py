@@ -25,14 +25,25 @@ _DLP_PATTERNS: list[tuple[re.Pattern, str, bool, bool]] = [
     # plutôt que de bloquer seul, pour éviter de bloquer des questions techniques
     # légitimes contenant un nombre à 6-10 chiffres.
     (re.compile(r'\b(?:dossier|n°|num[ée]ro)\s*(?:patient|labo)?\s*[:\-#]?\s*\d{6,10}\b', re.IGNORECASE), "Identifiant dossier/patient potentiel", False, True),
-    (re.compile(r'n.{0,2}e\s+le\s+\d{1,2}[/\-]\d{1,2}[/\-]\d{4}', re.IGNORECASE), "Date de naissance nominative", False, True),
-    # Une date seule est extrêmement fréquente dans des questions légitimes (ex:
-    # "livraison prévue le 12/03/2026") donc non-bloquante isolément — mais
-    # identifiante : combinée à un nom dans le MÊME texte (ex: "Mme DUPONT Marie,
-    # 12/03/1980"), c'est le motif de fuite le plus réaliste (copié-collé d'une
-    # worklist) et doit escalader.
+    # is_identifying=False : le même empan de texte est déjà compté comme identifiant
+    # via le pattern "Date au format DD/MM/YYYY" ci-dessous (toute phrase "né le X"
+    # matche aussi ce pattern générique, puisque X en fait partie) — le compter deux
+    # fois gonflerait artificiellement l'escalade combinatoire pour une simple date
+    # de naissance sans aucun nom associé (ex: "le patient est né le 29/02, comment
+    # vérifier une année bissextile ?" ne doit pas bloquer).
+    (re.compile(r'n.{0,2}e\s+le\s+\d{1,2}[/\-]\d{1,2}[/\-]\d{4}', re.IGNORECASE), "Date de naissance nominative", False, False),
     (re.compile(r'\b\d{2}[/\-]\d{2}[/\-]\d{4}\b'), "Date au format DD/MM/YYYY", False, True),
-    (re.compile(r'\b(?:Mr?|Mme?|Dr?|patient|patiente)\s+[A-Z][a-z]+\s+[A-Z]{2,}', re.IGNORECASE), "Nom patient potentiel", False, True),
+    # Pas de re.IGNORECASE global : [A-Z] doit rester sensible à la casse pour ne
+    # détecter qu'un vrai nom capitalisé — IGNORECASE sur toute l'expression faisait
+    # matcher n'importe quelle paire de mots minuscules après "patient"/"Dr"/etc.
+    # (ex: "un patient ne le ..." était pris pour un nom). Alternation explicite sur
+    # la casse du titre uniquement, pour rester tolérant à "dr"/"Dr"/"mme"/"Mme".
+    (re.compile(r'\b(?:[Mm]r?|[Mm]me?|[Dd]r?|[Pp]atiente?)\s+[A-Z][a-z]+\s+[A-Z]{2,}'), "Nom patient potentiel", False, True),
+    # Convention worklist GLIMS : "NOM Prénom" copié-collé directement depuis un
+    # écran de liste de travail, sans aucun titre — c'est le motif de fuite le plus
+    # réaliste (cf. audit sécurité) et n'était couvert par aucun pattern existant,
+    # qui exigeaient tous un titre (Mr/Mme/Dr/patient) en préfixe.
+    (re.compile(r'\b[A-Z]{2,}\s+[A-Z][a-z]+\b'), "Nom patient potentiel (sans titre)", False, True),
 ]
 
 

@@ -40,6 +40,12 @@ class TestDLPBlocking:
         blocked, alerts = dlp_check("Mme DUPONT Marie, 12/03/1980, resultat glycemie anormal")
         assert blocked is True
 
+    def test_bare_name_and_date_worklist_style_blocks(self):
+        """Motif de copié-collé worklist GLIMS le plus réaliste : NOM Prénom
+        sans titre, suivi d'une date — doit désormais être détecté."""
+        blocked, alerts = dlp_check("DUPONT Marie, 12/03/1980, resultat glycemie anormal")
+        assert blocked is True
+
 
 class TestDLPWarningsNonBlocking:
     def test_date_triggers_warning_not_block(self):
@@ -59,6 +65,36 @@ class TestDLPWarningsNonBlocking:
     def test_technical_number_in_field_question_not_blocked(self):
         blocked, alerts = dlp_check("Comment recuperer le numero 1234567 stocke dans un champ INTEGER ?")
         assert blocked is False
+
+    def test_ignorecase_false_positive_on_patient_ne_le_no_longer_blocks(self):
+        """Régression : 'patient ne le DATE' ne doit plus être pris pour un nom
+        (l'ancien re.IGNORECASE faisait matcher n'importe quel mot minuscule)."""
+        blocked, alerts = dlp_check(
+            "un patient ne le 12/03/1980, comment calculer son age en MISPL avec une fonction date ?"
+        )
+        assert blocked is False
+
+    def test_birthdate_phrase_alone_without_name_not_blocked(self):
+        """Une phrase 'né le DATE' seule (sans nom) ne doit pas s'auto-escalader
+        en comptant deux fois la même date comme deux signaux identifiants."""
+        blocked, alerts = dlp_check(
+            "le patient est ne le 29/02, comment verifier la validite d'une annee bissextile ?"
+        )
+        assert blocked is False
+
+    def test_bare_name_alone_without_date_still_warning_not_block(self):
+        """Un nom seul (sans date), même au format worklist sans titre, reste
+        un avertissement non-bloquant tant qu'aucun second signal identifiant
+        n'est présent — cohérent avec le comportement existant du nom titré."""
+        blocked, alerts = dlp_check("Verifier le dossier de DUPONT Marie dans GLIMS")
+        assert blocked is False
+
+    def test_titled_name_still_detected_with_lowercase_title(self):
+        """La tolérance de casse sur le titre (dr/Dr/mme/Mme) doit être préservée
+        après le retrait de re.IGNORECASE global — seule la casse du NOM doit
+        rester stricte."""
+        blocked, alerts = dlp_check("dr Martin BERNARD a valide ce resultat")
+        assert any("Nom patient" in a for a in alerts)
 
 
 class TestDLPEscalationParameter:
