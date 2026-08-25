@@ -5,13 +5,14 @@ Assistant IA spécialisé MISPL/GLIMS pour techniciens de laboratoire de biologi
 Priorités : zéro hallucination, traçabilité documentaire, code MISPL optimisé pour serveur GLIMS.
 
 ## Stack
-- Python 3.10+, LangChain / LlamaIndex, ChromaDB (vectorstore local)
-- Modèle LLM : Claude API (claude-sonnet-4-6) ou modèle local (Ollama/Mistral)
-- Embedding : text-embedding-3-small (OpenAI) ou nomic-embed-text (local)
-- Documentation source : `french/` — manuel HTML GLIMS complet
+- Python 3.10+, ChromaDB (vectorstore local) + rank_bm25 (recherche lexicale) + Reciprocal Rank Fusion
+- Modèle LLM : modèles gratuits OpenRouter (cf. `FREE_MODELS` dans `src/agent/mispl_agent.py`)
+- Embedding : `sentence-transformers` local (`paraphrase-multilingual-MiniLM-L12-v2`) par défaut, OpenAI `text-embedding-3-small` en option (`use_openai_embeddings=True`)
+- Reranking : cross-encoder multilingue (`cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`, via `sentence-transformers`) sur le pool de candidats post-RRF
+- Documentation source : `rag_knowledge_base/` — fiches Markdown (format Clean Room), chunkées par section H2
 
 ## Repository map
-- `french/` — documentation GLIMS source (HTML, ne pas modifier)
+- `rag_knowledge_base/` — fiches source RAG (Markdown, ne pas modifier sans repasser par `src/rag/build_vectorstore.py`)
 - `docs/chunks/` — chunks vectorisés (généré par `src/rag/build_vectorstore.py`)
 - `src/rag/` — pipeline de chunking et indexation
 - `src/agent/` — agent principal + prompts système
