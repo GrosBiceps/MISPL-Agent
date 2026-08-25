@@ -49,7 +49,11 @@ _DLP_PATTERNS: list[tuple[re.Pattern, str, bool, bool]] = [
     # technique mentionnant une date sans rapport ailleurs dans le texte. Bloquant
     # directement (pas besoin d'escalade combinatoire) : le motif nom+date adjacent
     # est en lui-même suffisamment identifiant.
-    (re.compile(r'\b[A-Z]{2,}\s+[A-Z][a-z]+\s*,?\s*(?:n[ée]e?\s+le\s+)?\d{1,2}[/\-]\d{1,2}[/\-]\d{4}\b'), "Nom + date au format worklist (sans titre)", True, True),
+    # (Limite connue et acceptée : une date séparée du nom par des mots
+    # intercalaires — ex: "DUPONT Marie : résultat du 12/03/1980" — reste hors
+    # de portée d'un pattern regex sans faux positifs inacceptables ; seule la
+    # ponctuation de séparation a été élargie, pas la contrainte d'adjacence.)
+    (re.compile(r'\b[A-Z]{2,}\s+[A-Z][a-z]+\s*[,\-:]?\s*(?:n[ée]e?\s+le\s+)?\d{1,2}[/\-]\d{1,2}[/\-]\d{4}\b'), "Nom + date au format worklist (sans titre)", True, True),
 ]
 
 

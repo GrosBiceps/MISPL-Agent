@@ -51,6 +51,14 @@ class TestDLPBlocking:
         blocked, alerts = dlp_check("DUPONT Marie, 12/03/1980, resultat glycemie anormal")
         assert blocked is True
 
+    def test_worklist_name_date_with_dash_separator_blocks(self):
+        blocked, alerts = dlp_check("DUPONT Marie - 12/03/1980, resultat glycemie anormal")
+        assert blocked is True
+
+    def test_worklist_name_date_with_colon_separator_blocks(self):
+        blocked, alerts = dlp_check("DUPONT Marie: 12/03/1980, resultat glycemie anormal")
+        assert blocked is True
+
 
 class TestDLPWarningsNonBlocking:
     def test_date_triggers_warning_not_block(self):
