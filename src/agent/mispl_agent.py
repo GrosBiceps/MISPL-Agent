@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src.rag.retriever import get_retriever
+from src.rag.retriever import get_retriever, RETRIEVAL_PIPELINE_VERSION
 from src.agent.prompt_builder import build_system_prompt, SKILL_PROFILES
 from src.agent.linter import lint_response, autofix_mispl, Severity
 from src.security.access_mode import enforce_access_mode, MODE_DSI
@@ -124,12 +124,18 @@ def _cache_key(
     # skill_profile et access_mode changent le prompt système ; l'historique
     # change le contexte envoyé au LLM → tous doivent entrer dans la clé,
     # sinon une réponse mise en cache dans un contexte fuite vers un autre
-    # (ex: réponse DSI servie telle quelle à un technicien).
+    # (ex: réponse DSI servie telle quelle à un technicien). RETRIEVAL_PIPELINE_VERSION
+    # couvre la table d'expansion de requête, le boost d'inclusion par catégorie et
+    # le modèle de reranking cross-encoder — à incrémenter si l'un de ces trois
+    # change, indépendamment de CACHE_VERSION ci-dessus (cf. src/rag/retriever.py).
     skills_part = ",".join(sorted(skill_profile)) if skill_profile else "auto"
     hist_part = hashlib.sha256(
         json.dumps(conversation_history or [], ensure_ascii=False, sort_keys=True).encode()
     ).hexdigest()[:12]
-    raw = f"{CACHE_VERSION}|{question}|{model}|{top_k}|{skills_part}|{access_mode}|{hist_part}"
+    raw = (
+        f"{CACHE_VERSION}|{RETRIEVAL_PIPELINE_VERSION}|{question}|{model}|{top_k}|"
+        f"{skills_part}|{access_mode}|{hist_part}"
+    )
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 

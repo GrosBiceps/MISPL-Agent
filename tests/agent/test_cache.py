@@ -47,6 +47,13 @@ class TestCacheKeyIsolation:
     def test_different_question_different_key(self):
         assert self._key(question="A") != self._key(question="B")
 
+    def test_different_pipeline_version_different_key(self, monkeypatch):
+        monkeypatch.setattr(agent_mod, "RETRIEVAL_PIPELINE_VERSION", "r1")
+        key_a = self._key()
+        monkeypatch.setattr(agent_mod, "RETRIEVAL_PIPELINE_VERSION", "r2")
+        key_b = self._key()
+        assert key_a != key_b
+
 
 class TestCacheGetRobustness:
     def test_missing_file_returns_none(self, tmp_path, monkeypatch):

@@ -38,6 +38,12 @@ RRF_K = 25
 # premiers du score RRF brut.
 RERANK_POOL_SIZE = 20
 
+# Version du pipeline de retrieval (expansion de requête + boost d'inclusion
+# par catégorie + modèle de reranking). À incrémenter dès que l'un de ces
+# trois éléments change, pour invalider le cache réponse de mispl_agent.py
+# (cf. RETRIEVAL_PIPELINE_VERSION dans src/agent/mispl_agent.py::_cache_key).
+RETRIEVAL_PIPELINE_VERSION = "r1"
+
 # Mapping skill (nom de fichier .md sous .claude/skills/) → catégories de la
 # base pertinentes pour ce skill. Utilisé pour GARANTIR l'inclusion de chunks
 # de ces catégories dans le pool envoyé au reranker (jamais pour exclure —
