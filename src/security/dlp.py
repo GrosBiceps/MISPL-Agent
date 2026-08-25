@@ -39,11 +39,17 @@ _DLP_PATTERNS: list[tuple[re.Pattern, str, bool, bool]] = [
     # (ex: "un patient ne le ..." était pris pour un nom). Alternation explicite sur
     # la casse du titre uniquement, pour rester tolérant à "dr"/"Dr"/"mme"/"Mme".
     (re.compile(r'\b(?:[Mm]r?|[Mm]me?|[Dd]r?|[Pp]atiente?)\s+[A-Z][a-z]+\s+[A-Z]{2,}'), "Nom patient potentiel", False, True),
-    # Convention worklist GLIMS : "NOM Prénom" copié-collé directement depuis un
-    # écran de liste de travail, sans aucun titre — c'est le motif de fuite le plus
-    # réaliste (cf. audit sécurité) et n'était couvert par aucun pattern existant,
-    # qui exigeaient tous un titre (Mr/Mme/Dr/patient) en préfixe.
-    (re.compile(r'\b[A-Z]{2,}\s+[A-Z][a-z]+\b'), "Nom patient potentiel (sans titre)", False, True),
+    # Convention worklist GLIMS : "NOM Prénom, DATE" copié-collé directement depuis
+    # un écran de liste de travail, sans aucun titre — c'est le motif de fuite le
+    # plus réaliste (cf. audit sécurité). Contrairement au pattern nom+titre
+    # ci-dessus, ce pattern exige que la date soit IMMÉDIATEMENT adjacente au nom
+    # (pas juste présente ailleurs dans le message) : une première version, plus
+    # permissive, matchait n'importe quelle paire ACRONYME+MotCapitalisé (y compris
+    # "MISPL Agent", "GLIMS Server", "API Key"...) et bloquait à tort toute question
+    # technique mentionnant une date sans rapport ailleurs dans le texte. Bloquant
+    # directement (pas besoin d'escalade combinatoire) : le motif nom+date adjacent
+    # est en lui-même suffisamment identifiant.
+    (re.compile(r'\b[A-Z]{2,}\s+[A-Z][a-z]+\s*,?\s*(?:n[ée]e?\s+le\s+)?\d{1,2}[/\-]\d{1,2}[/\-]\d{4}\b'), "Nom + date au format worklist (sans titre)", True, True),
 ]
 
 

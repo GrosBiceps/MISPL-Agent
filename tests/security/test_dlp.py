@@ -33,7 +33,12 @@ class TestDLPBlocking:
         assert blocked is True
 
     def test_dossier_number_and_name_combination_blocks(self):
-        blocked, alerts = dlp_check("le dossier 4582910 concerne Mme MARTIN Julie")
+        # Nom au format "titre + Prénom + NOM" (reconnu par le pattern "Nom patient
+        # potentiel" existant) combiné à un identifiant dossier : deux signaux
+        # identifiants distincts -> escalade. Le format "NOM Prénom" sans titre
+        # n'escalade plus seul depuis le durcissement du pattern worklist
+        # (qui exige désormais une date immédiatement adjacente).
+        blocked, alerts = dlp_check("le dossier 4582910 concerne Mme Julie MARTIN")
         assert blocked is True
 
     def test_name_and_bare_date_combination_blocks_without_naissance_phrasing(self):
@@ -78,7 +83,7 @@ class TestDLPWarningsNonBlocking:
         """Une phrase 'né le DATE' seule (sans nom) ne doit pas s'auto-escalader
         en comptant deux fois la même date comme deux signaux identifiants."""
         blocked, alerts = dlp_check(
-            "le patient est ne le 29/02, comment verifier la validite d'une annee bissextile ?"
+            "le patient est ne le 29/02/2024, comment verifier la validite d'une annee bissextile ?"
         )
         assert blocked is False
 
@@ -88,6 +93,32 @@ class TestDLPWarningsNonBlocking:
         n'est présent — cohérent avec le comportement existant du nom titré."""
         blocked, alerts = dlp_check("Verifier le dossier de DUPONT Marie dans GLIMS")
         assert blocked is False
+
+    def test_product_name_with_unrelated_date_not_blocked(self):
+        """Régression : 'MISPL Agent'/'GLIMS Server' etc. ne doivent plus
+        matcher le pattern nom+date sous prétexte qu'une date sans rapport
+        traine ailleurs dans le message."""
+        blocked, alerts = dlp_check(
+            "MISPL Agent doit etre livre le 12/03/2026 pour le Serveur GLIMS"
+        )
+        assert blocked is False
+
+    def test_technical_acronym_pair_with_distant_date_not_blocked(self):
+        blocked, alerts = dlp_check(
+            "Le RAG Pipeline doit traiter les documents avant le 12/03/2026"
+        )
+        assert blocked is False
+
+    def test_acronym_noun_pairs_alone_do_not_match_bare_name_pattern(self):
+        for text in [
+            "GLIMS Server repond lentement",
+            "Comment configurer un ID Patient dans GLIMS ?",
+            "API Key manquante dans le fichier de configuration",
+            "PDF Report genere automatiquement chaque jour",
+            "SQL Query echoue sur le Serveur Oracle",
+        ]:
+            blocked, alerts = dlp_check(text)
+            assert blocked is False, f"faux positif sur : {text!r} -> {alerts}"
 
     def test_titled_name_still_detected_with_lowercase_title(self):
         """La tolérance de casse sur le titre (dr/Dr/mme/Mme) doit être préservée
@@ -99,8 +130,12 @@ class TestDLPWarningsNonBlocking:
 
 class TestDLPEscalationParameter:
     def test_escalate_combinations_false_disables_combo_blocking(self):
+        # "Julie DUPONT" (titre + Prénom + NOM, pas "NOM Prénom") ne matche pas
+        # le pattern worklist nom+date (désormais directement bloquant et donc
+        # insensible à escalate_combinations, comme NIR/IPP) : seule la
+        # combinaison nom-titré + date reste soumise à l'escalade combinatoire.
         blocked, alerts = dlp_check(
-            "Mme DUPONT Marie, 12/03/1980, resultat glycemie anormal",
+            "Mme Julie DUPONT, 12/03/1980, resultat glycemie anormal",
             escalate_combinations=False,
         )
         assert blocked is False
