@@ -11,9 +11,21 @@ const FOCUSABLE_SELECTOR =
  * ferme la modale. Sans ça, un Shift+Tab en sortie de modale atterrit sur un
  * élément masqué sous l'overlay (ex: une ligne du tableau admin), qui reste
  * activable au clavier bien que visuellement recouvert.
+ *
+ * `onClose` est capturé via une ref plutôt que placé dans le tableau de
+ * dépendances de l'effet : les appelants passent une fonction inline
+ * recréée à chaque rendu (non mémorisée), ce qui ferait re-déclencher
+ * l'effet — et donc voler le focus une seconde fois — au moindre re-rendu
+ * du parent pendant que la modale est ouverte (ex: une action admin
+ * asynchrone qui se termine ailleurs sur la page pendant que l'utilisateur
+ * tape dans un champ de la modale). La ref garantit que l'effet ne
+ * s'exécute qu'au montage, tout en appelant toujours la version la plus
+ * récente de `onClose` sur Échap.
  */
 export function useFocusTrap(onClose: () => void) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -27,7 +39,7 @@ export function useFocusTrap(onClose: () => void) {
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== "Tab") return;
@@ -46,7 +58,8 @@ export function useFocusTrap(onClose: () => void) {
 
     container.addEventListener("keydown", handleKeyDown);
     return () => container.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // montage uniquement — onClose est lu via la ref, jamais une dépendance
 
   return containerRef;
 }
