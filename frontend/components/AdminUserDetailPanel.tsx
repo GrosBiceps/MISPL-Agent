@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { AdminUser } from "../lib/api";
+import { useEffect, useState } from "react";
+import { AdminUser, UpdateUserPayload, updateAdminUser, ApiError, UserBase } from "../lib/api";
 import { formatTokenCount, formatLastActive } from "../lib/format";
 import UsageChart from "./UsageChart";
 
 interface Props {
   user: AdminUser;
   onClose: () => void;
+  onUpdated: (user: UserBase) => void;
 }
 
 const PERIOD_PRESETS = [7, 30, 90];
@@ -16,21 +17,114 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function AdminUserDetailPanel({ user, onClose }: Props) {
+export default function AdminUserDetailPanel({ user, onClose, onUpdated }: Props) {
   const [days, setDays] = useState(30);
   const [endDate, setEndDate] = useState(todayIso());
+
+  const [editing, setEditing] = useState(false);
+  const [displayName, setDisplayName] = useState(user.display_name);
+  const [email, setEmail] = useState(user.email);
+  const [platformRole, setPlatformRole] = useState(user.platform_role);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDisplayName(user.display_name);
+    setEmail(user.email);
+    setPlatformRole(user.platform_role);
+  }, [user.id, user.display_name, user.email, user.platform_role]);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
+    const payload: UpdateUserPayload = {};
+    if (displayName !== user.display_name) payload.display_name = displayName;
+    if (email !== user.email) payload.email = email;
+    if (platformRole !== user.platform_role) payload.platform_role = platformRole;
+    if (Object.keys(payload).length === 0) {
+      setEditing(false);
+      setSaving(false);
+      return;
+    }
+    try {
+      const updated = await updateAdminUser(user.id, payload);
+      onUpdated(updated);
+      setEditing(false);
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : "Échec de l'enregistrement");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="card modal-card" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-          <div>
-            <h2 style={{ fontSize: 17 }}>{user.display_name}</h2>
-            <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "2px 0 0" }}>{user.email}</p>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            {editing ? (
+              <div style={{ flex: 1 }}>
+                <label className="field-label">Nom affiché</label>
+                <input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  style={{ marginBottom: 10 }}
+                />
+                <label className="field-label">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{ marginBottom: 10 }}
+                />
+                <label className="field-label">Rôle</label>
+                <select value={platformRole} onChange={(e) => setPlatformRole(e.target.value)}>
+                  <option value="user">Utilisateur</option>
+                  <option value="admin">Administrateur</option>
+                </select>
+              </div>
+            ) : (
+              <div>
+                <h2 style={{ fontSize: 17 }}>{user.display_name}</h2>
+                <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "2px 0 0" }}>{user.email}</p>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              {editing ? (
+                <>
+                  <button
+                    className="ghost"
+                    onClick={() => {
+                      setEditing(false);
+                      setSaveError(null);
+                      setDisplayName(user.display_name);
+                      setEmail(user.email);
+                      setPlatformRole(user.platform_role);
+                    }}
+                    style={{ padding: "4px 10px", fontSize: 12 }}
+                    disabled={saving}
+                  >
+                    Annuler
+                  </button>
+                  <button onClick={handleSave} style={{ padding: "4px 10px", fontSize: 12 }} disabled={saving}>
+                    {saving ? "..." : "Enregistrer"}
+                  </button>
+                </>
+              ) : (
+                <button className="ghost" onClick={() => setEditing(true)} style={{ padding: "4px 10px", fontSize: 12 }}>
+                  Modifier
+                </button>
+              )}
+              <button className="ghost" onClick={onClose} style={{ padding: "4px 10px", fontSize: 12 }}>
+                Fermer
+              </button>
+            </div>
           </div>
-          <button className="ghost" onClick={onClose} style={{ padding: "4px 10px", fontSize: 12 }}>
-            Fermer
-          </button>
+          {saveError && (
+            <div className="error-banner" style={{ marginTop: 10, fontSize: 12.5 }}>
+              {saveError}
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 20, marginBottom: 20, fontSize: 12.5 }}>

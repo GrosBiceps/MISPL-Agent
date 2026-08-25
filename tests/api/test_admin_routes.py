@@ -174,6 +174,47 @@ class TestUpdateUser:
         assert resp.status_code == 200
         assert resp.json()["is_active"] is False
 
+    def test_admin_can_rename_user(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+        resp = client.patch(f"/admin/users/{user.id}", json={"display_name": "Nouveau Nom"})
+        assert resp.status_code == 200
+        assert resp.json()["display_name"] == "Nouveau Nom"
+
+    def test_admin_can_change_user_email(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+        resp = client.patch(f"/admin/users/{user.id}", json={"email": "nouveau.mail@labo.fr"})
+        assert resp.status_code == 200
+        assert resp.json()["email"] == "nouveau.mail@labo.fr"
+
+    def test_email_change_is_normalized_lowercase(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory)
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+        resp = client.patch(f"/admin/users/{user.id}", json={"email": "Mixed.Case@Labo.FR"})
+        assert resp.status_code == 200
+        assert resp.json()["email"] == "mixed.case@labo.fr"
+
+    def test_email_change_to_existing_email_rejected(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory, email="tech@labo.fr")
+        make_regular_user(db_session_factory, email="autre@labo.fr")
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+        resp = client.patch(f"/admin/users/{user.id}", json={"email": "autre@labo.fr"})
+        assert resp.status_code == 409
+
+    def test_saving_own_unchanged_email_does_not_self_conflict(self, client, db_session_factory):
+        make_admin(db_session_factory)
+        user = make_regular_user(db_session_factory, email="tech@labo.fr")
+        login_as(client, "admin@labo.fr", "AdminMdp1!")
+        resp = client.patch(f"/admin/users/{user.id}", json={"email": "tech@labo.fr", "display_name": "Renommé"})
+        assert resp.status_code == 200
+        assert resp.json()["email"] == "tech@labo.fr"
+        assert resp.json()["display_name"] == "Renommé"
+
 
 class TestResetPassword:
     def test_reset_generates_new_temp_password(self, client, db_session_factory):

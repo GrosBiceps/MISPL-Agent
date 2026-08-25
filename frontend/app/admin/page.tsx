@@ -328,7 +328,14 @@ export default function AdminPage() {
         />
       )}
       {selectedUser && (
-        <AdminUserDetailPanel user={selectedUser} onClose={() => setSelectedUser(null)} />
+        <AdminUserDetailPanel
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onUpdated={(updated) => {
+            setUsers((prev) => prev.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)));
+            setSelectedUser((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+          }}
+        />
       )}
     </main>
   );

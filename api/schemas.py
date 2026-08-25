@@ -47,6 +47,7 @@ class CreateUserResponse(UserOut):
 
 class UpdateUserRequest(BaseModel):
     display_name: str | None = None
+    email: EmailStr | None = None
     platform_role: str | None = None
     can_use_dsi_mode: bool | None = None
     is_active: bool | None = None

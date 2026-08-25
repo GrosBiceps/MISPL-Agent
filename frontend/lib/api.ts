@@ -141,6 +141,7 @@ export interface CreateUserResult extends UserBase {
 
 export interface UpdateUserPayload {
   display_name?: string;
+  email?: string;
   platform_role?: string;
   can_use_dsi_mode?: boolean;
   is_active?: boolean;

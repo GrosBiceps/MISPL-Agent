@@ -128,6 +128,17 @@ def update_user(
     if payload.platform_role is not None and payload.platform_role not in ("admin", "user"):
         raise HTTPException(status_code=422, detail="platform_role doit être 'admin' ou 'user'")
 
+    normalized_email = None
+    if payload.email is not None:
+        normalized_email = payload.email.lower().strip()
+        conflict = (
+            db.query(User)
+            .filter(User.email == normalized_email, User.id != user_id)
+            .first()
+        )
+        if conflict is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email déjà utilisé")
+
     would_demote = (
         payload.platform_role is not None
         and payload.platform_role != "admin"
@@ -142,6 +153,8 @@ def update_user(
 
     if payload.display_name is not None:
         user.display_name = payload.display_name
+    if normalized_email is not None:
+        user.email = normalized_email
     if payload.platform_role is not None:
         user.platform_role = payload.platform_role
     if payload.can_use_dsi_mode is not None:
