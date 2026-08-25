@@ -33,29 +33,41 @@ def _make_retriever_with_fake_state(dense_docs, bm25_docs, known_functions=froze
 
 
 class TestQueryUsesReranker:
-    def test_final_order_follows_reranker_not_rrf_score(self, monkeypatch):
-        # Le doc "b" a un meilleur score RRF (rang dense 0) mais le reranker
-        # (mocké) le classe après "a" — le résultat final doit suivre le reranker.
+    def test_blends_reranker_rank_with_original_rrf_rank(self, monkeypatch):
+        """La fusion RRF entre le rang pré-reranking (dense+BM25) et le rang
+        post-reranking doit éviter qu'un jugement isolé du cross-encoder ne
+        fasse sortir du top_k un candidat pourtant très bien classé par la
+        recherche hybride d'origine — régression constatée en vérification
+        finale sur AddLogEntry (#1 BM25, mais hors top-5 par le cross-encoder
+        seul sur ce corpus technique français)."""
         docs = [
-            {"id": "b", "text": "peu pertinent", "score": 0.0, "category": "misc",
+            {"id": "target", "text": "fort en RRF, modere au reranking", "score": 0.0,
+             "category": "misc", "function_name": "", "has_examples": False},
+            {"id": "b", "text": "fort partout", "score": 0.0, "category": "misc",
              "function_name": "", "has_examples": False},
-            {"id": "a", "text": "tres pertinent", "score": 0.0, "category": "misc",
+            {"id": "c", "text": "moyen", "score": 0.0, "category": "misc",
+             "function_name": "", "has_examples": False},
+            {"id": "d", "text": "faible", "score": 0.0, "category": "misc",
+             "function_name": "", "has_examples": False},
+            {"id": "e", "text": "tres faible", "score": 0.0, "category": "misc",
              "function_name": "", "has_examples": False},
         ]
+        # Pré-reranking (RRF sur dense seul ici) : target est #1.
         retriever = _make_retriever_with_fake_state(dense_docs=docs, bm25_docs=[])
 
         def _fake_rerank(query, pool):
-            # Inverse l'ordre reçu et assigne un score cohérent avec ce nouvel ordre.
-            reversed_pool = list(reversed(pool))
-            for i, d in enumerate(reversed_pool):
-                d = dict(d)
-                d["score"] = float(len(reversed_pool) - i)
-                reversed_pool[i] = d
-            return reversed_pool
+            # Le reranker seul reléguerait "target" en 4e position sur 5.
+            order = ["b", "c", "d", "target", "e"]
+            by_id = {d["id"]: d for d in pool}
+            return [by_id[doc_id] for doc_id in order]
 
         monkeypatch.setattr(retriever_mod, "rerank", _fake_rerank)
-        result = retriever.query("une question", top_k=2)
-        assert [d["id"] for d in result] == ["a", "b"]
+        result = retriever.query("une question", top_k=3)
+        result_ids = [d["id"] for d in result]
+        assert "target" in result_ids, (
+            "le blending RRF doit garder 'target' dans le top_k malgre son "
+            f"classement bas par le reranker seul (resultat: {result_ids})"
+        )
 
     def test_exact_match_always_stays_first_even_with_high_reranker_scores(self, monkeypatch):
         """Régression pour le finding F1 : un score de reranker élevé (logit

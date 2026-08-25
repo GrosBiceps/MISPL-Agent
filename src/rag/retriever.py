@@ -1126,8 +1126,20 @@ class MISPLRetriever:
                     seen_ids.add(doc["id"])
 
         # Reranking cross-encoder — score de pertinence sémantique réel,
-        # remplace les anciens boosts heuristiques arbitraires post-RRF.
-        rrf_docs = rerank(question, rrf_docs)
+        # remplace les anciens boosts heuristiques arbitraires post-RRF. Le
+        # rang post-reranking est ensuite fusionné par RRF avec le rang RRF
+        # d'origine (dense+BM25) plutôt que de le remplacer intégralement :
+        # un jugement isolé du cross-encoder peut mal noter un chunk pourtant
+        # fortement classé par BM25/dense (constaté en vérification finale sur
+        # AddLogEntry, classé #1 BM25 mais hors top-5 par le cross-encoder
+        # seul sur ce corpus technique français) — la fusion garde ce chunk
+        # proche du sommet sans pour autant ignorer le jugement sémantique.
+        pre_rerank_ids = [d["id"] for d in rrf_docs]
+        reranked_docs = rerank(question, rrf_docs)
+        post_rerank_ids = [d["id"] for d in reranked_docs]
+        blended_ranked = _reciprocal_rank_fusion(pre_rerank_ids, post_rerank_ids)
+        docs_by_id = {d["id"]: d for d in reranked_docs}
+        rrf_docs = [docs_by_id[doc_id] for doc_id, _ in blended_ranked if doc_id in docs_by_id]
 
         # Fusionner : exact_docs TOUJOURS épinglés en tête, quel que soit leur
         # score relatif aux candidats rerankés — le cross-encoder produit des
