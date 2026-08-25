@@ -433,6 +433,18 @@ def _enrich_bm25_text(chunk: dict) -> str:
     return " ".join(parts)
 
 
+def _bm25_text_for_chunk(chunk: dict) -> str:
+    """Texte utilisé pour indexer ce chunk dans BM25. Les chunks chunk_type=
+    'md_kb' sont déjà enrichis à l'ingestion (cf.
+    ingest_knowledge_base.py::_build_bm25_text) — leur ré-appliquer
+    _enrich_bm25_text ici doublerait l'enrichissement (boost TF x6 au lieu de
+    x3, synonymes dupliqués). Seuls les chunks legacy (HTML, non pré-enrichis)
+    passent encore par _enrich_bm25_text."""
+    if chunk.get("chunk_type") == "md_kb":
+        return chunk["text"]
+    return _enrich_bm25_text(chunk)
+
+
 # ── Chargement singleton ───────────────────────────────────────────────────────
 
 class _RetrieverState:
@@ -476,10 +488,7 @@ class _RetrieverState:
         # ré-appliquer _enrich_bm25_text ici doublerait l'enrichissement
         # (boost TF x6 au lieu de x3, synonymes dupliqués). Seuls les chunks
         # legacy (HTML, non pré-enrichis) passent encore par cette fonction.
-        tokenized_corpus = [
-            _tokenize(c["text"]) if c.get("chunk_type") == "md_kb" else _tokenize(_enrich_bm25_text(c))
-            for c in self.bm25_chunks
-        ]
+        tokenized_corpus = [_tokenize(_bm25_text_for_chunk(c)) for c in self.bm25_chunks]
         self.bm25 = BM25Okapi(tokenized_corpus)
 
     @classmethod
