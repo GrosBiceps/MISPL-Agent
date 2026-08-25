@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AdminUser, UpdateUserPayload, updateAdminUser, ApiError, UserBase } from "../lib/api";
 import { formatTokenCount, formatLastActive } from "../lib/format";
+import { useFocusTrap } from "../lib/useFocusTrap";
 import UsageChart from "./UsageChart";
 
 interface Props {
@@ -18,6 +20,8 @@ function todayIso(): string {
 }
 
 export default function AdminUserDetailPanel({ user, onClose, onUpdated }: Props) {
+  const router = useRouter();
+  const containerRef = useFocusTrap(onClose);
   const [days, setDays] = useState(30);
   const [endDate, setEndDate] = useState(todayIso());
 
@@ -27,6 +31,7 @@ export default function AdminUserDetailPanel({ user, onClose, onUpdated }: Props
   const [platformRole, setPlatformRole] = useState(user.platform_role);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     setDisplayName(user.display_name);
@@ -35,6 +40,8 @@ export default function AdminUserDetailPanel({ user, onClose, onUpdated }: Props
   }, [user.id, user.display_name, user.email, user.platform_role]);
 
   async function handleSave() {
+    if (savingRef.current) return; // garde de ré-entrance synchrone, plus fiable que le seul `disabled` du bouton
+    savingRef.current = true;
     setSaving(true);
     setSaveError(null);
     const payload: UpdateUserPayload = {};
@@ -44,6 +51,7 @@ export default function AdminUserDetailPanel({ user, onClose, onUpdated }: Props
     if (Object.keys(payload).length === 0) {
       setEditing(false);
       setSaving(false);
+      savingRef.current = false;
       return;
     }
     try {
@@ -51,15 +59,27 @@ export default function AdminUserDetailPanel({ user, onClose, onUpdated }: Props
       onUpdated(updated);
       setEditing(false);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push("/login?expired=1");
+        return;
+      }
       setSaveError(err instanceof ApiError ? err.message : "Échec de l'enregistrement");
     } finally {
       setSaving(false);
+      savingRef.current = false;
     }
   }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="card modal-card" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        className="card modal-card"
+        style={{ maxWidth: 480 }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             {editing ? (

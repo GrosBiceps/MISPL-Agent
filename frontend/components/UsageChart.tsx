@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getUserUsageDaily, UsageDay } from "../lib/api";
+import { useRouter } from "next/navigation";
+import { getUserUsageDaily, UsageDay, ApiError } from "../lib/api";
 import { formatTokenCount } from "../lib/format";
 
 interface Props {
@@ -16,6 +17,7 @@ const TOP_PAD = 10; // headroom above the tallest bar
 const AXIS_COL_WIDTH = 42; // px, HTML column for Y-axis labels (outside the SVG)
 
 export default function UsageChart({ userId, days = 30, endDate }: Props) {
+  const router = useRouter();
   const [data, setData] = useState<UsageDay[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -29,13 +31,18 @@ export default function UsageChart({ userId, days = 30, endDate }: Props) {
       .then((rows) => {
         if (!cancelled) setData(rows);
       })
-      .catch(() => {
-        if (!cancelled) setError("Impossible de charger l'historique d'usage");
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 401) {
+          router.push("/login?expired=1");
+          return;
+        }
+        setError("Impossible de charger l'historique d'usage");
       });
     return () => {
       cancelled = true;
     };
-  }, [userId, days, endDate]);
+  }, [userId, days, endDate, router]);
 
   if (error) {
     return <p style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{error}</p>;

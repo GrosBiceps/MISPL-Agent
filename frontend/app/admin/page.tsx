@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useFocusTrap } from "../../lib/useFocusTrap";
 import {
   getMe,
   listAdminUsers,
@@ -32,6 +33,7 @@ function CreateUserModal({
   const [canUseDsiMode, setCanUseDsiMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useFocusTrap(onClose);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -55,7 +57,13 @@ function CreateUserModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="card modal-card" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        className="card modal-card"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 style={{ fontSize: 17, marginBottom: 16 }}>Nouveau compte</h2>
         {error && (
           <div className="error-banner" style={{ marginBottom: 12 }}>
@@ -329,6 +337,7 @@ export default function AdminPage() {
       )}
       {selectedUser && (
         <AdminUserDetailPanel
+          key={selectedUser.id}
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
           onUpdated={(updated) => {
