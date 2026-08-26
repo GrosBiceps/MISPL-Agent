@@ -280,7 +280,7 @@ def _enforce_weak_evidence_warning(response: str, docs: list) -> str:
         response,
         flags=_re.MULTILINE,
     )
-    return warning + _strip_leaked_retrieval_scores(downgraded)
+    return warning + downgraded
 
 
 # ── Garde-fou mécanique — fuite de scores de retrieval internes ─────────────
@@ -289,26 +289,61 @@ def _enforce_weak_evidence_warning(response: str, docs: list) -> str:
 # format_context) pour l'aider à calibrer sa certitude. Le LLM répète parfois
 # ce chiffre interne tel quel dans sa justification visible ("score de 1,00
 # dans le RAG") — une fuite d'implémentation que l'utilisateur final n'a pas
-# à voir. Correction mécanique après génération, indépendante du prompt.
+# à voir.
+#
+# Revue du 2026-08-27 : la première version de ce garde-fou (a) s'appliquait
+# à la réponse entière y compris à l'intérieur des blocs de code MISPL, où le
+# nettoyage cosmétique cassait la syntaxe à point initial (".Sample.Id" →
+# "IF.Sample.Id") et écrasait l'indentation ; (b) le motif de détection
+# attrapait tout usage clinique du mot "score" (scores de Glasgow, APACHE,
+# variables FRACTIONAL nommées "score"...), effaçant du code/texte légitime.
+# Corrections : le motif exige désormais un nombre au format score de
+# retrieval (0.xxx ou 1.xxx — les scores cliniques MISPL sont typiquement des
+# entiers ou hors de cet intervalle), et le nettoyage ne touche jamais
+# l'intérieur des blocs ``` ``` ```.
+_SCORE_NUMBER = r"[01][.,][0-9]+"
 _SCORE_LEAK_PATTERN = _re.compile(
-    r"(?:,?\s*(?:avec|ayant|présentant)\s+)?un\s+score(?:\s+de\s+(?:pertinence|retrieval|confiance)?)?\s+de\s+[0-9]+[.,][0-9]+"
-    r"|score(?:\s+de\s+(?:pertinence|retrieval|confiance))?\s*[:=]?\s*[0-9]+[.,][0-9]+"
-    r"|\(score[^)]*\)",
+    r"(?:,?\s*(?:avec|ayant|présentant)\s+)?un\s+score(?:\s+de\s+(?:pertinence|retrieval|confiance)?)?\s+de\s+"
+    + _SCORE_NUMBER
+    + r"|score(?:\s+de\s+(?:pertinence|retrieval|confiance))?\s*[:=]\s*"
+    + _SCORE_NUMBER
+    + r"|\(score\s*=\s*"
+    + _SCORE_NUMBER
+    + r"(?:,\s*exact(?:_match)?\s*=\s*(?:True|False))?\)",
     _re.IGNORECASE,
 )
+_CODE_FENCE_PATTERN = _re.compile(r"```.*?```", _re.DOTALL)
 
 
 def _strip_leaked_retrieval_scores(response: str) -> str:
     """Retire toute mention de score de retrieval numérique échappée dans le
-    texte visible par l'utilisateur (voir _SCORE_LEAK_PATTERN ci-dessus)."""
-    cleaned = _SCORE_LEAK_PATTERN.sub("", response)
-    # Nettoie les mots de liaison laissés orphelins par la suppression ci-dessus
-    # (ex. "avec score = 1.000;" → "avec;" une fois le chiffre retiré).
-    cleaned = _re.sub(r"\b(?:avec|ayant|présentant)\s*(?=[;,.)])", "", cleaned, flags=_re.IGNORECASE)
-    cleaned = _re.sub(r"[ \t]{2,}", " ", cleaned)
-    cleaned = _re.sub(r"[ \t]+([.,;:])", r"\1", cleaned)
-    cleaned = _re.sub(r"[ \t]+\n", "\n", cleaned)
-    return cleaned
+    texte visible par l'utilisateur (voir _SCORE_LEAK_PATTERN ci-dessus).
+    N'agit jamais à l'intérieur d'un bloc de code ``` ``` ``` — le code MISPL
+    ne doit jamais être réécrit après génération/lint."""
+    if not _SCORE_LEAK_PATTERN.search(response):
+        return response
+
+    def _clean_segment(segment: str) -> str:
+        cleaned = _SCORE_LEAK_PATTERN.sub("", segment)
+        # Nettoie les mots de liaison laissés orphelins par la suppression
+        # ci-dessus (ex. "avec score = 1.000;" → "avec;" une fois le chiffre
+        # retiré).
+        cleaned = _re.sub(r"\b(?:avec|ayant|présentant)\s*(?=[;,.)])", "", cleaned, flags=_re.IGNORECASE)
+        # Collapse uniquement les espaces multiples créés par la suppression
+        # ci-dessus — ne JAMAIS retirer un espace isolé devant une ponctuation
+        # (la typographie française impose "Source : x", "réponse :" etc.,
+        # que ce garde-fou n'a pas à toucher).
+        cleaned = _re.sub(r"[ \t]{2,}", " ", cleaned)
+        cleaned = _re.sub(r"[ \t]+\n", "\n", cleaned)
+        return cleaned
+
+    fences = _CODE_FENCE_PATTERN.findall(response)
+    parts = _CODE_FENCE_PATTERN.split(response)
+    rebuilt = [_clean_segment(parts[0])]
+    for fence, part in zip(fences, parts[1:]):
+        rebuilt.append(fence)
+        rebuilt.append(_clean_segment(part))
+    return "".join(rebuilt)
 
 
 # ── Détection profil skill ─────────────────────────────────────────────────────

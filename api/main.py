@@ -6,7 +6,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -55,6 +55,24 @@ async def limit_request_body_size(request: Request, call_next):
                 )
         except ValueError:
             pass
+
+    # Content-Length est absent pour un corps en Transfer-Encoding: chunked —
+    # un client peut alors contourner le contrôle ci-dessus. On borne aussi le
+    # flux réel, chunk par chunk, indépendamment de tout en-tête déclaré par
+    # le client (jamais fiable pour une limite de sécurité).
+    received = 0
+    original_receive = request.receive
+
+    async def limited_receive():
+        nonlocal received
+        message = await original_receive()
+        if message["type"] == "http.request":
+            received += len(message.get("body", b""))
+            if received > MAX_REQUEST_BODY_BYTES:
+                raise HTTPException(status_code=413, detail="Corps de requête trop volumineux")
+        return message
+
+    request._receive = limited_receive
     return await call_next(request)
 
 

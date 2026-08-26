@@ -48,7 +48,9 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         const panel = panelRef.current;
         if (!panel) return;
-        const items = Array.from(panel.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+        const items = Array.from(
+          panel.querySelectorAll<HTMLElement>('[role="menuitem"], [role="menuitemradio"]')
+        );
         if (items.length === 0) return;
         e.preventDefault();
         const currentIndex = items.indexOf(document.activeElement as HTMLElement);
@@ -90,7 +92,7 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
               }
         }
         aria-expanded={open}
-        aria-haspopup="true"
+        aria-haspopup="menu"
         aria-label={`Paramètres du compte (${displayName})`}
         title={compact ? displayName : undefined}
       >
@@ -153,14 +155,14 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
           >
             Couleur de l&apos;interface
           </p>
-          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+          <div role="group" aria-label="Couleur de l'interface" style={{ display: "flex", gap: 10, marginBottom: 16 }}>
             {THEME_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
-                role="menuitem"
+                role="menuitemradio"
                 onClick={() => setTheme(opt.value)}
                 aria-label={opt.label}
-                aria-pressed={theme === opt.value}
+                aria-checked={theme === opt.value}
                 style={{
                   width: 28,
                   height: 28,
@@ -206,7 +208,7 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
           >
             Déconnexion
           </button>
-          <div style={{ borderTop: "1px solid var(--line)", marginTop: 4, paddingTop: 6 }}>
+          <div role="group" aria-label="Mentions" style={{ borderTop: "1px solid var(--line)", marginTop: 4, paddingTop: 6 }}>
             <button
               onClick={() => setLegalOpen((v) => !v)}
               role="menuitem"
