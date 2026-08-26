@@ -9,10 +9,20 @@ export interface CertaintyExtraction {
 const SECTION_HEADING = /^##\s*Niveau de certitude\s*$/im;
 const EMOJIS = ["✅", "⚠️", "🔬"];
 
-// Extrait la justification qui suit le marqueur de niveau (emoji + gras),
-// ex : "✅ **Certain** — fonction documentée, syntaxe confirmée"
-// -> "fonction documentée, syntaxe confirmée". Retourne null si rien
-// d'exploitable ne suit le niveau.
+// Le LLM n'enrobe pas toujours le mot de niveau en gras — "✅ Certain — ..."
+// est aussi fréquent que "✅ **Certain** — ...". Si le mot nu n'est pas
+// retiré, il survit dans la justification et se retrouve dupliqué à côté du
+// badge ("✅ CertainCertain — ...").
+const LEVEL_WORDS: Record<string, RegExp> = {
+  "✅": /^certain\b/i,
+  "⚠️": /^probable\b/i,
+  "🔬": /^à vérifier(?: dans glims)?\b/i,
+};
+
+// Extrait la justification qui suit le marqueur de niveau (emoji, gras ou
+// non), ex : "✅ **Certain** — fonction documentée" ou "✅ Certain — fonction
+// documentée" -> "fonction documentée". Retourne null si rien d'exploitable
+// ne suit le niveau.
 function extractRationale(sectionBody: string, emoji: string): string | null {
   const lines = sectionBody
     .split(/\r?\n/)
@@ -22,8 +32,14 @@ function extractRationale(sectionBody: string, emoji: string): string | null {
   if (!line) return null;
 
   let text = line.slice(line.indexOf(emoji) + emoji.length).trim();
-  // Retire le marqueur en gras du niveau, ex: **Certain**
-  text = text.replace(/^\*\*[^*]+\*\*\s*/, "");
+  // Retire les marqueurs de gras sans perdre le texte qu'ils entourent, pour
+  // que le mot de niveau soit détectable qu'il ait été en gras ou non.
+  text = text.replace(/\*\*/g, "").trim();
+  // Retire le mot de niveau lui-même (ex: "Certain"), déjà affiché par le badge.
+  const levelWord = LEVEL_WORDS[emoji];
+  if (levelWord) {
+    text = text.replace(levelWord, "").trim();
+  }
   // Retire un tiret de tête (—, -, --) séparant le niveau de la justification
   text = text.replace(/^[-—]+\s*/, "");
   text = text.trim();

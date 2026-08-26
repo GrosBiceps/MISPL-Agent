@@ -5,7 +5,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.agent.mispl_agent import _enforce_weak_evidence_warning, WEAK_EVIDENCE_SCORE_THRESHOLD
+from src.agent.mispl_agent import (
+    _enforce_weak_evidence_warning,
+    _strip_leaked_retrieval_scores,
+    WEAK_EVIDENCE_SCORE_THRESHOLD,
+)
 
 
 class TestWeakEvidenceGuard:
@@ -39,7 +43,9 @@ class TestWeakEvidenceGuard:
         response = "✅ Certain — réponse générée sans aucun document."
         result = _enforce_weak_evidence_warning(response, [])
         assert result.startswith("⚠️ **Documentation faible détectée**")
-        assert "0.00" in result
+        # Le score numérique interne ne doit jamais apparaître dans le texte
+        # visible par l'utilisateur (cf. _strip_leaked_retrieval_scores).
+        assert "score" not in result.lower()
 
     def test_one_high_score_among_weak_docs_prevents_warning(self):
         """La fonction ne lit que `score` (jamais `exact_match`) : un seul
@@ -80,3 +86,40 @@ class TestWeakEvidenceGuard:
 
     def test_threshold_constant_matches_prompt_documented_value(self):
         assert WEAK_EVIDENCE_SCORE_THRESHOLD == 0.50
+
+
+class TestScoreLeakGuard:
+    def test_strips_score_from_certainty_justification(self):
+        response = (
+            "✅ Certain — la signature de `Substr` est présente avec un score "
+            "de 1,00 dans le RAG et un exemple d'utilisation est fourni dans "
+            "la documentation."
+        )
+        result = _strip_leaked_retrieval_scores(response)
+        assert "score" not in result.lower()
+        assert "1,00" not in result
+        assert "✅ Certain" in result
+
+    def test_strips_score_colon_notation(self):
+        response = "Justification : score : 0.952, confirmé dans la doc."
+        result = _strip_leaked_retrieval_scores(response)
+        assert "score" not in result.lower()
+        assert "0.952" not in result
+
+    def test_strips_parenthetical_score(self):
+        response = "Fonction confirmée (score=1.000, exact=True) dans la doc."
+        result = _strip_leaked_retrieval_scores(response)
+        assert "score" not in result.lower()
+
+    def test_leaves_unrelated_text_untouched(self):
+        response = "## Contexte GLIMS\nExtraction des 3 premiers caractères d'une chaîne."
+        result = _strip_leaked_retrieval_scores(response)
+        assert result == response
+
+    def test_wired_into_weak_evidence_guard_output(self):
+        """La suppression de fuite de score s'applique aussi sur le chemin
+        'documentation faible' (_enforce_weak_evidence_warning)."""
+        docs = [{"score": 0.05}]
+        response = "✅ Certain — signature confirmée avec un score de 0,95."
+        result = _enforce_weak_evidence_warning(response, docs)
+        assert "score" not in result.lower()

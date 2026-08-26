@@ -111,7 +111,7 @@ def purge_old_cache(max_age_hours: int = CACHE_RETENTION_HOURS) -> int:
 # Version du pipeline de génération. À incrémenter dès que le system prompt,
 # le post-traitement (strip CoT) ou le format de réponse change → invalide
 # automatiquement tout le cache obsolète sans avoir à le vider à la main.
-CACHE_VERSION = "v25"
+CACHE_VERSION = "v26"
 
 def _cache_key(
     question: str,
@@ -270,19 +270,45 @@ def _enforce_weak_evidence_warning(response: str, docs: list) -> str:
         return response
 
     warning = (
-        "⚠️ **Documentation faible détectée** — le meilleur document retrouvé "
-        f"a un score de pertinence de {max_score:.2f} (seuil minimal : "
-        f"{WEAK_EVIDENCE_SCORE_THRESHOLD}). La réponse ci-dessous peut être "
-        "basée sur une documentation incomplète ou hors sujet. À vérifier "
-        "impérativement avant toute utilisation.\n\n"
+        "⚠️ **Documentation faible détectée** — la documentation retrouvée pour "
+        "cette question est incomplète ou hors sujet. La réponse ci-dessous peut "
+        "être imprécise. À vérifier impérativement avant toute utilisation.\n\n"
     )
     downgraded = _re.sub(
         r"^\s*✅\s*\**Certain\**.*$",
-        "🔬 À vérifier — documentation insuffisante (score de pertinence trop faible pour confirmer)",
+        "🔬 À vérifier — documentation insuffisante pour confirmer",
         response,
         flags=_re.MULTILINE,
     )
-    return warning + downgraded
+    return warning + _strip_leaked_retrieval_scores(downgraded)
+
+
+# ── Garde-fou mécanique — fuite de scores de retrieval internes ─────────────
+
+# Le contexte envoyé au LLM inclut "Score : 0.xxx" par doc (retriever.py,
+# format_context) pour l'aider à calibrer sa certitude. Le LLM répète parfois
+# ce chiffre interne tel quel dans sa justification visible ("score de 1,00
+# dans le RAG") — une fuite d'implémentation que l'utilisateur final n'a pas
+# à voir. Correction mécanique après génération, indépendante du prompt.
+_SCORE_LEAK_PATTERN = _re.compile(
+    r"(?:,?\s*(?:avec|ayant|présentant)\s+)?un\s+score(?:\s+de\s+(?:pertinence|retrieval|confiance)?)?\s+de\s+[0-9]+[.,][0-9]+"
+    r"|score(?:\s+de\s+(?:pertinence|retrieval|confiance))?\s*[:=]?\s*[0-9]+[.,][0-9]+"
+    r"|\(score[^)]*\)",
+    _re.IGNORECASE,
+)
+
+
+def _strip_leaked_retrieval_scores(response: str) -> str:
+    """Retire toute mention de score de retrieval numérique échappée dans le
+    texte visible par l'utilisateur (voir _SCORE_LEAK_PATTERN ci-dessus)."""
+    cleaned = _SCORE_LEAK_PATTERN.sub("", response)
+    # Nettoie les mots de liaison laissés orphelins par la suppression ci-dessus
+    # (ex. "avec score = 1.000;" → "avec;" une fois le chiffre retiré).
+    cleaned = _re.sub(r"\b(?:avec|ayant|présentant)\s*(?=[;,.)])", "", cleaned, flags=_re.IGNORECASE)
+    cleaned = _re.sub(r"[ \t]{2,}", " ", cleaned)
+    cleaned = _re.sub(r"[ \t]+([.,;:])", r"\1", cleaned)
+    cleaned = _re.sub(r"[ \t]+\n", "\n", cleaned)
+    return cleaned
 
 
 # ── Détection profil skill ─────────────────────────────────────────────────────
@@ -413,6 +439,7 @@ def _call_with_fallback(
                 remaining = deadline - time.monotonic()
                 if attempt < max_retries - 1 and remaining > 0:
                     time.sleep(max(0, min(retry_after, 20, remaining)))
+                    continue  # retente le même modèle
                 break  # prochain modèle
             except Exception as e:
                 last_error = e
@@ -563,6 +590,11 @@ def ask_mispl(
     # l'avertissement soit systématiquement présent dans toute réponse servie
     # (générée ou depuis le cache).
     response = _enforce_weak_evidence_warning(response, docs)
+
+    # 3.8. Garde-fou mécanique — fuite de scores de retrieval internes (cf.
+    # _strip_leaked_retrieval_scores ci-dessus). Couvre aussi le chemin
+    # "documentation forte" que 3.7 ne touche pas.
+    response = _strip_leaked_retrieval_scores(response)
 
     # 4. Lint
     lint_result = lint_response(response)
