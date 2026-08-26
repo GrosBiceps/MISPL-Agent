@@ -31,6 +31,8 @@ export function useFocusTrap(onClose: () => void) {
     const container = containerRef.current;
     if (!container) return;
 
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
     const focusables = () =>
       Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
 
@@ -57,7 +59,12 @@ export function useFocusTrap(onClose: () => void) {
     }
 
     container.addEventListener("keydown", handleKeyDown);
-    return () => container.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      container.removeEventListener("keydown", handleKeyDown);
+      if (previouslyFocused && typeof previouslyFocused.focus === "function") {
+        previouslyFocused.focus();
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // montage uniquement — onClose est lu via la ref, jamais une dépendance
 

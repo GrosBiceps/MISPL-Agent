@@ -8,6 +8,21 @@ export class ApiError extends Error {
   }
 }
 
+function normalizeDetail(detail: unknown, fallback: string): string {
+  if (typeof detail === "string" && detail.length > 0) {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => (item && typeof item === "object" && "msg" in item ? String((item as { msg: unknown }).msg) : null))
+      .filter((msg): msg is string => !!msg);
+    if (messages.length > 0) {
+      return messages.join(", ");
+    }
+  }
+  return fallback;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -18,10 +33,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
   if (!res.ok) {
-    let detail = res.statusText;
+    let detail: string = res.statusText;
     try {
       const body = await res.json();
-      detail = body.detail ?? detail;
+      detail = normalizeDetail(body.detail, detail);
     } catch {
       // pas de corps JSON exploitable
     }

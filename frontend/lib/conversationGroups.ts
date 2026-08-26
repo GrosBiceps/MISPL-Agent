@@ -13,7 +13,7 @@ function startOfDay(d: Date): Date {
 
 // Le backend sérialise des timestamps naïfs (sans offset), ex. "2026-08-13T22:30:00.123456".
 // new Date() interprèterait cette chaîne comme heure locale au lieu d'UTC — on force l'UTC ici.
-function parseAsUtc(isoString: string): Date {
+export function parseAsUtc(isoString: string): Date {
   const hasOffset = /Z$|[+-]\d{2}:\d{2}$/.test(isoString);
   return new Date(hasOffset ? isoString : `${isoString}Z`);
 }

@@ -23,6 +23,7 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -32,7 +33,25 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
       }
     }
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        const panel = panelRef.current;
+        if (!panel) return;
+        const items = Array.from(panel.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+        if (items.length === 0) return;
+        e.preventDefault();
+        const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+        let nextIndex: number;
+        if (e.key === "ArrowDown") {
+          nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % items.length;
+        } else {
+          nextIndex = currentIndex === -1 ? items.length - 1 : (currentIndex - 1 + items.length) % items.length;
+        }
+        items[nextIndex].focus();
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
@@ -102,6 +121,9 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
       </button>
       {open && (
         <div
+          ref={panelRef}
+          role="menu"
+          aria-label={`Menu du compte (${displayName})`}
           className="card"
           style={{
             position: "absolute",
@@ -127,6 +149,7 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
             {THEME_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
+                role="menuitem"
                 onClick={() => setTheme(opt.value)}
                 aria-label={opt.label}
                 aria-pressed={theme === opt.value}
@@ -145,6 +168,7 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
           {isAdmin && (
             <Link
               href="/admin"
+              role="menuitem"
               style={{
                 display: "block",
                 padding: "8px 0",
@@ -161,6 +185,7 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
           )}
           <button
             onClick={onLogout}
+            role="menuitem"
             style={{
               width: "100%",
               textAlign: "left",

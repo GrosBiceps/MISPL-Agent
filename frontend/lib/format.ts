@@ -1,3 +1,5 @@
+import { parseAsUtc } from "./conversationGroups";
+
 export function formatTokenCount(n: number): string {
   if (n < 1000) return String(n);
   return `${(n / 1000).toFixed(1).replace(".", ",")}k`;
@@ -9,7 +11,7 @@ export function formatCount(n: number): string {
 
 export function formatLastActive(dateStr: string | null): string {
   if (!dateStr) return "Jamais";
-  const date = new Date(dateStr);
+  const date = parseAsUtc(dateStr);
   const today = new Date();
   const diffDays = Math.floor(
     (Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) -
