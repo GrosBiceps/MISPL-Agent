@@ -6,8 +6,9 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 try:
     from dotenv import load_dotenv
@@ -33,6 +34,29 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="MISPL Agent API", lifespan=lifespan)
+
+# Taille maximale acceptée pour le corps d'une requête HTTP. Le payload JSON
+# de /chat/ask (question + lab_context + conversation_history, tous bornés
+# côté schéma Pydantic — cf. api/schemas.py) ne devrait jamais s'en approcher ;
+# cette limite est une défense en profondeur contre un corps de requête
+# volumineux qui saturerait la mémoire/le CPU avant même la validation Pydantic.
+MAX_REQUEST_BODY_BYTES = 1 * 1024 * 1024  # 1 Mo
+
+
+@app.middleware("http")
+async def limit_request_body_size(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            if int(content_length) > MAX_REQUEST_BODY_BYTES:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": "Corps de requête trop volumineux"},
+                )
+        except ValueError:
+            pass
+    return await call_next(request)
+
 
 _frontend_origins = os.environ.get("MISPL_FRONTEND_ORIGIN", "http://localhost:3000").split(",")
 app.add_middleware(

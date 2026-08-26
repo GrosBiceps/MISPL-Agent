@@ -46,14 +46,30 @@ _login_attempts_lock = threading.Lock()
 
 def _prune_and_record(store: dict[str, list[float]], key: str, limit: int, now: float) -> bool:
     """Purge les tentatives hors fenêtre, enregistre la tentative courante, et
-    retourne True si la limite est dépassée pour cette clé."""
+    retourne True si la limite est dépassée pour cette clé.
+
+    Purge également, à cette même occasion, toute AUTRE clé du dict dont
+    toutes les tentatives sont désormais hors fenêtre : sans ça, une clé
+    (IP, ou IP:email) qui atteint puis abandonne son quota reste indéfiniment
+    en mémoire — plus personne ne la retouche jamais pour déclencher son
+    propre nettoyage. Ce balayage reste peu coûteux (dicts de taille modeste,
+    fenêtre de quelques minutes) et ne modifie pas la logique de comptage."""
     attempts = [t for t in store.get(key, []) if now - t < _LOGIN_RATE_WINDOW_SECONDS]
     if len(attempts) >= limit:
         store[key] = attempts
-        return True
-    attempts.append(now)
-    store[key] = attempts
-    return False
+        result = True
+    else:
+        attempts.append(now)
+        store[key] = attempts
+        result = False
+
+    for other_key in [
+        k for k, timestamps in store.items()
+        if k != key and all(now - t >= _LOGIN_RATE_WINDOW_SECONDS for t in timestamps)
+    ]:
+        del store[other_key]
+
+    return result
 
 
 def _check_login_rate_limit(client_ip: str, email: str) -> None:

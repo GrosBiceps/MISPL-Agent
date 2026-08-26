@@ -99,6 +99,52 @@ class TestCreateUser:
         })
         assert resp.status_code == 200
 
+    def test_race_condition_between_check_and_insert_returns_409_not_500(
+        self, db_session_factory, monkeypatch
+    ):
+        """Reproduit la fenêtre TOCTOU : le SELECT de vérification d'unicité ne
+        voit pas encore le conflit (simulé), mais celui-ci existe réellement en
+        base au moment du commit — l'INSERT doit alors échouer proprement en
+        409 (IntegrityError attrapée), pas en 500."""
+        import api.routers.admin as admin_router
+        from sqlalchemy.orm import Query
+        from fastapi import HTTPException
+
+        from api.schemas import CreateUserRequest
+
+        make_admin(db_session_factory)
+        db = db_session_factory()
+        admin_user = db.query(User).filter(User.email == "admin@labo.fr").one()
+
+        conflicting = User(
+            email="race@labo.fr", password_hash=hash_password("Whatever1!"),
+            display_name="Existing", platform_role="user", can_use_dsi_mode=False, is_active=True,
+        )
+        db.add(conflicting)
+        db.commit()
+
+        original_first = Query.first
+        call_count = {"n": 0}
+
+        def fake_first(self):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                # Simule le SELECT de vérification d'unicité ne trouvant rien,
+                # alors que "race@labo.fr" existe déjà réellement en base.
+                return None
+            return original_first(self)
+
+        monkeypatch.setattr(Query, "first", fake_first)
+
+        payload = CreateUserRequest(
+            email="race@labo.fr", display_name="Nouveau", platform_role="user", can_use_dsi_mode=False,
+        )
+        try:
+            admin_router.create_user(payload, db, admin_user)
+            assert False, "IntegrityError attendue -> HTTPException 409"
+        except HTTPException as exc:
+            assert exc.status_code == 409
+
 
 class TestListUsers:
     def test_admin_can_list_users(self, client, db_session_factory):

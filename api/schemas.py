@@ -63,13 +63,13 @@ class RevokeSessionsResponse(BaseModel):
 
 class ChatHistoryMessage(BaseModel):
     role: Literal["user", "assistant"]
-    content: str
+    content: str = Field(min_length=1, max_length=8000)
 
 
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=8000)
     lab_context: str | None = Field(default=None, max_length=4000)
-    conversation_history: list[ChatHistoryMessage] | None = None
+    conversation_history: list[ChatHistoryMessage] | None = Field(default=None, max_length=50)
     conversation_id: int | None = None
 
 

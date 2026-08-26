@@ -5,6 +5,8 @@ from __future__ import annotations
 import datetime
 import json
 import logging
+import threading
+import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -25,6 +27,43 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 TITLE_MAX_LENGTH = 50
+
+# Rate limiting léger par utilisateur authentifié sur /chat/ask — chaque appel
+# déclenche un LLM (coût réel, latence), sans rapport avec le rate limiter de
+# login (api/routers/auth.py, non authentifié, protège contre le bruteforce).
+# Ici l'utilisateur est déjà authentifié : la clé est son id, pas son IP.
+# Même pattern (dict en mémoire, verrou, fenêtre glissante) que
+# api/routers/auth.py::_prune_and_record, y compris le balayage des clés
+# devenues vides pour éviter une croissance non bornée du dict.
+_CHAT_RATE_LIMIT_PER_USER = 20
+_CHAT_RATE_WINDOW_SECONDS = 60
+_chat_attempts: dict[int, list[float]] = {}
+_chat_attempts_lock = threading.Lock()
+
+
+def _check_chat_rate_limit(user_id: int) -> None:
+    now = time.monotonic()
+    with _chat_attempts_lock:
+        attempts = [t for t in _chat_attempts.get(user_id, []) if now - t < _CHAT_RATE_WINDOW_SECONDS]
+        if len(attempts) >= _CHAT_RATE_LIMIT_PER_USER:
+            _chat_attempts[user_id] = attempts
+            over_limit = True
+        else:
+            attempts.append(now)
+            _chat_attempts[user_id] = attempts
+            over_limit = False
+
+        for other_id in [
+            uid for uid, timestamps in _chat_attempts.items()
+            if uid != user_id and all(now - t >= _CHAT_RATE_WINDOW_SECONDS for t in timestamps)
+        ]:
+            del _chat_attempts[other_id]
+
+    if over_limit:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Trop de requêtes — veuillez réessayer dans quelques instants.",
+        )
 
 
 def _make_title(question: str) -> str:
@@ -58,6 +97,8 @@ def _record_usage(db: DBSession, user_id: int, usage: dict) -> None:
 
 @router.post("/ask", response_model=ChatResponse)
 def ask(payload: ChatRequest, db: DBSession = Depends(get_db), user: User = Depends(get_current_user)):
+    _check_chat_rate_limit(user.id)
+
     conversation = None
     if payload.conversation_id is not None:
         conversation = get_owned_conversation_or_404(db, payload.conversation_id, user.id)
