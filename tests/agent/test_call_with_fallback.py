@@ -73,6 +73,35 @@ class TestCallWithFallbackDeadline:
         warning_messages = [r.message for r in caplog.records if r.levelname == "WARNING"]
         assert any("invalid api key" in m for m in warning_messages)
 
+    def test_rate_limit_retries_same_model_before_falling_back(self, monkeypatch):
+        """Régression : sur un 429, le code doit retenter le MÊME modèle
+        (max_retries - 1 fois) avant de basculer sur le fallback suivant —
+        pas basculer immédiatement après le premier sommeil (bug trouvé lors
+        de l'audit du 2026-08-26 : un `break` inconditionnel empêchait toute
+        deuxième tentative sur le modèle courant)."""
+        monkeypatch.setattr(agent_mod, "_MAX_TOTAL_WAIT_SECONDS", 5)
+        monkeypatch.setattr(time, "sleep", lambda *_a, **_kw: None)
+
+        calls = []
+        fake_completion = MagicMock()
+
+        def _side_effect(*args, **kwargs):
+            calls.append(kwargs["model"])
+            if len(calls) == 1:
+                raise _make_rate_limit_error(retry_after_seconds=1)
+            return fake_completion
+
+        fake_client = MagicMock()
+        fake_client.chat.completions.create.side_effect = _side_effect
+
+        used_model, completion = agent_mod._call_with_fallback(
+            fake_client, agent_mod.FALLBACK_ORDER[0], messages=[], max_retries=2
+        )
+
+        assert calls == [agent_mod.FALLBACK_ORDER[0], agent_mod.FALLBACK_ORDER[0]]
+        assert used_model == agent_mod.FALLBACK_ORDER[0]
+        assert completion is fake_completion
+
     def test_success_returns_model_and_completion(self, monkeypatch):
         fake_completion = MagicMock()
         fake_client = MagicMock()

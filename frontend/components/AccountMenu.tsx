@@ -19,9 +19,17 @@ interface Props {
   isAdmin?: boolean;
 }
 
+const LEGAL_NOTICE =
+  "Outil de démonstration interne, développé à titre personnel — non validé formellement par la DSI ou le service juridique du CHU. " +
+  "La base de connaissances n'a pas été constituée à partir de la documentation MISPL/GLIMS elle-même : elle a été reformulée selon une " +
+  "méthodologie de type « langage proxy » (couche de référence Progress ABL/OpenEdge), et l'ensemble des fonctions ont été réécrites. " +
+  "Le code généré doit toujours être relu et testé par un professionnel qualifié avant tout déploiement en production. " +
+  "Ne jamais saisir de données patient.";
+
 export default function AccountMenu({ displayName, onLogout, compact = false, isAdmin = false }: Props) {
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const [legalOpen, setLegalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -159,6 +167,39 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
               Administration
             </Link>
           )}
+          <div style={{ borderTop: "1px solid var(--line)", marginTop: 4, paddingTop: 6 }}>
+            <button
+              onClick={() => setLegalOpen((v) => !v)}
+              aria-expanded={legalOpen}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                width: "100%",
+                textAlign: "left",
+                background: "transparent",
+                border: "none",
+                padding: "4px 0",
+                color: "var(--ink-soft)",
+                fontSize: 11,
+                cursor: "pointer",
+              }}
+            >
+              <span aria-hidden="true">ⓘ</span> Mentions
+            </button>
+            {legalOpen && (
+              <p
+                style={{
+                  fontSize: 10.5,
+                  lineHeight: 1.5,
+                  color: "var(--ink-soft)",
+                  marginTop: 4,
+                }}
+              >
+                {LEGAL_NOTICE}
+              </p>
+            )}
+          </div>
           <button
             onClick={onLogout}
             style={{
