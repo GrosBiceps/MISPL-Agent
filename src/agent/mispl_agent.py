@@ -111,7 +111,7 @@ def purge_old_cache(max_age_hours: int = CACHE_RETENTION_HOURS) -> int:
 # Version du pipeline de génération. À incrémenter dès que le system prompt,
 # le post-traitement (strip CoT) ou le format de réponse change → invalide
 # automatiquement tout le cache obsolète sans avoir à le vider à la main.
-CACHE_VERSION = "v24"
+CACHE_VERSION = "v25"
 
 def _cache_key(
     question: str,
@@ -245,6 +245,43 @@ def _strip_chain_of_thought(response: str) -> str:
         return response[earliest:].lstrip()
 
     return response
+
+
+# ── Garde-fou mécanique de certitude — score de retrieval trop faible ───────
+
+# Seuil aligné sur le seuil "🔬 À vérifier" déjà documenté dans le prompt
+# système (score < 0.50). Le prompt demande déjà au LLM de s'auto-évaluer
+# selon ce seuil, mais rien ne garantit qu'il le fasse de façon fiable : un
+# audit du 2026-08-27 a trouvé un cas réel où tous les scores retournés
+# étaient < 0.17 et le LLM a quand même répondu "✅ Certain". Ce garde-fou
+# est appliqué en code après génération — il ne dépend pas du jugement du
+# LLM, contrairement à l'instruction de prompt seule.
+WEAK_EVIDENCE_SCORE_THRESHOLD = 0.50
+
+
+def _enforce_weak_evidence_warning(response: str, docs: list) -> str:
+    """Si le meilleur score parmi les documents récupérés est sous
+    WEAK_EVIDENCE_SCORE_THRESHOLD, force un avertissement de documentation
+    faible en tête de réponse et rétrograde toute affirmation "✅ Certain"
+    trouvée dans le texte — correction mécanique, indépendante de ce que le
+    LLM a lui-même affirmé."""
+    max_score = max((d.get("score", 0) or 0 for d in docs), default=0.0)
+    if max_score >= WEAK_EVIDENCE_SCORE_THRESHOLD:
+        return response
+
+    warning = (
+        "⚠️ **Documentation faible détectée** — le meilleur document retrouvé "
+        f"a un score de pertinence de {max_score:.2f} (seuil minimal : "
+        f"{WEAK_EVIDENCE_SCORE_THRESHOLD}). La réponse ci-dessous peut être "
+        "basée sur une documentation incomplète ou hors sujet. À vérifier "
+        "impérativement avant toute utilisation.\n\n"
+    )
+    downgraded = _re.sub(
+        r"✅\s*\**Certain\**[^\n]*",
+        "🔬 À vérifier — documentation insuffisante (score de pertinence trop faible pour confirmer)",
+        response,
+    )
+    return warning + downgraded
 
 
 # ── Détection profil skill ─────────────────────────────────────────────────────
@@ -519,6 +556,12 @@ def ask_mispl(
     # Technicien, remplace la réponse entière si une boucle est passée malgré
     # la consigne du prompt système (le LLM ne suit pas toujours ses consignes).
     response = enforce_access_mode(response, access_mode)
+
+    # 3.7. Garde-fou mécanique de certitude — cf. _enforce_weak_evidence_warning
+    # ci-dessus. Appliqué avant le lint et avant la mise en cache, pour que
+    # l'avertissement soit systématiquement présent dans toute réponse servie
+    # (générée ou depuis le cache).
+    response = _enforce_weak_evidence_warning(response, docs)
 
     # 4. Lint
     lint_result = lint_response(response)
