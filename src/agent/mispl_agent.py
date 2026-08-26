@@ -277,9 +277,10 @@ def _enforce_weak_evidence_warning(response: str, docs: list) -> str:
         "impérativement avant toute utilisation.\n\n"
     )
     downgraded = _re.sub(
-        r"✅\s*\**Certain\**[^\n]*",
+        r"^\s*✅\s*\**Certain\**.*$",
         "🔬 À vérifier — documentation insuffisante (score de pertinence trop faible pour confirmer)",
         response,
+        flags=_re.MULTILINE,
     )
     return warning + downgraded
 

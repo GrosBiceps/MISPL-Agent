@@ -41,14 +41,42 @@ class TestWeakEvidenceGuard:
         assert result.startswith("⚠️ **Documentation faible détectée**")
         assert "0.00" in result
 
-    def test_exact_match_score_of_one_prevents_warning(self):
-        """Un seul document exact-match (score=1.0) parmi des candidats faibles
-        suffit à désactiver le garde-fou — cohérent avec le fait qu'un exact-
-        match est une preuve forte à lui seul."""
+    def test_one_high_score_among_weak_docs_prevents_warning(self):
+        """La fonction ne lit que `score` (jamais `exact_match`) : un seul
+        document à score élevé parmi des candidats faibles suffit à
+        désactiver le garde-fou, simplement parce que le MAX des scores
+        dépasse le seuil — pas de traitement spécial pour exact_match."""
         docs = [{"score": 1.0, "exact_match": True}, {"score": 0.05}]
         response = "✅ Certain."
         result = _enforce_weak_evidence_warning(response, docs)
         assert result == response
+
+    def test_exact_match_flag_alone_without_high_score_is_ignored(self):
+        """Confirme explicitement que `exact_match=True` seul, avec un score
+        bas, N'empêche PAS le garde-fou — seul le score compte."""
+        docs = [{"score": 0.1, "exact_match": True}]
+        response = "✅ Certain."
+        result = _enforce_weak_evidence_warning(response, docs)
+        assert result.startswith("⚠️ **Documentation faible détectée**")
+
+    def test_certain_phrase_mid_paragraph_is_not_downgraded(self):
+        """Régression : '✅ Certain' apparaissant au milieu d'une phrase de
+        prose (pas en tête de ligne) ne doit pas être touché par le garde-fou
+        — seule la ligne de déclaration de certitude, en tête de ligne, doit
+        l'être."""
+        docs = [{"score": 0.1}]
+        response = (
+            "## Niveau de certitude\n"
+            "✅ Certain — signature confirmée.\n\n"
+            "## Notes techniques\n"
+            "Le comportement est désormais fiable. ✅ Certain que la fonction "
+            "Substr existe et fonctionne comme documenté, testée manuellement."
+        )
+        result = _enforce_weak_evidence_warning(response, docs)
+        # La ligne de déclaration de certitude est bien rétrogradée...
+        assert "## Niveau de certitude\n🔬 À vérifier" in result
+        # ...mais la phrase de prose dans les notes techniques reste intacte.
+        assert "Le comportement est désormais fiable. ✅ Certain que la fonction Substr existe" in result
 
     def test_threshold_constant_matches_prompt_documented_value(self):
         assert WEAK_EVIDENCE_SCORE_THRESHOLD == 0.50
