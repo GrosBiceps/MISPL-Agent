@@ -38,22 +38,40 @@ _DLP_PATTERNS: list[tuple[re.Pattern, str, bool, bool]] = [
     # matcher n'importe quelle paire de mots minuscules après "patient"/"Dr"/etc.
     # (ex: "un patient ne le ..." était pris pour un nom). Alternation explicite sur
     # la casse du titre uniquement, pour rester tolérant à "dr"/"Dr"/"mme"/"Mme".
-    (re.compile(r'\b(?:[Mm]r?|[Mm]me?|[Dd]r?|[Pp]atiente?)\s+[A-Z][a-z]+\s+[A-Z]{2,}'), "Nom patient potentiel", False, True),
+    # Titre en abrégé ("M", "Mr", "Mme", "Dr") OU en toutes lettres ("Monsieur",
+    # "Madame", "Docteur") — l'audit sécurité a signalé que la forme longue,
+    # fréquente dans les échanges rédigés, échappait à l'ancienne alternation
+    # (`[Mm]r?` ne capture que "M"/"Mr", jamais "Monsieur"). Nom accepté dans les
+    # deux ordres, "Prénom NOM" (ex: "Dr Marie DUPONT") et "NOM Prénom" tel que
+    # copié-collé d'une worklist (ex: "Monsieur DUPONT Marie") : l'audit a montré
+    # que ce second ordre, combiné à un titre, restait aussi non détecté.
+    (re.compile(r'\b(?:[Mm](?:r|onsieur)?|[Mm](?:me|adame)?|[Dd](?:r|octeur)?|[Pp]atiente?)\s+(?:[A-Z][a-z]+\s+[A-Z]{2,}|[A-Z]{2,}\s+[A-Z][a-z]+)\b'), "Nom patient potentiel", False, True),
     # Convention worklist GLIMS : "NOM Prénom, DATE" copié-collé directement depuis
     # un écran de liste de travail, sans aucun titre — c'est le motif de fuite le
-    # plus réaliste (cf. audit sécurité). Contrairement au pattern nom+titre
-    # ci-dessus, ce pattern exige que la date soit IMMÉDIATEMENT adjacente au nom
-    # (pas juste présente ailleurs dans le message) : une première version, plus
-    # permissive, matchait n'importe quelle paire ACRONYME+MotCapitalisé (y compris
-    # "MISPL Agent", "GLIMS Server", "API Key"...) et bloquait à tort toute question
-    # technique mentionnant une date sans rapport ailleurs dans le texte. Bloquant
-    # directement (pas besoin d'escalade combinatoire) : le motif nom+date adjacent
-    # est en lui-même suffisamment identifiant.
-    # (Limite connue et acceptée : une date séparée du nom par des mots
-    # intercalaires — ex: "DUPONT Marie : résultat du 12/03/1980" — reste hors
-    # de portée d'un pattern regex sans faux positifs inacceptables ; seule la
-    # ponctuation de séparation a été élargie, pas la contrainte d'adjacence.)
-    (re.compile(r'\b[A-Z]{2,}\s+[A-Z][a-z]+\s*[,\-:]?\s*(?:n[ée]e?\s+le\s+)?\d{1,2}[/\-]\d{1,2}[/\-]\d{4}\b'), "Nom + date au format worklist (sans titre)", True, True),
+    # plus réaliste (cf. audit sécurité). Deux formes tolérées :
+    #  1. Date IMMÉDIATEMENT adjacente au nom (ponctuation de séparation seule) —
+    #     la forme d'origine.
+    #  2. Date séparée du nom par la formule "née le"/"né le" (éventuellement
+    #     précédée d'un mot de titre), y compris lorsque le mot intercalaire
+    #     "patiente"/titre est placé APRÈS le nom plutôt qu'avant (ex: "DUPONT
+    #     Marie, patiente née le 12/03/1980") — l'audit a signalé ce cas comme
+    #     un contournement du filtre, la contrainte d'adjacence stricte d'origine
+    #     ne couvrant pas les mots intercalaires même les plus prévisibles.
+    # Le vocabulaire intercalaire toléré reste volontairement restreint à
+    # "né(e) le" (pas un mot générique comme "le" seul) : une première variante
+    # plus permissive, autorisant jusqu'à 3 mots quelconques d'un vocabulaire
+    # incluant "le" isolément, refaisait matcher à tort des phrases techniques du
+    # type "GLIMS Server le 12/03/2026 sera disponible" (ACRONYME + Mot capitalisé
+    # + "le" + date sans rapport avec un patient) — la même classe de faux positif
+    # que "MISPL Agent"/"GLIMS Server" déjà documentée ci-dessus. Bloquant
+    # directement (pas besoin d'escalade combinatoire) : le motif nom+date, avec ou
+    # sans la formule "né(e) le", est en lui-même suffisamment identifiant.
+    (re.compile(
+        r'\b[A-Z]{2,}\s+[A-Z][a-z]+\s*[,\-:]?\s*'
+        r'(?:(?:[Mm]r?|[Mm]me?|[Dd]r?|[Pp]atiente?)\s+)?n[ée]e?\s+le\s+\d{1,2}[/\-]\d{1,2}[/\-]\d{4}\b'
+        r'|'
+        r'\b[A-Z]{2,}\s+[A-Z][a-z]+\s*[,\-:]?\s*\d{1,2}[/\-]\d{1,2}[/\-]\d{4}\b'
+    ), "Nom + date au format worklist (sans titre)", True, True),
 ]
 
 
