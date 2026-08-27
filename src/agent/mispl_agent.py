@@ -280,7 +280,7 @@ def _enforce_weak_evidence_warning(response: str, docs: list) -> str:
         response,
         flags=_re.MULTILINE,
     )
-    return warning + downgraded
+    return warning + _strip_leaked_retrieval_scores(downgraded)
 
 
 # ── Garde-fou mécanique — fuite de scores de retrieval internes ─────────────

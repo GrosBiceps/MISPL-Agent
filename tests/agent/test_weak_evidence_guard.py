@@ -118,11 +118,19 @@ class TestScoreLeakGuard:
 
     def test_wired_into_weak_evidence_guard_output(self):
         """La suppression de fuite de score s'applique aussi sur le chemin
-        'documentation faible' (_enforce_weak_evidence_warning)."""
+        'documentation faible' (_enforce_weak_evidence_warning), y compris
+        dans du texte qui survit à la rétrogradation de la ligne ✅ Certain
+        (donc pas uniquement parce que toute la ligne a été remplacée)."""
         docs = [{"score": 0.05}]
-        response = "✅ Certain — signature confirmée avec un score de 0,95."
+        response = (
+            "## Niveau de certitude\n"
+            "✅ Certain — tout va bien.\n\n"
+            "## Notes techniques\n"
+            "Cette fonction a été retrouvée avec un score de 0,95 dans le RAG."
+        )
         result = _enforce_weak_evidence_warning(response, docs)
         assert "score" not in result.lower()
+        assert "0,95" not in result
 
     def test_code_block_never_altered(self):
         """Régression critique (revue du 2026-08-27) : le nettoyage ne doit
