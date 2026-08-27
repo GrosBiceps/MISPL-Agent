@@ -123,6 +123,23 @@ class TestEnforceAccessMode:
         )
         assert enforce_access_mode(response, MODE_DSI) == response
 
+    def test_technicien_blocks_plain_fence_loop_without_program_keyword(self):
+        # Régression (revue Critical) : une fence ``` générique, sans tag
+        # `mispl` et sans le mot PROGRAM, n'est PAS extraite par
+        # extract_mispl_blocks — elle ne doit donc pas non plus être retirée
+        # aveuglément de l'analyse texte-brut, sinon la boucle qu'elle
+        # contient devient invisible aux deux couches de vérification.
+        response = (
+            "Voici un extrait :\n"
+            "```\n"
+            "WHILE i < 10 DO\n"
+            "  i := i + 1;\n"
+            "DONE\n"
+            "```"
+        )
+        result = enforce_access_mode(response, MODE_TECHNICIEN)
+        assert result == REFUSAL_MESSAGE
+
     def test_technicien_allows_ordinary_prose_with_english_while(self):
         # "while" au sens anglais courant, dans une explication sans aucune
         # saveur MISPL à proximité, ne doit pas déclencher le refus.
