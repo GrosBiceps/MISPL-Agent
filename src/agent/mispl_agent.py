@@ -111,7 +111,7 @@ def purge_old_cache(max_age_hours: int = CACHE_RETENTION_HOURS) -> int:
 # Version du pipeline de génération. À incrémenter dès que le system prompt,
 # le post-traitement (strip CoT) ou le format de réponse change → invalide
 # automatiquement tout le cache obsolète sans avoir à le vider à la main.
-CACHE_VERSION = "v26"
+CACHE_VERSION = "v27"
 
 def _cache_key(
     question: str,
