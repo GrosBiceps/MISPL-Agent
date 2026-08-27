@@ -76,6 +76,25 @@ async def limit_request_body_size(request: Request, call_next):
     return await call_next(request)
 
 
+# Chemins servant du HTML/JS interactif (Swagger UI / ReDoc, générés par
+# FastAPI) : ils ont besoin d'exécuter des scripts/styles externes (CDN) et
+# ne peuvent donc pas recevoir le CSP strict "default-src 'none'" appliqué au
+# reste de l'API (purement JSON). On les exempte explicitement plutôt que de
+# relâcher le CSP globalement.
+_DOCS_PATHS = {"/docs", "/redoc", "/openapi.json"}
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if request.url.path not in _DOCS_PATHS:
+        response.headers["Content-Security-Policy"] = "default-src 'none'"
+    return response
+
+
 _frontend_origins = os.environ.get("MISPL_FRONTEND_ORIGIN", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
