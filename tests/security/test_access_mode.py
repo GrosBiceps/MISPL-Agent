@@ -149,6 +149,22 @@ class TestEnforceAccessMode:
         )
         assert enforce_access_mode(response, MODE_TECHNICIEN) == response
 
+    def test_technicien_allows_prose_refusal_citing_htm_source(self):
+        # Régression (revue finale) : un refus légitime en mode Technicien,
+        # rédigé en prose et citant sa source au format `## Source` obligatoire
+        # (CLAUDE.md, ex: "function_string.htm"), ne doit PAS être écrasé par
+        # REFUSAL_MESSAGE. Avant le correctif, le bras `.Champ` du pattern de
+        # saveur MISPL matchait n'importe quel point suivi d'un mot (donc
+        # ".htm" dans la citation) sous IGNORECASE, et RETURN comptait comme
+        # marqueur de saveur — la combinaison avec WHILE dans la même fenêtre
+        # de proximité déclenchait à tort le remplacement.
+        response = (
+            "Une boucle WHILE serait nécessaire, mais elle est interdite en "
+            "mode Technicien.\n"
+            'Source : function_string.htm — section "Substr"'
+        )
+        assert enforce_access_mode(response, MODE_TECHNICIEN) == response
+
 
 class TestAccessModeForUser:
     def test_dsi_flag_true_gives_dsi_mode(self):

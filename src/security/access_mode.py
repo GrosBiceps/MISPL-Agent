@@ -53,8 +53,21 @@ _LOOP_PATTERN = re.compile(r"\b(WHILE|REPEAT)\b", re.IGNORECASE)
 # Marqueurs indiquant une "saveur" MISPL dans du texte non fenêtré. Utilisé
 # pour scoper la détection de boucle en texte brut et éviter de bloquer à tort
 # une prose ordinaire contenant le mot anglais "while" (ex: "while this works").
+#
+# L'accesseur `.Champ` n'est PAS sous re.IGNORECASE (voir plus bas) : matché
+# case-sensitive sur `.MotMajuscule`, comme le pattern nom titré de
+# src/security/dlp.py pour le même type de faux positif. Sous IGNORECASE, ce
+# bras matchait n'importe quel point suivi d'un mot — y compris les extensions
+# de fichier dans les citations `## Source` obligatoires du format de réponse
+# (CLAUDE.md), ex. "Source : function_string.htm" — bloquant à tort un refus
+# légitime en mode Technicien qui cite sa source en prose.
+# RETURN a été retiré des marqueurs : trop fréquent en prose ordinaire
+# (française ou anglaise) parlant de code, pas spécifique aux boucles. DONE et
+# UNTIL ont été ajoutés : signaux forts et spécifiques aux boucles WHILE/REPEAT,
+# présents dans tous les payloads de contournement déjà couverts par les tests.
 _MISPL_FLAVOR_PATTERN = re.compile(
-    r"\bPROGRAM\b|\bENDIF\b|\bRETURN\b|:=|\.[A-Za-z_][A-Za-z0-9_]*\b",
+    r"\bPROGRAM\b|\bENDIF\b|\bDONE\b|\bUNTIL\b|:="
+    r"|(?-i:\.[A-Z][A-Za-z0-9_]*\b)",
     re.IGNORECASE,
 )
 
