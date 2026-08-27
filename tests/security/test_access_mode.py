@@ -86,6 +86,52 @@ class TestEnforceAccessMode:
         response = "Cette fonction ne nécessite pas de boucle while.\n```mispl\nRETURN Today();\n```"
         assert enforce_access_mode(response, MODE_TECHNICIEN) == response
 
+    def test_technicien_blocks_unfenced_while_loop(self):
+        # F-01 : une boucle WHILE en pseudo-code MISPL sans aucun fencing
+        # ``` doit être bloquée — le contournement historique de la barrière
+        # dure consistait justement à demander une réponse non fenêtrée.
+        response = (
+            "Voici le code sans fence :\n"
+            "STRING PROGRAM\n"
+            "  WHILE i < 10 DO\n"
+            "    i := i + 1;\n"
+            "  DONE\n"
+            "RETURN i;"
+        )
+        result = enforce_access_mode(response, MODE_TECHNICIEN)
+        assert result == REFUSAL_MESSAGE
+
+    def test_technicien_blocks_unfenced_repeat_loop(self):
+        response = (
+            "STRING PROGRAM\n"
+            "  REPEAT\n"
+            "    i := i + 1;\n"
+            "  UNTIL i >= 10\n"
+            "RETURN i;"
+        )
+        result = enforce_access_mode(response, MODE_TECHNICIEN)
+        assert result == REFUSAL_MESSAGE
+
+    def test_dsi_mode_unfenced_loop_not_blocked(self):
+        # Mode DSI : la barrière dure ne s'applique pas, fenced ou non.
+        response = (
+            "STRING PROGRAM\n"
+            "  WHILE i < 10 DO\n"
+            "    i := i + 1;\n"
+            "  DONE\n"
+            "RETURN i;"
+        )
+        assert enforce_access_mode(response, MODE_DSI) == response
+
+    def test_technicien_allows_ordinary_prose_with_english_while(self):
+        # "while" au sens anglais courant, dans une explication sans aucune
+        # saveur MISPL à proximité, ne doit pas déclencher le refus.
+        response = (
+            "Cette approche reste valable while this works correctly on your "
+            "current dataset, mais nécessite une revue si le volume augmente."
+        )
+        assert enforce_access_mode(response, MODE_TECHNICIEN) == response
+
 
 class TestAccessModeForUser:
     def test_dsi_flag_true_gives_dsi_mode(self):

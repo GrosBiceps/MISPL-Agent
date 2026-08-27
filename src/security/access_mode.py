@@ -4,9 +4,11 @@ Gestion d'accès à deux modes — DSI (génération complète) / Technicien (br
 Défense en profondeur à deux couches :
   1. Consigne injectée dans le prompt système (le LLM doit refuser de lui-même).
   2. Barrière dure post-génération (enforce_access_mode) qui remplace la réponse
-     si une boucle WHILE/REPEAT apparaît quand même dans un bloc ```mispl,
-     réutilisant le même extracteur que le linter — jamais de confiance
-     aveugle dans le respect du prompt par le LLM.
+     si une boucle WHILE/REPEAT apparaît quand même — que ce soit dans un bloc
+     ```mispl (réutilisant le même extracteur que le linter) ou dans le texte
+     brut de la réponse (code non fenêtré, pseudo-code) dès lors qu'il a une
+     saveur MISPL — jamais de confiance aveugle dans le respect du prompt par
+     le LLM.
 
 Mode par défaut : TECHNICIEN (fail-safe). Le mode DSI ne peut être atteint
 qu'en fournissant le mot de passe correspondant au hash stocké en .env.
@@ -45,6 +47,14 @@ réponds uniquement :
 """
 
 _LOOP_PATTERN = re.compile(r"\b(WHILE|REPEAT)\b", re.IGNORECASE)
+
+# Marqueurs indiquant une "saveur" MISPL dans du texte non fenêtré. Utilisé
+# pour scoper la détection de boucle en texte brut et éviter de bloquer à tort
+# une prose ordinaire contenant le mot anglais "while" (ex: "while this works").
+_MISPL_FLAVOR_PATTERN = re.compile(
+    r"\bPROGRAM\b|\bENDIF\b|\bRETURN\b|:=|\.[A-Za-z_][A-Za-z0-9_]*\b",
+    re.IGNORECASE,
+)
 
 
 def hash_password(password: str, salt_hex: str) -> str:
@@ -91,11 +101,46 @@ def _contains_loop(mispl_code: str) -> bool:
     return bool(_LOOP_PATTERN.search(mispl_code))
 
 
+_FENCED_BLOCK_PATTERN = re.compile(r"```[\s\S]*?```")
+_LOOP_CONTEXT_WINDOW = 2  # lignes avant/après à inspecter pour la saveur MISPL
+
+
+def _contains_unfenced_loop(response: str) -> bool:
+    """
+    Détecte une boucle WHILE/REPEAT dans le texte brut d'une réponse, en
+    dehors de tout bloc ```...``` (déjà couvert par la vérification via
+    extract_mispl_blocks) — par exemple du pseudo-code non fenêtré.
+
+    Scopée par proximité : un match WHILE/REPEAT ne déclenche le refus que si
+    une marque de saveur MISPL (PROGRAM, ENDIF, RETURN, `:=`, accesseur
+    `.Champ`) apparaît sur la même ligne ou à quelques lignes d'écart. Cela
+    évite de bloquer à tort une prose ordinaire contenant le mot anglais
+    "while" loin de tout code MISPL (ex: "while this works...").
+    """
+    # Les blocs fenêtrés sont déjà vérifiés séparément (voir enforce_access_mode) ;
+    # on les retire ici pour ne pas polluer les fenêtres de contexte avec du
+    # code légitime situé après un "while" anglais dans la prose environnante.
+    unfenced = _FENCED_BLOCK_PATTERN.sub("", response)
+
+    lines = unfenced.splitlines()
+    for i, line in enumerate(lines):
+        if not _LOOP_PATTERN.search(line):
+            continue
+        window_start = max(0, i - _LOOP_CONTEXT_WINDOW)
+        window_end = min(len(lines), i + _LOOP_CONTEXT_WINDOW + 1)
+        window = "\n".join(lines[window_start:window_end])
+        if _MISPL_FLAVOR_PATTERN.search(window):
+            return True
+    return False
+
+
 def enforce_access_mode(response: str, mode: str) -> str:
     """
-    Barrière dure : en mode Technicien, si un bloc ```mispl contient WHILE/REPEAT
-    malgré la consigne du prompt système, la réponse entière est remplacée par
-    le message de refus. Ne fait rien en mode DSI.
+    Barrière dure : en mode Technicien, si la réponse contient WHILE/REPEAT
+    malgré la consigne du prompt système, elle est remplacée par le message
+    de refus — que la boucle apparaisse dans un bloc ```mispl ou dans du
+    texte/pseudo-code non fenêtré ayant une saveur MISPL. Ne fait rien en
+    mode DSI.
     """
     if mode != MODE_TECHNICIEN:
         return response
@@ -106,6 +151,9 @@ def enforce_access_mode(response: str, mode: str) -> str:
     for block in extract_mispl_blocks(response):
         if _contains_loop(block):
             return REFUSAL_MESSAGE
+
+    if _contains_unfenced_loop(response):
+        return REFUSAL_MESSAGE
 
     return response
 
