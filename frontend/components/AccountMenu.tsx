@@ -193,6 +193,39 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
               Administration
             </Link>
           )}
+          <div style={{ borderTop: "1px solid var(--line)", marginTop: 4, paddingTop: 6 }}>
+            <button
+              onClick={() => setLegalOpen((v) => !v)}
+              aria-expanded={legalOpen}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                width: "100%",
+                textAlign: "left",
+                background: "transparent",
+                border: "none",
+                padding: "4px 0",
+                color: "var(--ink-soft)",
+                fontSize: 11,
+                cursor: "pointer",
+              }}
+            >
+              <span aria-hidden="true">ⓘ</span> Mentions
+            </button>
+            {legalOpen && (
+              <p
+                style={{
+                  fontSize: 10.5,
+                  lineHeight: 1.5,
+                  color: "var(--ink-soft)",
+                  marginTop: 4,
+                }}
+              >
+                {LEGAL_NOTICE}
+              </p>
+            )}
+          </div>
           <button
             onClick={onLogout}
             role="menuitem"
