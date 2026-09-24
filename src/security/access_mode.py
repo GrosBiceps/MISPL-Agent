@@ -15,20 +15,39 @@ Défense en profondeur à deux couches :
 Mode par défaut : TECHNICIEN (fail-safe). Le mode DSI ne peut être atteint
 qu'en fournissant le mot de passe correspondant au hash stocké en .env.
 Si le hash n'est pas configuré, le déverrouillage DSI est impossible.
+
+Format du hash DSI (depuis le 2026-09-24) : Argon2id au format PHC dans
+MISPL_DSI_PASSWORD_HASH, mêmes paramètres que les comptes de l'API
+(src/security/password_hashing.py). L'ancien format PBKDF2-HMAC-SHA256
+(MISPL_DSI_PASSWORD_HASH hexadécimal + MISPL_DSI_PASSWORD_SALT) reste
+vérifié pour ne pas couper l'accès DSI, mais un avertissement invite à le
+regénérer avec scripts/set_dsi_password.py.
 """
 
 from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import os
 import re
+
+from src.security import password_hashing
+
+logger = logging.getLogger(__name__)
 
 MODE_DSI = "dsi"
 MODE_TECHNICIEN = "technicien"
 DEFAULT_MODE = MODE_TECHNICIEN
 
+# Ancien format (avant 2026-09-24) : conservé uniquement pour VÉRIFIER un
+# hash existant. Aucun nouveau hash PBKDF2 n'est plus produit.
 _PBKDF2_ITERATIONS = 200_000
+
+LEGACY_DSI_HASH_WARNING = (
+    "Le mot de passe DSI est encore stocké au format PBKDF2 hérité. "
+    "Regénérez-le au format Argon2id : python scripts/set_dsi_password.py"
+)
 
 # Message affiché au technicien quand une demande nécessite une boucle.
 REFUSAL_MESSAGE = (
@@ -81,37 +100,73 @@ _MISPL_FLAVOR_PATTERN = re.compile(
 )
 
 
-def hash_password(password: str, salt_hex: str) -> str:
-    """Dérive un hash PBKDF2-HMAC-SHA256 hex à partir du mot de passe et du sel (hex)."""
+def _legacy_pbkdf2_hex(password: str, salt_hex: str) -> str:
+    """Ancien hash PBKDF2-HMAC-SHA256 (hex). Vérification seulement."""
     salt = bytes.fromhex(salt_hex)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, _PBKDF2_ITERATIONS)
     return digest.hex()
 
 
-def generate_salt() -> str:
-    return os.urandom(16).hex()
+def hash_dsi_password(password: str) -> str:
+    """Hash Argon2id (format PHC, sel inclus) à placer dans MISPL_DSI_PASSWORD_HASH."""
+    return password_hashing.hash_password(password)
+
+
+def dsi_password_format() -> str:
+    """Format du hash DSI configuré : "argon2id", "pbkdf2-legacy" ou "absent"."""
+    stored_hash = os.environ.get("MISPL_DSI_PASSWORD_HASH", "").strip()
+    if not stored_hash:
+        return "absent"
+    if password_hashing.is_argon2_hash(stored_hash):
+        return "argon2id"
+    return "pbkdf2-legacy"
+
+
+def dsi_password_needs_upgrade() -> bool:
+    """True si le hash DSI doit être regénéré : ancien format PBKDF2, ou
+    Argon2 avec des paramètres plus faibles que la configuration courante."""
+    fmt = dsi_password_format()
+    if fmt == "pbkdf2-legacy":
+        return True
+    if fmt == "argon2id":
+        return password_hashing.needs_rehash(os.environ.get("MISPL_DSI_PASSWORD_HASH", "").strip())
+    return False
 
 
 def verify_dsi_password(password: str) -> bool:
     """
-    Vérifie le mot de passe DSI contre le hash configuré dans l'environnement
-    (MISPL_DSI_PASSWORD_HASH + MISPL_DSI_PASSWORD_SALT).
+    Vérifie le mot de passe DSI contre le hash configuré dans l'environnement.
 
-    Fail-safe : si le hash n'est pas configuré, retourne toujours False —
-    le mode DSI est alors définitivement inatteignable tant que la DSI n'a
-    pas exécuté scripts/set_dsi_password.py.
+    - Format Argon2id (MISPL_DSI_PASSWORD_HASH commence par « $argon2 ») :
+      vérification Argon2, à temps constant.
+    - Ancien format PBKDF2 (hash hexadécimal + MISPL_DSI_PASSWORD_SALT) :
+      encore accepté, comparaison hmac.compare_digest, avec un avertissement
+      journalisé invitant à regénérer le hash.
+
+    Fail-safe : si le hash n'est pas configuré ou illisible, retourne
+    toujours False — le mode DSI est alors inatteignable tant que la DSI n'a
+    pas exécuté scripts/set_dsi_password.py. Le mot de passe n'est jamais
+    journalisé.
     """
     if not password:
         return False
-    stored_hash = os.environ.get("MISPL_DSI_PASSWORD_HASH", "")
-    salt_hex = os.environ.get("MISPL_DSI_PASSWORD_SALT", "")
-    if not stored_hash or not salt_hex:
+    stored_hash = os.environ.get("MISPL_DSI_PASSWORD_HASH", "").strip()
+    if not stored_hash:
+        return False
+    if password_hashing.is_argon2_hash(stored_hash):
+        return password_hashing.verify_password(password, stored_hash)
+
+    salt_hex = os.environ.get("MISPL_DSI_PASSWORD_SALT", "").strip()
+    if not salt_hex:
         return False
     try:
-        candidate_hash = hash_password(password, salt_hex)
+        candidate_hash = _legacy_pbkdf2_hex(password, salt_hex)
     except ValueError:
         return False
-    return hmac.compare_digest(candidate_hash, stored_hash)
+    ok = hmac.compare_digest(candidate_hash, stored_hash.lower())
+    if ok:
+        logger.warning(LEGACY_DSI_HASH_WARNING)
+    return ok
 
 
 def build_restrictions_prompt(mode: str) -> str:

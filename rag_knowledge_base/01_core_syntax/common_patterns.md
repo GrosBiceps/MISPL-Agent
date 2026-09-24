@@ -234,7 +234,6 @@ Pattern complet combinant : NumericValue, AgeInYears, SetManualSeverity, AddInte
 **AddInternalComment et sc_Role.SendMail sont des fonctions CERTAINES — ne jamais les mettre en pseudo-code.**
 
 ```mispl
-LOGICAL PROGRAM
   /* Stocker les valeurs pour éviter les accès BD répétés */
   FRACTIONAL val;
   FRACTIONAL age;

@@ -219,3 +219,22 @@ Dépendances : `numpy`, `scikit-learn` et `beautifulsoup4` ; `pypdf` est optionn
 Pour la traçabilité complète (méthode, langage proxy, sources publiques, scripts d'exemple, audit), voir [`rag_knowledge_base/SOURCES.md`](rag_knowledge_base/SOURCES.md) et [`rag_knowledge_base/README.md`](rag_knowledge_base/README.md).
 
 Voir aussi [`CHANGELOG.md`](CHANGELOG.md).
+
+## Documentation
+
+La documentation d'ingénierie complète (cahier des charges, acteurs et rôles,
+cas d'utilisation et diagrammes d'activité, architecture et ADR datées,
+chronologie, journal des bugs, guides par rôle, schéma de base de données,
+cartographie du dépôt, sécurité) est construite avec Sphinx depuis
+[`docs/sphinx/index.md`](docs/sphinx/index.md).
+
+```powershell
+pip install -r docs/sphinx/requirements-docs.txt
+sphinx-build -b html docs/sphinx docs/sphinx/_build/html
+# ou, depuis docs/sphinx/ : make html   (make.bat html sous Windows)
+```
+
+Le résultat est écrit dans `docs/sphinx/_build/html/index.html` (non
+versionné). Chaque document source reste aussi directement lisible sur
+GitHub, sous `docs/specifications/`, `docs/architecture/`, `docs/guides/`,
+`docs/base_de_donnees/`, `docs/cartographie/` et `docs/securite/`.

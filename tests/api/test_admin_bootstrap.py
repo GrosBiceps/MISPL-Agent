@@ -43,5 +43,7 @@ class TestCreateAdminAccount:
 
     def test_short_password_raises(self):
         db = make_session()
-        with pytest.raises(ValueError, match="8 caractères"):
+        # Politique renforcée le 2026-09-24 (12 caractères minimum, cf.
+        # api/security.py::password_policy_errors) — ancien seuil : 8.
+        with pytest.raises(ValueError, match="12 caractères"):
             create_admin_account(db, "admin@labo.fr", "Florian", "court")

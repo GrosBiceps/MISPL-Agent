@@ -323,8 +323,16 @@ def main() -> int:
                     raise _Abort()
                 uc = UserClient(base, email, mode)
                 uc.id = r.json()["id"]
-                r = uc.http.post("/auth/login", json={"email": email, "password": r.json()["temporary_password"]})
+                temp_password = r.json()["temporary_password"]
+                r = uc.http.post("/auth/login", json={"email": email, "password": temp_password})
                 checks.add(f"login {email} → 200", r.status_code == 200, r.text[:200])
+                # Mot de passe temporaire : changement imposé avant tout usage
+                # (403 password_change_required sinon, depuis le 2026-09-24).
+                checks.add(f"{email} : /conversations refusé avant changement du mot de passe → 403",
+                           uc.http.get("/conversations").status_code == 403)
+                r = uc.http.post("/auth/change-password", json={
+                    "current_password": temp_password, "new_password": f"Banc-e2e-{mode}-{i + 1}-Mdp!"})
+                checks.add(f"{email} : changement du mot de passe temporaire → 200", r.status_code == 200, r.text[:200])
                 me = uc.http.get("/auth/me").json()
                 checks.add(f"{email} can_use_dsi_mode={mode == 'dsi'}", me.get("can_use_dsi_mode") == (mode == "dsi"))
                 users[mode].append(uc)

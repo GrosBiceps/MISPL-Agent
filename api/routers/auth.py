@@ -1,7 +1,9 @@
-"""Routes d'authentification : login, logout, utilisateur courant."""
+"""Routes d'authentification : login, logout, utilisateur courant, changement
+de mot de passe."""
 
 from __future__ import annotations
 
+import datetime
 import os
 import threading
 import time
@@ -9,12 +11,19 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session as DBSession
 
-from api.auth import AuthError, authenticate_user
+from api import audit
+from api.auth import AuthError, authenticate_user, register_failed_attempt
 from api.db import get_db
-from api.dependencies import SESSION_COOKIE_NAME, get_current_user
+from api.dependencies import SESSION_COOKIE_NAME, get_authenticated_user
 from api.models import User
-from api.schemas import LoginRequest, MeResponse
-from api.session_store import SESSION_TTL_HOURS, create_session, revoke_session
+from api.schemas import ChangePasswordRequest, LoginRequest, MeResponse
+from api.security import hash_password, password_policy_errors, verify_password
+from api.session_store import (
+    SESSION_TTL_HOURS,
+    create_session,
+    revoke_all_sessions_for_user,
+    revoke_session,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -90,7 +99,7 @@ def login(payload: LoginRequest, request: Request, response: Response, db: DBSes
     client_ip = request.client.host if request.client else "unknown"
     _check_login_rate_limit(client_ip, payload.email.lower().strip())
 
-    user, error = authenticate_user(db, payload.email, payload.password)
+    user, error = authenticate_user(db, payload.email, payload.password, source_ip=client_ip)
     if error is not None:
         # Code et message volontairement identiques pour ACCOUNT_LOCKED et
         # INVALID_CREDENTIALS : les différencier (401 vs 423) permettrait à un
@@ -117,15 +126,70 @@ def logout(
     request: Request,
     response: Response,
     db: DBSession = Depends(get_db),
-    _user: User = Depends(get_current_user),
+    user: User = Depends(get_authenticated_user),
 ):
     token = request.cookies.get(SESSION_COOKIE_NAME)
     if token:
         revoke_session(db, token)
+    audit.record_event(
+        db, audit.LOGOUT, actor_user_id=user.id, target_user_id=user.id,
+        source_ip=request.client.host if request.client else None,
+    )
     response.delete_cookie(SESSION_COOKIE_NAME)
     return {"detail": "déconnecté"}
 
 
 @router.get("/me", response_model=MeResponse)
-def me(user: User = Depends(get_current_user)):
+def me(user: User = Depends(get_authenticated_user)):
+    # get_authenticated_user (et non get_current_user) : le frontend doit
+    # pouvoir lire must_change_password pour rediriger vers le changement.
     return user
+
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    db: DBSession = Depends(get_db),
+    user: User = Depends(get_authenticated_user),
+):
+    """Remplace le mot de passe de l'utilisateur connecté.
+
+    Exige le mot de passe actuel (y compris temporaire) : un cookie de session
+    volé ne suffit pas à s'approprier le compte. Un mauvais mot de passe
+    actuel compte comme un échec de connexion (verrouillage). Toutes les
+    AUTRES sessions du compte sont révoquées ; la session courante reste
+    valide. Aucune réponse ni aucun journal ne contient de mot de passe."""
+    client_ip = request.client.host if request.client else None
+    now = datetime.datetime.utcnow()
+    if user.locked_until is not None and user.locked_until > now:
+        # Compte verrouillé par des échecs répétés : aucune vérification, pour
+        # qu'un cookie volé ne permette pas de poursuivre la recherche du
+        # mot de passe actuel.
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_current_password")
+    if not verify_password(payload.current_password, user.password_hash):
+        register_failed_attempt(db, user, now, client_ip)
+        audit.record_event(
+            db, audit.PASSWORD_CHANGE_FAILED, actor_user_id=user.id, target_user_id=user.id,
+            source_ip=client_ip, detail="bad_current_password",
+        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_current_password")
+
+    errors = password_policy_errors(payload.new_password, email=user.email, display_name=user.display_name)
+    if payload.new_password == payload.current_password:
+        errors.append("Le nouveau mot de passe doit être différent de l'actuel.")
+    if errors:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=" ".join(errors))
+
+    user.password_hash = hash_password(payload.new_password)
+    user.must_change_password = False
+    user.failed_login_count = 0
+    user.locked_until = None
+    db.commit()
+
+    current_token = request.cookies.get(SESSION_COOKIE_NAME)
+    revoke_all_sessions_for_user(db, user.id, except_token=current_token)
+    audit.record_event(
+        db, audit.PASSWORD_CHANGED, actor_user_id=user.id, target_user_id=user.id, source_ip=client_ip,
+    )
+    return {"detail": "Mot de passe modifié"}

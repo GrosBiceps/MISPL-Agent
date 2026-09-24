@@ -1,4 +1,5 @@
-"""Dépendances FastAPI — utilisateur courant, garde admin."""
+"""Dépendances FastAPI — utilisateur courant, garde admin, changement de mot
+de passe obligatoire."""
 
 from __future__ import annotations
 
@@ -10,15 +11,26 @@ from api.models import User
 from api.session_store import validate_session
 
 SESSION_COOKIE_NAME = "session_token"
+PASSWORD_CHANGE_REQUIRED = "password_change_required"
 
 
-def get_current_user(request: Request, db: DBSession = Depends(get_db)) -> User:
+def get_authenticated_user(request: Request, db: DBSession = Depends(get_db)) -> User:
+    """Utilisateur de la session, SANS exiger que le mot de passe temporaire
+    ait été changé. Réservé à /auth/me, /auth/logout et /auth/change-password."""
     token = request.cookies.get(SESSION_COOKIE_NAME)
     if token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Non authentifié")
     user = validate_session(db, token)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session invalide ou expirée")
+    return user
+
+
+def get_current_user(user: User = Depends(get_authenticated_user)) -> User:
+    """Utilisateur de la session, qui doit avoir remplacé son mot de passe
+    temporaire (création ou réinitialisation par un admin) avant tout usage."""
+    if user.must_change_password:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=PASSWORD_CHANGE_REQUIRED)
     return user
 
 

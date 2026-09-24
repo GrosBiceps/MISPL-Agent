@@ -1,0 +1,798 @@
+{
+  "nodes": [
+    {
+      "id": "api",
+      "path": "api/__init__.py",
+      "package": "(racine)",
+      "lines": 0,
+      "role": "Points d'entrée et configuration à la racine du dépôt."
+    },
+    {
+      "id": "api.admin_bootstrap",
+      "path": "api/admin_bootstrap.py",
+      "package": "api",
+      "lines": 36,
+      "role": "Création du tout premier compte admin."
+    },
+    {
+      "id": "api.audit",
+      "path": "api/audit.py",
+      "package": "api",
+      "lines": 61,
+      "role": "Journal d'audit de sécurité (connexions, échecs, actions d'administration)."
+    },
+    {
+      "id": "api.auth",
+      "path": "api/auth.py",
+      "package": "api",
+      "lines": 88,
+      "role": "Authentification par mot de passe avec verrouillage anti-bruteforce."
+    },
+    {
+      "id": "api.db",
+      "path": "api/db.py",
+      "package": "api",
+      "lines": 71,
+      "role": "Connexion SQLite + base déclarative SQLAlchemy."
+    },
+    {
+      "id": "api.dependencies",
+      "path": "api/dependencies.py",
+      "package": "api",
+      "lines": 40,
+      "role": "Dépendances FastAPI — utilisateur courant, garde admin."
+    },
+    {
+      "id": "api.main",
+      "path": "api/main.py",
+      "package": "api",
+      "lines": 175,
+      "role": "Point d'entrée FastAPI — middlewares, montage des routers, lifespan (warm-up RAG, purge)."
+    },
+    {
+      "id": "api.models",
+      "path": "api/models.py",
+      "package": "api",
+      "lines": 129,
+      "role": "Modèles ORM : comptes, sessions, conversations, messages, usage."
+    },
+    {
+      "id": "api.ownership",
+      "path": "api/ownership.py",
+      "package": "api",
+      "lines": 17,
+      "role": "Vérification de propriété d'une conversation (contrôle d'accès)."
+    },
+    {
+      "id": "api.routers",
+      "path": "api/routers/__init__.py",
+      "package": "api",
+      "lines": 0,
+      "role": "Backend FastAPI (routes, auth, base de données)."
+    },
+    {
+      "id": "api.routers.admin",
+      "path": "api/routers/admin.py",
+      "package": "api.routers",
+      "lines": 271,
+      "role": "Routes /admin : gestion des comptes techniciens."
+    },
+    {
+      "id": "api.routers.auth",
+      "path": "api/routers/auth.py",
+      "package": "api.routers",
+      "lines": 195,
+      "role": "Routes /auth : login, logout, utilisateur courant."
+    },
+    {
+      "id": "api.routers.chat",
+      "path": "api/routers/chat.py",
+      "package": "api.routers",
+      "lines": 208,
+      "role": "Route /chat/ask — encapsule ask_mispl() derrière l'authentification."
+    },
+    {
+      "id": "api.routers.conversations",
+      "path": "api/routers/conversations.py",
+      "package": "api.routers",
+      "lines": 53,
+      "role": "Routes /conversations — historique de chat par compte."
+    },
+    {
+      "id": "api.schemas",
+      "path": "api/schemas.py",
+      "package": "api",
+      "lines": 128,
+      "role": "Schémas Pydantic des requêtes/réponses de l'API."
+    },
+    {
+      "id": "api.security",
+      "path": "api/security.py",
+      "package": "api",
+      "lines": 128,
+      "role": "Hachage Argon2id des mots de passe, génération de mot de passe temporaire."
+    },
+    {
+      "id": "api.session_store",
+      "path": "api/session_store.py",
+      "package": "api",
+      "lines": 82,
+      "role": "Cycle de vie des sessions de connexion (création, validation, révocation)."
+    },
+    {
+      "id": "app",
+      "path": "app.py",
+      "package": "(racine)",
+      "lines": 655,
+      "role": "Interface Streamlit historique — toujours en production (start.ps1, Dockerfile)."
+    },
+    {
+      "id": "conftest",
+      "path": "conftest.py",
+      "package": "(racine)",
+      "lines": 12,
+      "role": "Fixtures pytest partagées à la racine du dépôt."
+    },
+    {
+      "id": "scripts.claude_harness._e2e_server",
+      "path": "scripts/claude_harness/_e2e_server.py",
+      "package": "scripts.claude_harness",
+      "lines": 78,
+      "role": "Démarrage du serveur API pour les tests E2E."
+    },
+    {
+      "id": "scripts.claude_harness.common",
+      "path": "scripts/claude_harness/common.py",
+      "package": "scripts.claude_harness",
+      "lines": 276,
+      "role": "Utilitaires partagés du harnais de test."
+    },
+    {
+      "id": "scripts.claude_harness.e2e",
+      "path": "scripts/claude_harness/e2e.py",
+      "package": "scripts.claude_harness",
+      "lines": 493,
+      "role": "Banc de test bout-en-bout (API + agent + LLM factice)."
+    },
+    {
+      "id": "scripts.claude_harness.eval_retrieval_harness",
+      "path": "scripts/claude_harness/eval_retrieval_harness.py",
+      "package": "scripts.claude_harness",
+      "lines": 124,
+      "role": "Harnais d'évaluation du retrieval, intégré au banc E2E."
+    },
+    {
+      "id": "scripts.claude_harness.fake_llm_server",
+      "path": "scripts/claude_harness/fake_llm_server.py",
+      "package": "scripts.claude_harness",
+      "lines": 157,
+      "role": "Serveur LLM factice pour les tests E2E hors ligne."
+    },
+    {
+      "id": "scripts.claude_harness.harness",
+      "path": "scripts/claude_harness/harness.py",
+      "package": "scripts.claude_harness",
+      "lines": 583,
+      "role": "Harnais d'exécution de bancs d'essai automatisés (E2E, régression)."
+    },
+    {
+      "id": "scripts.create_admin",
+      "path": "scripts/create_admin.py",
+      "package": "scripts",
+      "lines": 46,
+      "role": "Script CLI : création du tout premier compte admin."
+    },
+    {
+      "id": "scripts.debug_parser",
+      "path": "scripts/debug_parser.py",
+      "package": "scripts",
+      "lines": 20,
+      "role": "Script de débogage du parseur de fiches Markdown."
+    },
+    {
+      "id": "scripts.eval_chu",
+      "path": "scripts/eval_chu.py",
+      "package": "scripts",
+      "lines": 195,
+      "role": "Évaluation sur un jeu de requêtes type CHU."
+    },
+    {
+      "id": "scripts.eval_chu_v2",
+      "path": "scripts/eval_chu_v2.py",
+      "package": "scripts",
+      "lines": 182,
+      "role": "Évaluation sur un jeu de requêtes type CHU (v2)."
+    },
+    {
+      "id": "scripts.eval_large",
+      "path": "scripts/eval_large.py",
+      "package": "scripts",
+      "lines": 170,
+      "role": "Évaluation sur un jeu de requêtes étendu."
+    },
+    {
+      "id": "scripts.eval_retrieval_kb",
+      "path": "scripts/eval_retrieval_kb.py",
+      "package": "scripts",
+      "lines": 116,
+      "role": "Évaluation hit@k / MRR du retrieval sur la base de connaissances."
+    },
+    {
+      "id": "scripts.eval_technicien",
+      "path": "scripts/eval_technicien.py",
+      "package": "scripts",
+      "lines": 122,
+      "role": "Évaluation spécifique au mode Technicien (sans boucles)."
+    },
+    {
+      "id": "scripts.full_eval_and_report",
+      "path": "scripts/full_eval_and_report.py",
+      "package": "scripts",
+      "lines": 483,
+      "role": "Évaluation complète + génération de rapport HTML/Plotly."
+    },
+    {
+      "id": "scripts.generate_rapport_complet",
+      "path": "scripts/generate_rapport_complet.py",
+      "package": "scripts",
+      "lines": 243,
+      "role": "Génère le rapport d'évaluation complet."
+    },
+    {
+      "id": "scripts.health_check",
+      "path": "scripts/health_check.py",
+      "package": "scripts",
+      "lines": 286,
+      "role": "Vérification de l'état de santé de l'installation."
+    },
+    {
+      "id": "scripts.inspect_html2",
+      "path": "scripts/inspect_html2.py",
+      "package": "scripts",
+      "lines": 50,
+      "role": "Script d'inspection du HTML source (aide GLIMS, hors dépôt public)."
+    },
+    {
+      "id": "scripts.list_free_models",
+      "path": "scripts/list_free_models.py",
+      "package": "scripts",
+      "lines": 18,
+      "role": "Liste les modèles OpenRouter gratuits disponibles."
+    },
+    {
+      "id": "scripts.regen_report",
+      "path": "scripts/regen_report.py",
+      "package": "scripts",
+      "lines": 171,
+      "role": "Régénère un rapport d'évaluation à partir de résultats existants."
+    },
+    {
+      "id": "scripts.set_dsi_password",
+      "path": "scripts/set_dsi_password.py",
+      "package": "scripts",
+      "lines": 52,
+      "role": "Script CLI : configuration du mot de passe DSI partagé (mode Streamlit)."
+    },
+    {
+      "id": "scripts.test_agent",
+      "path": "scripts/test_agent.py",
+      "package": "scripts",
+      "lines": 27,
+      "role": "Scripts d'exploitation en ligne de commande."
+    },
+    {
+      "id": "scripts.test_dense2",
+      "path": "scripts/test_dense2.py",
+      "package": "scripts",
+      "lines": 41,
+      "role": "Scripts d'exploitation en ligne de commande."
+    },
+    {
+      "id": "scripts.test_final",
+      "path": "scripts/test_final.py",
+      "package": "scripts",
+      "lines": 49,
+      "role": "Scripts d'exploitation en ligne de commande."
+    },
+    {
+      "id": "scripts.test_imports",
+      "path": "scripts/test_imports.py",
+      "package": "scripts",
+      "lines": 36,
+      "role": "Scripts d'exploitation en ligne de commande."
+    },
+    {
+      "id": "scripts.test_retriever",
+      "path": "scripts/test_retriever.py",
+      "package": "scripts",
+      "lines": 28,
+      "role": "Scripts d'exploitation en ligne de commande."
+    },
+    {
+      "id": "scripts.verify_reproducibility",
+      "path": "scripts/verify_reproducibility.py",
+      "package": "scripts",
+      "lines": 116,
+      "role": "Vérifie la reproductibilité des réponses de l'agent."
+    },
+    {
+      "id": "setup",
+      "path": "setup.py",
+      "package": "(racine)",
+      "lines": 62,
+      "role": "Métadonnées d'empaquetage du projet."
+    },
+    {
+      "id": "src.agent",
+      "path": "src/agent/__init__.py",
+      "package": "src",
+      "lines": 0,
+      "role": ""
+    },
+    {
+      "id": "src.agent.linter",
+      "path": "src/agent/linter.py",
+      "package": "src.agent",
+      "lines": 509,
+      "role": "Lint et auto-corrections du code MISPL généré."
+    },
+    {
+      "id": "src.agent.mispl_agent",
+      "path": "src/agent/mispl_agent.py",
+      "package": "src.agent",
+      "lines": 800,
+      "role": "Cœur de l'agent RAG : ask_mispl, cache, repli entre modèles, garde-fous."
+    },
+    {
+      "id": "src.agent.prompt_builder",
+      "path": "src/agent/prompt_builder.py",
+      "package": "src.agent",
+      "lines": 821,
+      "role": "Construction du prompt système, garde anti-extraction."
+    },
+    {
+      "id": "src.rag",
+      "path": "src/rag/__init__.py",
+      "package": "src",
+      "lines": 0,
+      "role": ""
+    },
+    {
+      "id": "src.rag.build_vectorstore",
+      "path": "src/rag/build_vectorstore.py",
+      "package": "src.rag",
+      "lines": 67,
+      "role": "Reconstruction de l'index ChromaDB + BM25 à partir des chunks."
+    },
+    {
+      "id": "src.rag.ingest_knowledge_base",
+      "path": "src/rag/ingest_knowledge_base.py",
+      "package": "src.rag",
+      "lines": 682,
+      "role": "Découpage et ingestion de la base de connaissances en chunks."
+    },
+    {
+      "id": "src.rag.reranker",
+      "path": "src/rag/reranker.py",
+      "package": "src.rag",
+      "lines": 87,
+      "role": "Reranking cross-encoder multilingue des candidats après RRF."
+    },
+    {
+      "id": "src.rag.retriever",
+      "path": "src/rag/retriever.py",
+      "package": "src.rag",
+      "lines": 1386,
+      "role": "Retrieval hybride BM25 + dense (ChromaDB), fusion RRF."
+    },
+    {
+      "id": "src.security",
+      "path": "src/security/__init__.py",
+      "package": "src",
+      "lines": 0,
+      "role": ""
+    },
+    {
+      "id": "src.security.access_mode",
+      "path": "src/security/access_mode.py",
+      "package": "src.security",
+      "lines": 240,
+      "role": "Modes Technicien/DSI — restriction et barrière dure sur les boucles."
+    },
+    {
+      "id": "src.security.dlp",
+      "path": "src/security/dlp.py",
+      "package": "src.security",
+      "lines": 102,
+      "role": "Détection de données potentiellement identifiantes (DLP) avant persistance."
+    },
+    {
+      "id": "src.utils.resource_monitor",
+      "path": "src/utils/resource_monitor.py",
+      "package": "src.utils",
+      "lines": 311,
+      "role": "Monitoring CPU/RAM/disque/réseau/GPU, rapport Plotly."
+    },
+    {
+      "id": "tools.check_ip_similarity",
+      "path": "tools/check_ip_similarity.py",
+      "package": "tools",
+      "lines": 379,
+      "role": "Garde-fou de propriété intellectuelle vs. le manuel GLIMS."
+    }
+  ],
+  "edges": [
+    {
+      "source": "api.admin_bootstrap",
+      "target": "api.models"
+    },
+    {
+      "source": "api.admin_bootstrap",
+      "target": "api.security"
+    },
+    {
+      "source": "api.audit",
+      "target": "api.models"
+    },
+    {
+      "source": "api.auth",
+      "target": "api"
+    },
+    {
+      "source": "api.auth",
+      "target": "api.models"
+    },
+    {
+      "source": "api.auth",
+      "target": "api.security"
+    },
+    {
+      "source": "api.db",
+      "target": "api.models"
+    },
+    {
+      "source": "api.dependencies",
+      "target": "api.db"
+    },
+    {
+      "source": "api.dependencies",
+      "target": "api.models"
+    },
+    {
+      "source": "api.dependencies",
+      "target": "api.session_store"
+    },
+    {
+      "source": "api.main",
+      "target": "api.db"
+    },
+    {
+      "source": "api.main",
+      "target": "api.routers"
+    },
+    {
+      "source": "api.main",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "api.main",
+      "target": "src.rag.retriever"
+    },
+    {
+      "source": "api.models",
+      "target": "api.db"
+    },
+    {
+      "source": "api.ownership",
+      "target": "api.models"
+    },
+    {
+      "source": "api.routers.admin",
+      "target": "api"
+    },
+    {
+      "source": "api.routers.admin",
+      "target": "api.db"
+    },
+    {
+      "source": "api.routers.admin",
+      "target": "api.dependencies"
+    },
+    {
+      "source": "api.routers.admin",
+      "target": "api.models"
+    },
+    {
+      "source": "api.routers.admin",
+      "target": "api.schemas"
+    },
+    {
+      "source": "api.routers.admin",
+      "target": "api.security"
+    },
+    {
+      "source": "api.routers.admin",
+      "target": "api.session_store"
+    },
+    {
+      "source": "api.routers.auth",
+      "target": "api"
+    },
+    {
+      "source": "api.routers.auth",
+      "target": "api.auth"
+    },
+    {
+      "source": "api.routers.auth",
+      "target": "api.db"
+    },
+    {
+      "source": "api.routers.auth",
+      "target": "api.dependencies"
+    },
+    {
+      "source": "api.routers.auth",
+      "target": "api.models"
+    },
+    {
+      "source": "api.routers.auth",
+      "target": "api.schemas"
+    },
+    {
+      "source": "api.routers.auth",
+      "target": "api.security"
+    },
+    {
+      "source": "api.routers.auth",
+      "target": "api.session_store"
+    },
+    {
+      "source": "api.routers.chat",
+      "target": "api.db"
+    },
+    {
+      "source": "api.routers.chat",
+      "target": "api.dependencies"
+    },
+    {
+      "source": "api.routers.chat",
+      "target": "api.models"
+    },
+    {
+      "source": "api.routers.chat",
+      "target": "api.ownership"
+    },
+    {
+      "source": "api.routers.chat",
+      "target": "api.schemas"
+    },
+    {
+      "source": "api.routers.chat",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "api.routers.chat",
+      "target": "src.security.access_mode"
+    },
+    {
+      "source": "api.routers.chat",
+      "target": "src.security.dlp"
+    },
+    {
+      "source": "api.routers.conversations",
+      "target": "api.db"
+    },
+    {
+      "source": "api.routers.conversations",
+      "target": "api.dependencies"
+    },
+    {
+      "source": "api.routers.conversations",
+      "target": "api.models"
+    },
+    {
+      "source": "api.routers.conversations",
+      "target": "api.ownership"
+    },
+    {
+      "source": "api.routers.conversations",
+      "target": "api.schemas"
+    },
+    {
+      "source": "api.session_store",
+      "target": "api.models"
+    },
+    {
+      "source": "app",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "app",
+      "target": "src.agent.prompt_builder"
+    },
+    {
+      "source": "app",
+      "target": "src.security.access_mode"
+    },
+    {
+      "source": "app",
+      "target": "src.security.dlp"
+    },
+    {
+      "source": "app",
+      "target": "src.utils.resource_monitor"
+    },
+    {
+      "source": "scripts.claude_harness._e2e_server",
+      "target": "api.db"
+    },
+    {
+      "source": "scripts.claude_harness._e2e_server",
+      "target": "api.main"
+    },
+    {
+      "source": "scripts.claude_harness._e2e_server",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "scripts.claude_harness.e2e",
+      "target": "api.admin_bootstrap"
+    },
+    {
+      "source": "scripts.claude_harness.e2e",
+      "target": "api.db"
+    },
+    {
+      "source": "scripts.claude_harness.e2e",
+      "target": "api.models"
+    },
+    {
+      "source": "scripts.claude_harness.eval_retrieval_harness",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "scripts.claude_harness.eval_retrieval_harness",
+      "target": "src.rag.retriever"
+    },
+    {
+      "source": "scripts.claude_harness.harness",
+      "target": "src.agent.linter"
+    },
+    {
+      "source": "scripts.claude_harness.harness",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "scripts.claude_harness.harness",
+      "target": "src.rag.retriever"
+    },
+    {
+      "source": "scripts.claude_harness.harness",
+      "target": "src.security.access_mode"
+    },
+    {
+      "source": "scripts.create_admin",
+      "target": "api.admin_bootstrap"
+    },
+    {
+      "source": "scripts.create_admin",
+      "target": "api.db"
+    },
+    {
+      "source": "scripts.debug_parser",
+      "target": "src.rag.build_vectorstore"
+    },
+    {
+      "source": "scripts.eval_chu",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "scripts.eval_chu_v2",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "scripts.eval_large",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "scripts.eval_retrieval_kb",
+      "target": "src.rag.retriever"
+    },
+    {
+      "source": "scripts.eval_technicien",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "scripts.full_eval_and_report",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "scripts.health_check",
+      "target": "src.agent.linter"
+    },
+    {
+      "source": "scripts.health_check",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "scripts.health_check",
+      "target": "src.agent.prompt_builder"
+    },
+    {
+      "source": "scripts.health_check",
+      "target": "src.rag.retriever"
+    },
+    {
+      "source": "scripts.inspect_html2",
+      "target": "src.rag.build_vectorstore"
+    },
+    {
+      "source": "scripts.set_dsi_password",
+      "target": "src.security.access_mode"
+    },
+    {
+      "source": "scripts.test_agent",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "scripts.test_dense2",
+      "target": "src.rag.retriever"
+    },
+    {
+      "source": "scripts.test_final",
+      "target": "src.rag.retriever"
+    },
+    {
+      "source": "scripts.test_imports",
+      "target": "src.agent.linter"
+    },
+    {
+      "source": "scripts.test_imports",
+      "target": "src.agent.prompt_builder"
+    },
+    {
+      "source": "scripts.test_imports",
+      "target": "src.rag.retriever"
+    },
+    {
+      "source": "scripts.test_retriever",
+      "target": "src.rag.retriever"
+    },
+    {
+      "source": "scripts.verify_reproducibility",
+      "target": "src.agent.mispl_agent"
+    },
+    {
+      "source": "src.agent.mispl_agent",
+      "target": "src.agent.linter"
+    },
+    {
+      "source": "src.agent.mispl_agent",
+      "target": "src.agent.prompt_builder"
+    },
+    {
+      "source": "src.agent.mispl_agent",
+      "target": "src.rag.retriever"
+    },
+    {
+      "source": "src.agent.mispl_agent",
+      "target": "src.security.access_mode"
+    },
+    {
+      "source": "src.agent.prompt_builder",
+      "target": "src.security.access_mode"
+    },
+    {
+      "source": "src.rag.build_vectorstore",
+      "target": "src.rag.ingest_knowledge_base"
+    },
+    {
+      "source": "src.rag.retriever",
+      "target": "src.rag.reranker"
+    },
+    {
+      "source": "src.security.access_mode",
+      "target": "src.agent.linter"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# Dépendances pour construire la documentation Sphinx (docs/sphinx/)
+# Installer : pip install -r docs/sphinx/requirements-docs.txt
+# Construire : sphinx-build -b html docs/sphinx docs/sphinx/_build/html
+#          ou : cd docs/sphinx && make html   (make.bat html sous Windows)
+
+sphinx>=7.2
+myst-parser>=2.0
+sphinxcontrib-mermaid>=0.9
+furo>=2024.1.29
+sphinx-rtd-theme>=2.0

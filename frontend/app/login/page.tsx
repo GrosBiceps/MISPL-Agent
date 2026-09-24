@@ -27,8 +27,8 @@ function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      await login(email, password);
-      router.push("/chat");
+      const me = await login(email, password);
+      router.push(me.must_change_password ? "/change-password" : "/chat");
     } catch (err) {
       if (err instanceof ApiError && err.status === 423) {
         setError("Compte verrouillé temporairement — trop de tentatives. Réessayez dans 15 minutes.");

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 ROOT = Path(__file__).parent.parent
@@ -40,3 +40,32 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# Colonnes ajoutées après la création initiale du schéma. create_all() ne
+# modifie jamais une table existante : sans cette étape, une base créée avant
+# l'ajout d'une colonne ferait échouer toute requête ORM sur la table.
+# Chaque entrée : (table, colonne, définition SQL avec valeur par défaut).
+_ADDED_COLUMNS = (
+    ("users", "must_change_password", "BOOLEAN NOT NULL DEFAULT 0"),
+)
+
+
+def upgrade_schema(bind=None) -> list[str]:
+    """Crée les tables manquantes puis ajoute les colonnes manquantes
+    (ALTER TABLE ... ADD COLUMN, non destructif, idempotent). Ne supprime ni
+    ne modifie jamais une donnée existante. Retourne la liste des colonnes
+    ajoutées (pour journalisation / tests)."""
+    import api.models  # noqa: F401 — enregistre toutes les tables dans Base.metadata
+
+    bind = bind or engine
+    Base.metadata.create_all(bind=bind)
+    added: list[str] = []
+    with bind.begin() as conn:
+        inspector = inspect(conn)
+        for table, column, ddl in _ADDED_COLUMNS:
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            if column not in existing:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
+                added.append(f"{table}.{column}")
+    return added

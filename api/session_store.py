@@ -68,13 +68,14 @@ def revoke_session(db: DBSession, token: str) -> None:
         db.commit()
 
 
-def revoke_all_sessions_for_user(db: DBSession, user_id: int) -> int:
+def revoke_all_sessions_for_user(db: DBSession, user_id: int, except_token: str | None = None) -> int:
+    """Révoque toutes les sessions actives du compte, sauf `except_token`
+    (session courante conservée après un changement de mot de passe)."""
     now = datetime.datetime.utcnow()
-    rows = (
-        db.query(UserSession)
-        .filter(UserSession.user_id == user_id, UserSession.revoked_at.is_(None))
-        .all()
-    )
+    query = db.query(UserSession).filter(UserSession.user_id == user_id, UserSession.revoked_at.is_(None))
+    if except_token is not None:
+        query = query.filter(UserSession.token != except_token)
+    rows = query.all()
     for row in rows:
         row.revoked_at = now
     db.commit()

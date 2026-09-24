@@ -9,6 +9,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -18,7 +20,7 @@ try:
 except ImportError:
     pass
 
-from api.db import Base, engine
+from api.db import upgrade_schema
 from api.routers import admin, auth, chat, conversations
 
 
@@ -58,7 +60,9 @@ async def lifespan(app: FastAPI):
     # l'import du module. Les tests ne passent jamais par ici : ils créent
     # leurs propres tables sur un moteur SQLite en mémoire séparé (cf.
     # tests/api/conftest.py) et n'instancient/démarrent jamais ce serveur.
-    Base.metadata.create_all(bind=engine)
+    added = upgrade_schema()
+    if added:
+        logger.info(f"Schéma de base mis à jour (colonnes ajoutées : {added})")
     from src.agent.mispl_agent import purge_old_cache, purge_old_sessions
     purge_old_sessions()
     purge_old_cache()
@@ -69,6 +73,19 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="MISPL Agent API", lifespan=lifespan)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_without_input(request: Request, exc: RequestValidationError):
+    """Réponse 422 SANS la valeur soumise. Le gestionnaire par défaut de
+    FastAPI renvoie le champ `input` de chaque erreur : pour /auth/login ou
+    /auth/change-password, il recopierait un mot de passe (trop long, par
+    exemple) dans la réponse, donc dans les journaux d'un éventuel proxy."""
+    errors = [
+        {k: v for k, v in err.items() if k not in ("input", "ctx", "url")}
+        for err in exc.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
 # Taille maximale acceptée pour le corps d'une requête HTTP. Le payload JSON
 # de /chat/ask (question + lab_context + conversation_history, tous bornés
@@ -125,12 +142,25 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # Réponses d'API jamais mises en cache (navigateur, proxy) : certaines
+    # portent un mot de passe temporaire (admin) ou des conversations.
+    response.headers["Cache-Control"] = "no-store"
     if request.url.path not in _DOCS_PATHS:
         response.headers["Content-Security-Policy"] = "default-src 'none'"
     return response
 
 
-_frontend_origins = os.environ.get("MISPL_FRONTEND_ORIGIN", "http://localhost:3000").split(",")
+def parse_frontend_origins(raw: str) -> list[str]:
+    """Origines CORS autorisées. Le joker « * » est refusé : combiné à
+    allow_credentials=True, Starlette renverrait l'origine de l'appelant,
+    quelle qu'elle soit, avec les cookies de session."""
+    origins = [o.strip() for o in raw.split(",") if o.strip()]
+    if any(o == "*" for o in origins):
+        raise ValueError("MISPL_FRONTEND_ORIGIN ne peut pas contenir « * » (cookies de session)")
+    return origins
+
+
+_frontend_origins = parse_frontend_origins(os.environ.get("MISPL_FRONTEND_ORIGIN", "http://localhost:3000"))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_frontend_origins,

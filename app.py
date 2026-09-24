@@ -12,7 +12,9 @@ sys.path.insert(0, str(ROOT))
 from src.security.dlp import dlp_check
 from src.security.access_mode import (
     MODE_DSI, MODE_TECHNICIEN, DEFAULT_MODE, verify_dsi_password,
+    dsi_password_needs_upgrade, LEGACY_DSI_HASH_WARNING,
 )
+from src.security.openrouter_key import effective_api_key, server_key_configured
 
 # ── Avatars — SVG inline (data URI), aucun appel réseau tiers (ex-DiceBear) ───
 from urllib.parse import quote as _urlquote
@@ -308,6 +310,10 @@ with st.expander("Parametres", expanded=False):
     )
     st.markdown(mode_pill, unsafe_allow_html=True)
     if st.session_state.access_mode == MODE_DSI:
+        if dsi_password_needs_upgrade():
+            # Ancien hash PBKDF2 (ou Argon2 trop faible) : l'accès reste
+            # possible, mais la DSI est invitée à regénérer le hash.
+            st.warning(LEGACY_DSI_HASH_WARNING)
         if st.button("Repasser en mode Technicien"):
             st.session_state.access_mode = MODE_TECHNICIEN
             st.rerun()
@@ -323,15 +329,19 @@ with st.expander("Parametres", expanded=False):
 
     c1, c2 = st.columns(2)
     with c1:
-        # Toujours recharger depuis .env si session vide (fix après restart Streamlit)
-        if "api_key" not in st.session_state or not st.session_state.api_key:
-            from dotenv import load_dotenv
-            load_dotenv(ROOT / ".env")
-            st.session_state.api_key = os.environ.get("OPENROUTER_API_KEY", "")
-        key_in = st.text_input("Cle API OpenRouter", value=st.session_state.api_key,
+        # La clé du serveur (.env) n'est JAMAIS recopiée dans le widget : la
+        # valeur d'un st.text_input, même type="password", est transmise au
+        # navigateur, où n'importe quel visiteur pourrait la lire. Le champ
+        # ne sert qu'à saisir une clé personnelle ; vide, l'agent utilise la
+        # clé du serveur côté serveur uniquement (cf. src/security/openrouter_key.py).
+        if "api_key" not in st.session_state:
+            st.session_state.api_key = ""
+        key_in = st.text_input("Cle API OpenRouter (optionnelle)", value="",
                                type="password", placeholder="sk-or-v1-...")
         if key_in.strip():
             st.session_state.api_key = key_in.strip()
+        if server_key_configured() and not st.session_state.api_key:
+            st.caption("Clé du serveur configurée (non affichée).")
     with c2:
         model_labels = list(FREE_MODELS.keys()) if FREE_MODELS else ["nemotron-super-120b"]
         model_ids    = list(FREE_MODELS.values()) if FREE_MODELS else ["nvidia/nemotron-3-super-120b-a12b:free"]
@@ -365,7 +375,7 @@ with st.expander("Parametres", expanded=False):
     else:
         pills.append('<span class="pill pill-err">Base absente</span>')
     pills.append(f'<span class="pill {"pill-ok" if _ok else "pill-err"}">{"Agent OK" if _ok else "Erreur"}</span>')
-    api_ok = bool(st.session_state.get("api_key", ""))
+    api_ok = bool(effective_api_key(st.session_state.get("api_key", "")))
     pills.append(f'<span class="pill {"pill-ok" if api_ok else "pill-warn"}">{"API OK" if api_ok else "API manquante"}</span>')
     st.markdown(" ".join(pills), unsafe_allow_html=True)
 
@@ -527,7 +537,7 @@ if question:
     if not _ok:
         st.error("Agent non charge. Voir Parametres > Erreur import agent.")
         st.stop()
-    if not st.session_state.get("api_key", ""):
+    if not effective_api_key(st.session_state.get("api_key", "")):
         st.error("OPENROUTER_API_KEY manquante — ouvrir Parametres et entrer la cle.")
         st.stop()
     if not _is_vs_ready():

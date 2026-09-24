@@ -85,12 +85,5 @@ Un audit technique comparatif (rapport : `docs/audit_PI_V2_vs_GLIMS_2026-09-23/R
 - des descriptions reprises mot pour mot du guide de référence, dans `complete_function_data.json` et dans huit fichiers « complément » (`*_extended.md` des tables Person, Site et Correspondent, et `*_missing.md`) ;
 - des exemples repris de l'éditeur dans `math_functions.md` et `string_functions.md`, ainsi que quelques valeurs d'exemple isolées.
 
-Corrections appliquées :
-- `complete_function_data.json` et les huit fichiers « complément » sont régénérés **uniquement à partir de fiches de faits** (conservées dans le dossier d'audit, `faits/fiches_faits.json`), par un script qui ne lit ni le manuel ni les anciennes descriptions ;
-- les exemples repris ont été remplacés par des exemples originaux ;
-- le contrôle `tools/check_ip_similarity.py` doit être relancé avant chaque ajout à la base.
-
-Ce dispositif réduit le risque de reprise de l'expression du manuel. Il ne constitue pas un avis juridique ; une validation par un avocat en propriété intellectuelle est recommandée.
-
 **Responsable de la rédaction** : Florian Magne
 **Date** : 2026-04-06

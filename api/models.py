@@ -1,10 +1,11 @@
-"""Modèles ORM : comptes utilisateurs et sessions de connexion."""
+"""Modèles ORM : comptes utilisateurs, sessions de connexion, conversations,
+consommation et journal d'audit de sécurité."""
 
 from __future__ import annotations
 
 import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.db import Base
@@ -23,6 +24,12 @@ class User(Base):
     platform_role: Mapped[str] = mapped_column(String, nullable=False)
     can_use_dsi_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Vrai tant que le compte n'a qu'un mot de passe temporaire (création ou
+    # réinitialisation par un admin) : seules /auth/me, /auth/logout et
+    # /auth/change-password restent accessibles (cf. api/dependencies.py).
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("0")
+    )
     failed_login_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     locked_until: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
@@ -97,3 +104,26 @@ class UsageDaily(Base):
     prompt_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     completion_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     request_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class AuditEvent(Base):
+    """Journal d'audit de sécurité (imputabilité) : connexions, échecs,
+    verrouillages, changements de mot de passe, actions d'administration.
+
+    Ne contient JAMAIS de mot de passe, de hachage, de jeton de session ni de
+    contenu de conversation : uniquement l'événement, les identifiants de
+    compte concernés, l'adresse IP source et un détail court non sensible.
+    Pas de clé étrangère : l'historique doit survivre à la suppression d'un
+    compte."""
+
+    __tablename__ = "audit_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.datetime.utcnow, index=True
+    )
+    event: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    actor_user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    target_user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_ip: Mapped[str | None] = mapped_column(String, nullable=True)
+    detail: Mapped[str | None] = mapped_column(String, nullable=True)

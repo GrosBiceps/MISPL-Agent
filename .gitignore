@@ -51,6 +51,8 @@ outputs/monitoring/*.json
 # ── Base de données locale (comptes, sessions) — jamais dans le repo ────────
 data/*.db
 data/*.db-journal
+data/*.db-wal
+data/*.db-shm
 
 # ── Worktrees Claude Code (isolation de branches) ────────────────────────────
 .claude/worktrees/
@@ -63,3 +65,13 @@ docs/audit_PI_*/
 
 # Notes internes DSI / juridiques : jamais versionnées (dépôt public)
 DSI/
+
+# ── Documentation Sphinx générée — reconstruire via sphinx-build ────────────
+docs/sphinx/_build/
+# Miroir de sources copiées par conf.py au moment du build (docs/specifications/,
+# docs/architecture/, docs/guides/, docs/base_de_donnees/, docs/cartographie/,
+# docs/securite/) — les fichiers d'origine restent la source de vérité versionnée.
+docs/sphinx/_src_*/
+
+# Sorties locales (banc de test, sessions, évaluations)
+outputs/

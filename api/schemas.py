@@ -13,12 +13,18 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=256)
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=256)
+    new_password: str = Field(min_length=1, max_length=256)
+
+
 class MeResponse(BaseModel):
     id: int
     email: str
     display_name: str
     platform_role: str
     can_use_dsi_mode: bool
+    must_change_password: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -30,6 +36,7 @@ class UserOut(BaseModel):
     platform_role: str
     can_use_dsi_mode: bool
     is_active: bool
+    must_change_password: bool = False
 
     model_config = {"from_attributes": True}
 

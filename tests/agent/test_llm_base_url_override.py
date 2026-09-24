@@ -50,3 +50,15 @@ class TestLlmBaseUrlOverride:
         module = _load_isolated_agent_module()
         client = module._get_client("sk-test-local")
         assert str(client.base_url).rstrip("/") == DEFAULT_URL
+
+    def test_client_refuses_unlisted_third_party_host(self, monkeypatch):
+        """Audit sécurité 2026-09-24 : une surcharge vers un hôte tiers non
+        autorisé fait échouer la création du client (fail-closed), au lieu d'y
+        envoyer les questions et la clé API."""
+        import pytest
+
+        monkeypatch.setenv("MISPL_LLM_BASE_URL", "https://llm.exemple-tiers.com/v1")
+        monkeypatch.delenv("MISPL_LLM_ALLOWED_HOSTS", raising=False)
+        module = _load_isolated_agent_module()
+        with pytest.raises(ValueError):
+            module._get_client("sk-test-local")

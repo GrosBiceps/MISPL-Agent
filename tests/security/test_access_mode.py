@@ -1,5 +1,8 @@
 """Tests du module d'accès DSI/Technicien — mot de passe, prompt, barrière dure."""
 
+import hashlib
+import logging
+import os
 import sys
 from pathlib import Path
 
@@ -11,33 +14,45 @@ from src.security.access_mode import (
     REFUSAL_MESSAGE,
     access_mode_for_user,
     build_restrictions_prompt,
+    dsi_password_format,
+    dsi_password_needs_upgrade,
     enforce_access_mode,
-    generate_salt,
-    hash_password,
+    hash_dsi_password,
     verify_dsi_password,
 )
 
 
 class TestPasswordHashing:
-    def test_correct_password_verifies(self, monkeypatch):
-        salt = generate_salt()
-        digest = hash_password("un-bon-mdp-dsi", salt)
+    """Mot de passe DSI : Argon2id depuis le 2026-09-24, ancien PBKDF2 encore
+    vérifié (compatibilité) avec invitation à regénérer."""
+
+    def _set_argon2(self, monkeypatch, password="un-bon-mdp-dsi"):
+        monkeypatch.delenv("MISPL_DSI_PASSWORD_SALT", raising=False)
+        monkeypatch.setenv("MISPL_DSI_PASSWORD_HASH", hash_dsi_password(password))
+
+    def _set_legacy(self, monkeypatch, password="un-bon-mdp-dsi"):
+        salt = os.urandom(16).hex()
+        digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt), 200_000).hex()
         monkeypatch.setenv("MISPL_DSI_PASSWORD_SALT", salt)
         monkeypatch.setenv("MISPL_DSI_PASSWORD_HASH", digest)
+
+    def test_new_hash_is_argon2id_with_shared_parameters(self):
+        h = hash_dsi_password("un-bon-mdp-dsi")
+        assert h.startswith("$argon2id$v=19$m=65536,t=3,p=4$")
+        assert "un-bon-mdp-dsi" not in h
+
+    def test_correct_password_verifies(self, monkeypatch):
+        self._set_argon2(monkeypatch)
         assert verify_dsi_password("un-bon-mdp-dsi") is True
+        assert dsi_password_format() == "argon2id"
+        assert dsi_password_needs_upgrade() is False
 
     def test_wrong_password_rejected(self, monkeypatch):
-        salt = generate_salt()
-        digest = hash_password("un-bon-mdp-dsi", salt)
-        monkeypatch.setenv("MISPL_DSI_PASSWORD_SALT", salt)
-        monkeypatch.setenv("MISPL_DSI_PASSWORD_HASH", digest)
+        self._set_argon2(monkeypatch)
         assert verify_dsi_password("mauvais-mdp") is False
 
     def test_empty_password_rejected(self, monkeypatch):
-        salt = generate_salt()
-        digest = hash_password("un-bon-mdp-dsi", salt)
-        monkeypatch.setenv("MISPL_DSI_PASSWORD_SALT", salt)
-        monkeypatch.setenv("MISPL_DSI_PASSWORD_HASH", digest)
+        self._set_argon2(monkeypatch)
         assert verify_dsi_password("") is False
 
     def test_missing_env_fails_safe_to_technicien(self, monkeypatch):
@@ -45,11 +60,81 @@ class TestPasswordHashing:
         monkeypatch.delenv("MISPL_DSI_PASSWORD_SALT", raising=False)
         monkeypatch.delenv("MISPL_DSI_PASSWORD_HASH", raising=False)
         assert verify_dsi_password("nimporte-quoi") is False
+        assert dsi_password_format() == "absent"
 
-    def test_different_salts_give_different_hashes(self):
-        h1 = hash_password("same-password", generate_salt())
-        h2 = hash_password("same-password", generate_salt())
-        assert h1 != h2
+    def test_corrupted_argon2_hash_fails_safe(self, monkeypatch):
+        monkeypatch.setenv("MISPL_DSI_PASSWORD_HASH", "$argon2id$v=19$m=65536,t=3,p=4$abc$def")
+        assert verify_dsi_password("un-bon-mdp-dsi") is False
+
+    def test_same_password_gives_different_hashes(self):
+        assert hash_dsi_password("same-password") != hash_dsi_password("same-password")
+
+    def test_legacy_pbkdf2_still_verifies_with_upgrade_warning(self, monkeypatch, caplog):
+        self._set_legacy(monkeypatch)
+        with caplog.at_level(logging.WARNING):
+            assert verify_dsi_password("un-bon-mdp-dsi") is True
+        assert dsi_password_format() == "pbkdf2-legacy"
+        assert dsi_password_needs_upgrade() is True
+        assert "set_dsi_password.py" in caplog.text
+        assert "un-bon-mdp-dsi" not in caplog.text
+
+    def test_legacy_pbkdf2_wrong_password_rejected(self, monkeypatch):
+        self._set_legacy(monkeypatch)
+        assert verify_dsi_password("mauvais-mdp") is False
+
+    def test_legacy_without_salt_fails_safe(self, monkeypatch):
+        self._set_legacy(monkeypatch)
+        monkeypatch.delenv("MISPL_DSI_PASSWORD_SALT")
+        assert verify_dsi_password("un-bon-mdp-dsi") is False
+
+    def test_weak_argon2_hash_flagged_for_upgrade(self, monkeypatch):
+        from argon2 import PasswordHasher
+        monkeypatch.delenv("MISPL_DSI_PASSWORD_SALT", raising=False)
+        monkeypatch.setenv(
+            "MISPL_DSI_PASSWORD_HASH",
+            PasswordHasher(time_cost=1, memory_cost=8192, parallelism=1).hash("un-bon-mdp-dsi"),
+        )
+        assert verify_dsi_password("un-bon-mdp-dsi") is True
+        assert dsi_password_needs_upgrade() is True
+
+
+class TestSetDsiPasswordScript:
+    def _load(self):
+        import importlib.util
+        path = Path(__file__).parent.parent.parent / "scripts" / "set_dsi_password.py"
+        spec = importlib.util.spec_from_file_location("set_dsi_password", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_replaces_legacy_lines_and_keeps_others(self):
+        script = self._load()
+        lines = [
+            "OPENROUTER_API_KEY=cle-factice\n",
+            "MISPL_DSI_PASSWORD_SALT=00ff\n",
+            "MISPL_DSI_PASSWORD_HASH=abcdef\n",
+            "PYTHONUTF8=1",
+        ]
+        h = hash_dsi_password("un-bon-mdp-dsi")
+        text = "".join(script.update_env_lines(lines, h))
+        assert "MISPL_DSI_PASSWORD_SALT" not in text
+        assert f"MISPL_DSI_PASSWORD_HASH='{h}'" in text
+        assert "OPENROUTER_API_KEY=cle-factice" in text and "PYTHONUTF8=1" in text
+        assert "un-bon-mdp-dsi" not in text
+
+    def test_written_value_roundtrips_through_dotenv(self, tmp_path, monkeypatch):
+        """Le hash contient des « $ » : entre apostrophes, python-dotenv ne
+        doit pas les interpréter, et la vérification doit réussir après relecture."""
+        from dotenv import dotenv_values
+        script = self._load()
+        h = hash_dsi_password("un-bon-mdp-dsi")
+        env_file = tmp_path / ".env"
+        env_file.write_text("".join(script.update_env_lines([], h)), encoding="utf-8")
+        values = dotenv_values(env_file)
+        assert values["MISPL_DSI_PASSWORD_HASH"] == h
+        monkeypatch.delenv("MISPL_DSI_PASSWORD_SALT", raising=False)
+        monkeypatch.setenv("MISPL_DSI_PASSWORD_HASH", values["MISPL_DSI_PASSWORD_HASH"])
+        assert verify_dsi_password("un-bon-mdp-dsi") is True
 
 
 class TestRestrictionsPrompt:

@@ -51,12 +51,23 @@ export interface MeResponse {
   display_name: string;
   platform_role: string;
   can_use_dsi_mode: boolean;
+  /** Vrai tant que le mot de passe temporaire (création / réinitialisation
+   * par un admin) n'a pas été remplacé : l'API refuse alors tout sauf
+   * /auth/me, /auth/logout et /auth/change-password. */
+  must_change_password: boolean;
 }
 
 export function login(email: string, password: string): Promise<MeResponse> {
   return request<MeResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
+  });
+}
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<{ detail: string }> {
+  return request("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   });
 }
 

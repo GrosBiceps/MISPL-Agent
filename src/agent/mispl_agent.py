@@ -26,13 +26,16 @@ from src.rag.retriever import get_retriever, RETRIEVAL_PIPELINE_VERSION
 from src.agent.prompt_builder import build_system_prompt, SKILL_PROFILES
 from src.agent.linter import lint_response, autofix_mispl, Severity
 from src.security.access_mode import enforce_access_mode, MODE_DSI, MODE_TECHNICIEN
+from src.security.llm_endpoint import DEFAULT_LLM_BASE_URL, validate_llm_base_url
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-# Surcharge MISPL_LLM_BASE_URL : réservée aux tests locaux (banc
-# scripts/claude_harness/, serveur OpenAI-compatible factice sur 127.0.0.1).
-# Non définie → OpenRouter, comportement par défaut inchangé.
-OPENROUTER_BASE_URL = os.environ.get("MISPL_LLM_BASE_URL", "https://openrouter.ai/api/v1")
+# Surcharge MISPL_LLM_BASE_URL : tests locaux (banc scripts/claude_harness/,
+# serveur OpenAI-compatible factice sur 127.0.0.1) ou LLM local/interne.
+# Non définie → OpenRouter, comportement par défaut inchangé. La valeur est
+# contrôlée à la création du client (src/security/llm_endpoint.py) : un hôte
+# non autorisé fait échouer l'appel au lieu d'y envoyer les questions.
+OPENROUTER_BASE_URL = os.environ.get("MISPL_LLM_BASE_URL", DEFAULT_LLM_BASE_URL)
 
 # Modèles gratuits sur OpenRouter — mis à jour 2026-06
 # Vérifier la liste actuelle : python scripts/list_free_models.py
@@ -447,7 +450,7 @@ def _get_client(api_key: str | None = None) -> OpenAI:
         )
     return OpenAI(
         api_key=api_key,
-        base_url=OPENROUTER_BASE_URL,
+        base_url=validate_llm_base_url(OPENROUTER_BASE_URL),
         default_headers={
             "HTTP-Referer": "https://mispl-agent.lab",  # obligatoire OpenRouter
             "X-Title": "MISPL Agent GLIMS",

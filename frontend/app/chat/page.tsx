@@ -116,7 +116,13 @@ export default function ChatPage() {
 
   useEffect(() => {
     getMe()
-      .then(setUser)
+      .then((m) => {
+        if (m.must_change_password) {
+          router.push("/change-password");
+          return;
+        }
+        setUser(m);
+      })
       .catch(() => router.push("/login?expired=1"));
   }, [router]);
 

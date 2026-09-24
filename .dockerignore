@@ -1,0 +1,42 @@
+# Contexte de build Docker : rien de secret, de personnel ou de propriétaire
+# ne doit entrer dans l'image (le Dockerfile fait « COPY . . »).
+# Vérifié par tests/security/test_repo_hygiene.py.
+
+# Secrets et configuration locale
+.env
+.env.*
+!.env.example
+frontend/.env*
+!frontend/.env.local.example
+
+# Base de données (comptes, hachages, sessions, conversations) et journaux
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite3
+
+# Sorties générées : sessions (questions/réponses), cache, rapports
+outputs/
+
+# Notes internes DSI / juridiques et audit PI (texte du manuel GLIMS)
+DSI/
+docs/audit_PI_*/
+french/
+ManuelOpenSource/
+
+# Historique git, outils locaux, environnements
+.git/
+# .claude/skills et .claude/rules sont lus par le prompt système : conservés.
+.claude/worktrees/
+.claude/agents/
+.claude/settings*.json
+.claude/scheduled_tasks.lock
+.superpowers/
+.venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+frontend/node_modules/
+frontend/.next/

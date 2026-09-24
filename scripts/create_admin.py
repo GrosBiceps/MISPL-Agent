@@ -12,18 +12,18 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from api.admin_bootstrap import create_admin_account  # noqa: E402
-from api.db import Base, SessionLocal, engine  # noqa: E402
+from api.db import SessionLocal, upgrade_schema  # noqa: E402
 
 
 def main() -> None:
     # Sur un déploiement vierge, le schéma n'existe pas encore tant que le
     # serveur (lifespan de api/main.py) n'a pas tourné au moins une fois.
-    # Idempotent et sûr à rappeler.
-    Base.metadata.create_all(bind=engine)
+    # Idempotent et sûr à rappeler (ajoute aussi les colonnes manquantes).
+    upgrade_schema()
 
     email = input("Email admin : ").strip()
     display_name = input("Nom affiché : ").strip()
-    password = getpass.getpass("Mot de passe (8 caractères min.) : ")
+    password = getpass.getpass("Mot de passe (12 caractères min. et 3 familles, ou phrase de passe de 16 caractères min.) : ")
     confirm = getpass.getpass("Confirmer : ")
 
     if password != confirm:

@@ -133,6 +133,10 @@ export default function AdminPage() {
   useEffect(() => {
     getMe()
       .then((m) => {
+        if (m.must_change_password) {
+          router.push("/change-password");
+          return;
+        }
         if (m.platform_role !== "admin") {
           router.push("/chat");
           return;

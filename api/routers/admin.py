@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DBSession
 
+from api import audit
 from api.db import get_db
 from api.dependencies import require_admin
 from api.models import UsageDaily, User
@@ -26,6 +27,12 @@ from api.security import generate_temp_password, hash_password
 from api.session_store import revoke_all_sessions_for_user
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def _client_ip(request: Request | None) -> str | None:
+    # request optionnel (dernier paramètre des routes, défaut None) : les
+    # routes restent appelables directement en test sans objet Request.
+    return request.client.host if request is not None and request.client else None
 
 
 def _count_active_admins(db: DBSession) -> int:
@@ -47,7 +54,8 @@ def _get_user_or_404(db: DBSession, user_id: int) -> User:
 def create_user(
     payload: CreateUserRequest,
     db: DBSession = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
+    request: Request = None,
 ):
     if payload.platform_role not in ("admin", "user"):
         raise HTTPException(status_code=422, detail="platform_role doit être 'admin' ou 'user'")
@@ -64,6 +72,9 @@ def create_user(
         platform_role=payload.platform_role,
         can_use_dsi_mode=payload.can_use_dsi_mode,
         is_active=True,
+        # Mot de passe temporaire connu de l'admin : changement imposé à la
+        # première connexion (cf. api/dependencies.py::get_current_user).
+        must_change_password=True,
     )
     db.add(user)
     try:
@@ -72,7 +83,14 @@ def create_user(
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email déjà utilisé")
     db.refresh(user)
+    audit.record_event(
+        db, audit.ADMIN_USER_CREATED, actor_user_id=admin.id, target_user_id=user.id,
+        source_ip=_client_ip(request), detail=f"role={user.platform_role} dsi={user.can_use_dsi_mode}",
+    )
 
+    # Le mot de passe temporaire n'existe en clair que dans cette réponse
+    # (jamais en base, jamais journalisé) ; la réponse porte Cache-Control:
+    # no-store (cf. api/main.py::add_security_headers).
     return CreateUserResponse(
         **UserOut.model_validate(user).model_dump(), temporary_password=temp_password
     )
@@ -126,7 +144,8 @@ def update_user(
     user_id: int,
     payload: UpdateUserRequest,
     db: DBSession = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
+    request: Request = None,
 ):
     user = _get_user_or_404(db, user_id)
 
@@ -173,29 +192,47 @@ def update_user(
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email déjà utilisé")
     db.refresh(user)
+    changed = sorted(payload.model_dump(exclude_none=True).keys())
+    audit.record_event(
+        db, audit.ADMIN_USER_UPDATED, actor_user_id=admin.id, target_user_id=user.id,
+        source_ip=_client_ip(request), detail="fields=" + ",".join(changed),
+    )
     return user
 
 
 @router.post("/users/{user_id}/reset-password", response_model=ResetPasswordResponse)
 def reset_password(
-    user_id: int, db: DBSession = Depends(get_db), _admin: User = Depends(require_admin)
+    user_id: int, db: DBSession = Depends(get_db), admin: User = Depends(require_admin),
+    request: Request = None,
 ):
+    """Réinitialisation par un admin : seul recours en cas d'oubli, puisque le
+    hachage Argon2id est irréversible (aucune récupération possible)."""
     user = _get_user_or_404(db, user_id)
     temp_password = generate_temp_password()
     user.password_hash = hash_password(temp_password)
+    user.must_change_password = True
     user.failed_login_count = 0
     user.locked_until = None
     db.commit()
     revoke_all_sessions_for_user(db, user_id)
+    audit.record_event(
+        db, audit.ADMIN_PASSWORD_RESET, actor_user_id=admin.id, target_user_id=user_id,
+        source_ip=_client_ip(request),
+    )
     return ResetPasswordResponse(temporary_password=temp_password)
 
 
 @router.post("/users/{user_id}/revoke-sessions", response_model=RevokeSessionsResponse)
 def revoke_sessions(
-    user_id: int, db: DBSession = Depends(get_db), _admin: User = Depends(require_admin)
+    user_id: int, db: DBSession = Depends(get_db), admin: User = Depends(require_admin),
+    request: Request = None,
 ):
     _get_user_or_404(db, user_id)
     count = revoke_all_sessions_for_user(db, user_id)
+    audit.record_event(
+        db, audit.ADMIN_SESSIONS_REVOKED, actor_user_id=admin.id, target_user_id=user_id,
+        source_ip=_client_ip(request), detail=f"count={count}",
+    )
     return RevokeSessionsResponse(revoked=count)
 
 

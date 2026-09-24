@@ -4,6 +4,27 @@ Ce fichier recense les changements notables du projet MISPL Agent. Les dates son
 
 ## 2026-09-24
 
+### Sécurité : hachage des mots de passe et audit (lots A et B)
+- **Mots de passe (Argon2id conservé, décision du 2026-09-24)** :
+  - paramètres figés dans `src/security/password_hashing.py` : m = 64 Mio, t = 3, p = 4, sel de 16 octets, empreinte de 32 octets (RFC 9106) ;
+  - re-hachage transparent à la connexion quand les paramètres changent ;
+  - politique de mot de passe : 12 caractères et 3 familles, ou phrase de passe de 16 caractères ;
+  - le calcul Argon2 est aussi effectué pour un compte verrouillé, ce qui supprime un oracle temporel.
+- **Mot de passe temporaire à changer** : colonne `users.must_change_password` (migration non destructive `upgrade_schema()` au démarrage). Nouvelle route `POST /auth/change-password` ; les autres routes renvoient `403 password_change_required` tant que le mot de passe n'a pas été changé. Nouvelle page frontend `/change-password`.
+- **Mot de passe DSI (Streamlit)** : passage en Argon2id. L'ancien format PBKDF2 reste accepté, avec un avertissement invitant à relancer `scripts/set_dsi_password.py`.
+- **Journal d'audit** : nouvelle table `audit_events` pour les connexions, échecs, verrouillages, changements et réinitialisations de mot de passe, et actions d'administration. Elle ne contient aucun secret.
+- **Fuites** :
+  - les erreurs 422 ne renvoient plus la valeur soumise ;
+  - les réponses de l'API portent `Cache-Control: no-store` ;
+  - Streamlit n'envoie plus la clé OpenRouter du serveur au navigateur.
+- **Correctifs d'audit** :
+  - Next.js 16.3.1 → 16.3.6 (RCE critique) et mise à jour de `sharp` ;
+  - nouveau `.dockerignore` (l'image embarquait `.env`, la base, `DSI/` et le texte du manuel) ;
+  - `MISPL_LLM_BASE_URL` limitée à OpenRouter, à la boucle locale ou aux hôtes listés dans `MISPL_LLM_ALLOWED_HOSTS` ;
+  - CORS `*` refusé ;
+  - `.gitignore` couvre les fichiers `-wal` et `-shm` de SQLite.
+- Documents : `docs/securite/NOTE_RSSI_HACHAGE_MOTS_DE_PASSE.md` et `docs/securite/AUDIT_SECURITE_2026-09-24.md` (constats restant à arbitrer et plan d'actions).
+
 ### Base de connaissances : remédiation propriété intellectuelle
 - `rag_knowledge_base/` a été régénérée à partir de fiches de faits bruts : signatures, paramètres, retours, comportements observables. Elle ne reprend plus l'expression du manuel éditeur GLIMS.
 - `complete_function_data.json` et les fichiers `*_extended.md` / `*_missing.md` ont été réécrits par programme à partir de ces fiches.
