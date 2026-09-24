@@ -12,172 +12,244 @@ anti_hallucination: []
 tags: [SpecificSite, ssit, gp_Site, gsit, GetStay, GetEncounter, GetProvision, GetLogEntry, GetDiagnosisCode, GetDepartment]
 ---
 
+
 # Fonctions SSIT + GSIT — complément exhaustif
 
+> Fiches régénérées à partir de faits bruts (signature, retour, effet observable, contraintes), sans reprise de la rédaction du manuel. Méthode : voir `SOURCES.md`.
+
+---
+
 ## AllowedAbrechnungsGebietValues (ssit)
-**Signature** : `String Allowed Abrechnungs Gebiet Values(String Scheinuntergruppe,String OKVKennung,String Quarter)`  
-Cette fonction est réservée aux clients allemands.  
+**Signature** : `String AllowedAbrechnungsGebietValues(String Scheinuntergruppe, String OKVKennung, String Quarter)`  
+- **Retour** : `String`
+- **Paramètres** : 3 — `Scheinuntergruppe` (String), `OKVKennung` (String), `Quarter` (String)
+- **Effet** : valeurs autorisées d'AbrechnungsGebiet (KV, Scheinuntergruppe, trimestre)
+- **Portée** : Allemagne (DE) uniquement
 
 ---
 
 ## AllowedKTABValues (ssit)
-**Signature** : `String Allowed KTABValues(String OKVKennung,String Quarter)`  
-Cette fonction est réservée aux clients allemands.  
+**Signature** : `String AllowedKTABValues(String OKVKennung, String Quarter)`  
+- **Retour** : `String`
+- **Paramètres** : 2 — `OKVKennung` (String), `Quarter` (String)
+- **Effet** : valeurs KTAB autorisées (KV, trimestre)
+- **Portée** : Allemagne (DE) uniquement
 
 ---
 
 ## AllowedScheinuntergruppeValues (ssit)
-**Signature** : `String Allowed Scheinuntergruppe Values(String OKVKennung,String Quarter)`  
-Cette fonction est réservée aux clients allemands.  
+**Signature** : `String AllowedScheinuntergruppeValues(String OKVKennung, String Quarter)`  
+- **Retour** : `String`
+- **Paramètres** : 2 — `OKVKennung` (String), `Quarter` (String)
+- **Effet** : valeurs de Scheinuntergruppe autorisées (KV, trimestre)
+- **Portée** : Allemagne (DE) uniquement
 
 ---
 
 ## EncodeXDTPolicyName (ssit)
-**Signature** : `String Encode XDTPolicy Name(String Gebuhrenordnung,String KTAB,String Abrechnungstyp)`  
-Cette fonction est réservée aux clients allemands.  
+**Signature** : `String EncodeXDTPolicyName(String Gebuhrenordnung, String KTAB, String Abrechnungstyp)`  
+- **Retour** : `String`
+- **Paramètres** : 3 — `Gebuhrenordnung` (String), `KTAB` (String), `Abrechnungstyp` (String)
+- **Effet** : encodage d'un nom de police xDT
+- **Portée** : Allemagne (DE) uniquement
 
 ---
 
 ## EuroToLocal (ssit)
-**Signature** : `Fractional Euro To Local(Fractional Amount In Euro,Positive Integer Decimal Count)`  
-Cette fonction convertit le montant donné (exprimé en euro) en le montant correspondant exprimé en monnaie locale.  
+**Signature** : `Fractional EuroToLocal(Fractional AmountInEuro, PositiveInteger DecimalCount)`  
+- **Retour** : `Fractional`
+- **Paramètres** : 2 — `AmountInEuro` (Fractional), `DecimalCount` (PositiveInteger)
+- **Effet** : conversion EUR -> devise locale, arrondi à DecimalCount
+- **Contrainte** : obsolète : utiliser ToLocal
 
 ---
 
 ## ExonerationFraction (ssit)
-**Signature** : `Fractional Exoneration Fraction(Logical ALD,Logical Baby,Logical CMU,Logical FSV,Logical Private Accident,Logical Work Accident,String Code ALD,String Code Situation,String Code Regime,String Code Acte,String Prescriptor Specialism,String Extra)`  
-Cette fonction est réservée aux clients français et permet de calculer la partie à rembourser par la caisse primaire (France).  
+**Signature** : `Fractional ExonerationFraction(Logical ALD, Logical Baby, Logical CMU, Logical FSV, Logical PrivateAccident, Logical WorkAccident, String CodeALD, String CodeSituation, String CodeRegime, String CodeActe, String PrescriptorSpecialism, String Extra)`  
+- **Retour** : `Fractional`
+- **Paramètres** : 12 — `ALD` (Logical), `Baby` (Logical), `CMU` (Logical), `FSV` (Logical), `PrivateAccident` (Logical), `WorkAccident` (Logical), `CodeALD` (String), `CodeSituation` (String), `CodeRegime` (String), `CodeActe` (String), `PrescriptorSpecialism` (String), `Extra` (String)
+- **Effet** : part remboursée par la caisse primaire (critères d'exonération)
+- **Portée** : France (FR) uniquement
 
 ---
 
 ## ExonerationJustification (ssit)
-**Signature** : `Integer Exoneration Justification(Logical ALD,Logical Baby,Logical CMU,Logical FSV,Logical Private Accident,Logical Work Accident,String Code ALD,String Code Situation,String Code Regime,String Code Acte,String Prescriptor Specialism,String Extra)`  
-Cette fonction est réservée aux clients français et permet de calculer le code 'justification d'exonération'.  
+**Signature** : `Integer ExonerationJustification(Logical ALD, Logical Baby, Logical CMU, Logical FSV, Logical PrivateAccident, Logical WorkAccident, String CodeALD, String CodeSituation, String CodeRegime, String CodeActe, String PrescriptorSpecialism, String Extra)`  
+- **Retour** : `Integer`
+- **Paramètres** : 12 — `ALD` (Logical), `Baby` (Logical), `CMU` (Logical), `FSV` (Logical), `PrivateAccident` (Logical), `WorkAccident` (Logical), `CodeALD` (String), `CodeSituation` (String), `CodeRegime` (String), `CodeActe` (String), `PrescriptorSpecialism` (String), `Extra` (String)
+- **Effet** : code « justification d'exonération »
+- **Portée** : France (FR) uniquement
 
 ---
 
 ## ExonerationNature (ssit)
-**Signature** : `Integer Exoneration Nature(Logical ALD,Logical Baby,Logical CMU,Logical FSV,Logical Private Accident,Logical Work Accident,String Code ALD,String Code Situation,String Code Regime,String Code Acte,String Prescriptor Specialism,String Extra)`  
-Cette fonction est réservée aux clients français et permet de calculer la 'nature d'assurance'.  
+**Signature** : `Integer ExonerationNature(Logical ALD, Logical Baby, Logical CMU, Logical FSV, Logical PrivateAccident, Logical WorkAccident, String CodeALD, String CodeSituation, String CodeRegime, String CodeActe, String PrescriptorSpecialism, String Extra)`  
+- **Retour** : `Integer`
+- **Paramètres** : 12 — `ALD` (Logical), `Baby` (Logical), `CMU` (Logical), `FSV` (Logical), `PrivateAccident` (Logical), `WorkAccident` (Logical), `CodeALD` (String), `CodeSituation` (String), `CodeRegime` (String), `CodeActe` (String), `PrescriptorSpecialism` (String), `Extra` (String)
+- **Effet** : code « nature d'assurance »
+- **Portée** : France (FR) uniquement
 
 ---
 
 ## GetAbrechnungsArt (ssit)
-**Signature** : `Positive Integer Get Abrechnungs Art(String OKVKennung,String Quarter,String Short VKNR,String KTAB)`  
-Cette fonction est réservée aux clients allemands.  
+**Signature** : `PositiveInteger GetAbrechnungsArt(String OKVKennung, String Quarter, String ShortVKNR, String KTAB)`  
+- **Retour** : `PositiveInteger`
+- **Paramètres** : 4 — `OKVKennung` (String), `Quarter` (String), `ShortVKNR` (String), `KTAB` (String)
+- **Effet** : AbrechnungsArt (KV, trimestre, VKNR court, KTAB)
+- **Portée** : Allemagne (DE) uniquement
 
 ---
 
 ## GetDepartment (ssit)
-**Signature** : `Department Get Department(String Department Mnemonic)`  
-Get the department record that corresponds with the given mnemonic.  
+**Signature** : `Department GetDepartment(String DepartmentMnemonic)`  
+- **Retour** : `Department` ; `?` si non trouvé
+- **Paramètres** : 1 — `DepartmentMnemonic` (String)
+- **Effet** : Department par mnémonique
 
 ---
 
 ## GetDiagnosisCode (ssit)
-**Signature** : `Diagnosis Code Get Diagnosis Code(String Diagnosis Code Code,Diagnosis Code System System,Mnemonic System Mnemonic)`  
-Cette fonction permet de chercher le code diagnostic.  
+**Signature** : `DiagnosisCode GetDiagnosisCode(String DiagnosisCodeCode, DiagnosisCodeSystem System, Mnemonic SystemMnemonic)`  
+- **Retour** : `DiagnosisCode` ; `?` si non trouvé
+- **Paramètres** : 3 — `DiagnosisCodeCode` (String), `System` (DiagnosisCodeSystem), `SystemMnemonic` (Mnemonic)
+- **Effet** : DiagnosisCode par code, système, mnémonique de système
 
 ---
 
 ## GetExecutingLab (ssit)
-**Signature** : `String Get Executing Lab(Integer Nth Lab)`  
-Cette fonction n'est disponible que dans un contexte donné: édition de documents de cotation.  
+**Signature** : `String GetExecutingLab(Integer NthLab)`  
+- **Retour** : `String`
+- **Paramètres** : 1 — `NthLab` (Integer)
+- **Effet** : identification du n-ième laboratoire exécutant
+- **Contrainte** : uniquement en édition de documents de cotation
 
 ---
 
 ## GetFundId (ssit)
-**Signature** : `Fund Get Fund Id(Mnemonic Fund Mnemonic)`  
-Cette fonction permet de récupérer une référence à la caisse spécifiée.  
+**Signature** : `Fund GetFundId(Mnemonic FundMnemonic)`  
+- **Retour** : `Fund` ; `?` si non trouvé
+- **Paramètres** : 1 — `FundMnemonic` (Mnemonic)
+- **Effet** : Fund par mnémonique
 
 ---
 
 ## GetHLAAntigen (ssit)
-**Signature** : `HLAAntigen Get HLAAntigen(String Antigen Name)`  
-This function returns a reference to the HLA antigen object that corresponds with the name given.  
+**Signature** : `HLAAntigen GetHLAAntigen(String AntigenName)`  
+- **Retour** : `HLAAntigen` ; `?` si non trouvé
+- **Paramètres** : 1 — `AntigenName` (String)
+- **Effet** : HLAAntigen par nom
 
 ---
 
 ## GetInvoiceId (ssit)
-**Signature** : `Invoice Get Invoice Id(Firm Firm Id,String Doc No,Positive Integer Version No)`  
-Cette fonction permet de récupérer une référence à la facture spécifiée.  
+**Signature** : `Invoice GetInvoiceId(Firm FirmId, String DocNo, PositiveInteger VersionNo)`  
+- **Retour** : `Invoice` ; `?` si aucune ou plusieurs
+- **Paramètres** : 3 — `FirmId` (Firm), `DocNo` (String), `VersionNo` (PositiveInteger)
+- **Effet** : Invoice par firme, n° de document, version
 
 ---
 
 ## GetInvoiceSummaryId (ssit)
-**Signature** : `Invoice Summary Get Invoice Summary Id(Firm Firm Id,String Doc No)`  
-Cette fonction récupère une référence au relevé spécifié.  
+**Signature** : `InvoiceSummary GetInvoiceSummaryId(Firm FirmId, String DocNo)`  
+- **Retour** : `InvoiceSummary` ; `?` si non trouvé
+- **Paramètres** : 2 — `FirmId` (Firm), `DocNo` (String)
+- **Effet** : InvoiceSummary par firme et n° de document
 
 ---
 
 ## GetLogEntry (gsit)
-**Signature** : `lg_Entry Get Log Entry(String Table Name,Positive Integer Record Id,String Log Type Name,Logical Needs Checking,Log Severity Log Severity,Date Time Created After,Date Time Created Before,String Message Match String,Positive Integer Seq No)`  
-This function accesses a log entry record based on the input parameters : if success then a reference to the record is returned, otherwise ?.  
+**Signature** : `lg_Entry GetLogEntry(String TableName, PositiveInteger RecordId, String LogTypeName, Logical NeedsChecking, LogSeverity LogSeverity, DateTime CreatedAfter, DateTime CreatedBefore, String MessageMatchString, PositiveInteger SeqNo)`  
+- **Retour** : `lg_Entry` ; `?` si non trouvée
+- **Paramètres** : 9 — `TableName` (String), `RecordId` (PositiveInteger), `LogTypeName` (String), `NeedsChecking` (Logical), `LogSeverity` (LogSeverity), `CreatedAfter` (DateTime), `CreatedBefore` (DateTime), `MessageMatchString` (String), `SeqNo` (PositiveInteger)
+- **Effet** : entrée de journal par critères (table, id, type, contrôle, sévérité, fenêtre de création, motif de message, rang)
 
 ---
 
 ## GetPolicyNameId (ssit)
-**Signature** : `Policy Name Get Policy Name Id(String Policy Name Code,Fund Fund Id,Logical Can Use Default Policy Name)`  
-Cette fonction permet de récupérer une référence au nom de police répondant aux critères spécifiés.  
+**Signature** : `PolicyName GetPolicyNameId(String PolicyNameCode, Fund FundId, Logical CanUseDefaultPolicyName)`  
+- **Retour** : `PolicyName` ; `?` si non trouvé
+- **Paramètres** : 3 — `PolicyNameCode` (String), `FundId` (Fund), `CanUseDefaultPolicyName` (Logical)
+- **Effet** : PolicyName par code et caisse ; option : repli sur le nom de police par défaut
 
 ---
 
 ## GetPrinterId (ssit)
-**Signature** : `rp_Printer Get Printer Id(String Printer Name)`  
-Cette fonction permet de récupérer une référence à l'imprimante spécifiée.  
+**Signature** : `rp_Printer GetPrinterId(String PrinterName)`  
+- **Retour** : `rp_Printer` ; `?` si non trouvé
+- **Paramètres** : 1 — `PrinterName` (String)
+- **Effet** : rp_Printer par nom
 
 ---
 
 ## GetProvision (ssit)
-**Signature** : `Provision Get Provision(Mnemonic Lab Mnemonic,Mnemonic Department Mnemonic,Mnemonic Executing Class Mnemonic,Date Time Time)`  
-Permet l'accès aux dispositions à l'aide de MISPL.  
+**Signature** : `Provision GetProvision(Mnemonic LabMnemonic, Mnemonic DepartmentMnemonic, Mnemonic ExecutingClassMnemonic, DateTime Time)`  
+- **Retour** : `Provision` ; `?` si aucune
+- **Paramètres** : 4 — `LabMnemonic` (Mnemonic), `DepartmentMnemonic` (Mnemonic), `ExecutingClassMnemonic` (Mnemonic), `Time` (DateTime)
+- **Effet** : Provision (labo, discipline, classe d'exécution, instant)
 
 ---
 
 ## GetStay (ssit)
-**Signature** : `Stay Get Stay(String Stay Id)`  
-Returns a Stay based on an ID.  
+**Signature** : `Stay GetStay(String StayId)`  
+- **Retour** : `Stay` ; `?` si non trouvé
+- **Paramètres** : 1 — `StayId` (String)
+- **Effet** : Stay par identifiant
 
 ---
 
 ## GetVertragsarztId (ssit)
-**Signature** : `Vertragsarztnummer Get Vertragsarzt Id(String Vertragsarztnummer,Date Validitydate,Integer Nth Record)`  
-Cette fonction est réservée aux clients allemands.  
+**Signature** : `Vertragsarztnummer GetVertragsarztId(String Vertragsarztnummer, Date Validitydate, Integer NthRecord)`  
+- **Retour** : `Vertragsarztnummer`
+- **Paramètres** : 3 — `Vertragsarztnummer` (String), `Validitydate` (Date), `NthRecord` (Integer)
+- **Effet** : enregistrement Vertragsarztnummer (numéro, date, rang)
+- **Portée** : Allemagne (DE) uniquement
 
 ---
 
 ## Glims (ssit)
-**Signature** : `Specific Site Glims()`  
-Exemple: RETURN IfKnownString(Glims().  
+**Signature** : `SpecificSite Glims()`  
+- **Retour** : `SpecificSite`
+- **Paramètres** : 0
+- **Effet** : accès à l'enregistrement SpecificSite du site
 
 ---
 
 ## LocalToEuro (ssit)
-**Signature** : `Fractional Local To Euro(Fractional Amount In Local Currency,Positive Integer Decimals)`  
-Cette fonction permet de convertir le montant donné (exprimé en monnaie locale) en le montant correspondant exprimé en euro.  
+**Signature** : `Fractional LocalToEuro(Fractional AmountInLocalCurrency, PositiveInteger Decimals)`  
+- **Retour** : `Fractional`
+- **Paramètres** : 2 — `AmountInLocalCurrency` (Fractional), `Decimals` (PositiveInteger)
+- **Effet** : conversion devise locale -> EUR, arrondi à Decimals
+- **Contrainte** : obsolète : utiliser ToEuro
 
 ---
 
 ## PaymentAgreements (ssit)
-**Signature** : `String Payment Agreements(String Policy Name Code,Positive Integer Correspondent Id,Positive Integer Fund Id,Date Validity Date)`  
-Cette fonction récupère une liste d'identifiants d'accord de paiement qui répondent aux critères spécifiés.  
+**Signature** : `String PaymentAgreements(String PolicyNameCode, PositiveInteger CorrespondentId, PositiveInteger FundId, Date ValidityDate)`  
+- **Retour** : `String`
+- **Paramètres** : 4 — `PolicyNameCode` (String), `CorrespondentId` (PositiveInteger), `FundId` (PositiveInteger), `ValidityDate` (Date)
+- **Effet** : identifiants d'accords de paiement (code de police, correspondant, caisse, date), liste
 
 ---
 
 ## TariffingData (ssit)
-**Signature** : `String Tariffing Data(String What To Retrieve)`  
-Cette fonction peut récupérer des données générales de tarification: ces données ne sont disponibles que lors de la tarification.  
+**Signature** : `String TariffingData(String WhatToRetrieve)`  
+- **Retour** : `String`
+- **Paramètres** : 1 — `WhatToRetrieve` (String)
+- **Effet** : donnée générale de tarification demandée
+- **Contrainte** : uniquement pendant la tarification
 
 ---
 
 ## ToEuro (ssit)
-**Signature** : `Fractional To Euro(Fractional Amount,Positive Integer Decimal Count)`  
-Si les montants stockés dans GLIMS ne sont pas encore exprimés en euro, cette fonction permet de convertir le montant en le montant correspondant exprimé en euro.  
+**Signature** : `Fractional ToEuro(Fractional Amount, PositiveInteger DecimalCount)`  
+- **Retour** : `Fractional`
+- **Paramètres** : 2 — `Amount` (Fractional), `DecimalCount` (PositiveInteger)
+- **Effet** : conversion vers EUR, arrondi à DecimalCount ; cas : stockage en devise locale
 
 ---
 
 ## ToLocal (ssit)
-**Signature** : `Fractional To Local(Fractional Amount,Positive Integer Decimal Count)`  
-Si les montants stockés dans GLIMS sont exprimés en euro, cette fonction permet de convertir le montant en le montant correspondant exprimé en monnaie locale.  
-
----
+**Signature** : `Fractional ToLocal(Fractional Amount, PositiveInteger DecimalCount)`  
+- **Retour** : `Fractional`
+- **Paramètres** : 2 — `Amount` (Fractional), `DecimalCount` (PositiveInteger)
+- **Effet** : conversion vers la devise locale, arrondi à DecimalCount ; cas : stockage en EUR

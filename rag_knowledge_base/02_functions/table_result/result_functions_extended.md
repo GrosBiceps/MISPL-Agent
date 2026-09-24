@@ -158,7 +158,7 @@ Retourne la dernière demande d'analyse associée.
 
 ## MicrobiologyAction
 **Signature** : `MicrobiologyAction MicrobiologyAction()`  
-Accède à l'action microbiologique associée au résultat (si résultat microbiologique).
+Retour : `MicrobiologyAction` liée ; `?` pour un résultat hors microbiologie.
 
 ---
 

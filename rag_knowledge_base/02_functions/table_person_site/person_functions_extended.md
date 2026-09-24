@@ -12,144 +12,206 @@ anti_hallucination: []
 tags: [Person, HLAAntibody, HLAAntigen, RhesusPhenoType, GetEncountersList, GetMedicalRecord, SetMedicalRecord, SetHLAAntigenPresence, OtherAntigens, Stays, RelationsOverview, AfterBirth]
 ---
 
+
 # Fonctions PRSN — complément exhaustif
 
+> Fiches régénérées à partir de faits bruts (signature, retour, effet observable, contraintes), sans reprise de la rédaction du manuel. Méthode : voir `SOURCES.md`.
+
+---
+
 ## AfterBirth
-**Signature** : `Person After Birth()`  
-En cas d'une personne 'foetus' qui après la naissance est également enregistrée dans GLIMS comme une personne 'née' (faisant référence au foetus), cette fonction MISPL permet de naviguer à la personne.  
+**Signature** : `Person AfterBirth()`  
+- **Retour** : `Person` ; `?` si pas de Person liée
+- **Paramètres** : 0
+- **Effet** : navigation fœtus -> Person créée à la naissance (lien vers le fœtus)
 
 ---
 
 ## AntigenAntibody
-**Signature** : `Person Antigen Antigen Antibody(Mnemonic Antigen Mnemonic)`  
-Récupère l'identifiant de l'enregistrement indiquant la présence ou l'absence (chez la personne) d'un antigène spécifié.  
+**Signature** : `PersonAntigen AntigenAntibody(Mnemonic AntigenMnemonic)`  
+- **Retour** : `PersonAntigen` ; `?` si antigène non enregistré
+- **Paramètres** : 1 — `AntigenMnemonic` (Mnemonic)
+- **Effet** : lecture de la ligne PersonAntigen pour un antigène (présence/absence + avis de typage)
 
 ---
 
 ## AntigenByNumber
-**Signature** : `Person Antigen Antigen By Number(Positive Integer Number)`  
-Récupère le n-ième enregistrement antigène de la personne, où 'n' est le paramètre.  
+**Signature** : `PersonAntigen AntigenByNumber(PositiveInteger Number)`  
+- **Retour** : `PersonAntigen` ; `?` si rang hors plage
+- **Paramètres** : 1 — `Number` (PositiveInteger)
+- **Effet** : lecture de la n-ième ligne PersonAntigen ; ordre = numéro de séquence de la table Antigen
 
 ---
 
 ## AvailableBloodBagByNumber
-**Signature** : `Blood Bag Available Blood Bag By Number(Mnemonic Product Mnemonic,Logical Autologous,Blood Bag Status Status,Positive Integer Number)`  
-Récupère la n-ième poche de sang actuellement disponible (état 'initial') pour cette personne.  
+**Signature** : `BloodBag AvailableBloodBagByNumber(Mnemonic ProductMnemonic, Logical Autologous, BloodBagStatus Status, PositiveInteger Number)`  
+- **Retour** : `BloodBag` ; `?` si rang hors plage
+- **Paramètres** : 4 — `ProductMnemonic` (Mnemonic), `Autologous` (Logical), `Status` (BloodBagStatus), `Number` (PositiveInteger)
+- **Effet** : n-ième poche au statut Initial attribuée à la personne
 
 ---
 
 ## BloodForPersonAvailable
-**Signature** : `Logical Blood For Person Available(Mnemonic Product Mnemonic,Logical Autologous,Mnemonic Department Mnemonic,Blood Bag Status Status)`  
-Récupère TRUE quand au moins une poche de sang est disponible (état 'Initial') pour la personne.  
+**Signature** : `Logical BloodForPersonAvailable(Mnemonic ProductMnemonic, Logical Autologous, Mnemonic DepartmentMnemonic, BloodBagStatus Status)`  
+- **Retour** : `Logical`
+- **Paramètres** : 4 — `ProductMnemonic` (Mnemonic), `Autologous` (Logical), `DepartmentMnemonic` (Mnemonic), `Status` (BloodBagStatus)
+- **Effet** : YES si >= 1 poche au statut Initial pour la personne
 
 ---
 
 ## CalculateMedidocCaseNumber
-**Signature** : `String Calculate Medidoc Case Number()`  
-Fonction MISPL qui calcule le numéro medidoc du patient.  
+**Signature** : `String CalculateMedidocCaseNumber()`  
+- **Retour** : `String`
+- **Paramètres** : 0
+- **Effet** : calcul du numéro de dossier Medidoc de la personne
+- **Portée** : Belgique (BE) uniquement
 
 ---
 
 ## GetAntibody
-**Signature** : `Logical Get Antibody(String Antigen Mnemonic)`  
+**Signature** : `Logical GetAntibody(String AntigenMnemonic)`  
+- **Retour** : `Logical`
+- **Paramètres** : 1 — `AntigenMnemonic` (String)
+- **Effet** : test de présence d'un anticorps (mnémonique d'antigène)
 
 ---
 
 ## GetEncountersList
-**Signature** : `String Get Encounters List()`  
-This returns a list of all open Person Encounters.  
+**Signature** : `String GetEncountersList()`  
+- **Retour** : `String`
+- **Paramètres** : 0
+- **Effet** : liste (String) des visites ouvertes de la personne
 
 ---
 
 ## GetMedicalRecord
-**Signature** : `Person Medical Record Get Medical Record()`  
+**Signature** : `PersonMedicalRecord GetMedicalRecord()`  
+- **Retour** : `PersonMedicalRecord`
+- **Paramètres** : 0
+- **Effet** : accès à l'enregistrement PersonMedicalRecord
 
 ---
 
 ## GetTypingAdvice
-**Signature** : `Logical Get Typing Advice(String Blood Bag Internal Id,String Antigen Mnemonic)`  
-Cette fonction MISPL pourrait servir à consulter d'éventuel conseil pour la transfusion.  
+**Signature** : `Logical GetTypingAdvice(String BloodBagInternalId, String AntigenMnemonic)`  
+- **Retour** : `Logical`
+- **Paramètres** : 2 — `BloodBagInternalId` (String), `AntigenMnemonic` (String)
+- **Effet** : lecture de l'avis de typage pour une poche et un antigène
 
 ---
 
 ## HLAAntibody
-**Signature** : `Person HLAAntibody HLAAntibody(Mnemonic Antibody Mnemonic)`  
-Récupère l'enregistrement anticorps HLA de la personne pour un anticorps spécifié.  
+**Signature** : `PersonHLAAntibody HLAAntibody(Mnemonic AntibodyMnemonic)`  
+- **Retour** : `PersonHLAAntibody` ; `?` si anticorps absent
+- **Paramètres** : 1 — `AntibodyMnemonic` (Mnemonic)
+- **Effet** : ligne PersonHLAAntibody pour un anticorps donné
 
 ---
 
 ## HLAAntibodyByNumber
-**Signature** : `Person HLAAntibody HLAAntibody By Number(Positive Integer Number)`  
-Récupère le n-ième enregistrement anticorps HLA de la personne, où 'n' sert de paramètre.  
+**Signature** : `PersonHLAAntibody HLAAntibodyByNumber(PositiveInteger Number)`  
+- **Retour** : `PersonHLAAntibody` ; `?` si rang hors plage
+- **Paramètres** : 1 — `Number` (PositiveInteger)
+- **Effet** : n-ième ligne PersonHLAAntibody
 
 ---
 
 ## HLAAntigen
-**Signature** : `Person HLAAntigen HLAAntigen(Mnemonic Antigen Mnemonic)`  
-Récupère l'enregistrement antigène HLA de la personne pour l'antigène spécifié.  
+**Signature** : `PersonHLAAntigen HLAAntigen(Mnemonic AntigenMnemonic)`  
+- **Retour** : `PersonHLAAntigen` ; `?` si antigène absent
+- **Paramètres** : 1 — `AntigenMnemonic` (Mnemonic)
+- **Effet** : ligne PersonHLAAntigen pour un antigène donné
 
 ---
 
 ## HLAAntigenByNumber
-**Signature** : `Person HLAAntigen HLAAntigen By Number(Positive Integer Number)`  
-Récupère le n-ième enregistrement antigène HLA de la personne, où 'n' sert de paramètre.  
+**Signature** : `PersonHLAAntigen HLAAntigenByNumber(PositiveInteger Number)`  
+- **Retour** : `PersonHLAAntigen` ; `?` si rang hors plage
+- **Paramètres** : 1 — `Number` (PositiveInteger)
+- **Effet** : n-ième ligne PersonHLAAntigen
 
 ---
 
 ## OtherAntigens
-**Signature** : `String Other Antigens()`  
-Deux fonctions MISPL sont disponibles sur la table Personne: RhesusPhenoType & OtherAntigens.  
+**Signature** : `String OtherAntigens()`  
+- **Retour** : `String`
+- **Paramètres** : 0
+- **Effet** : chaîne des antigènes hors Rhésus, format « MNEMO+ » ou « MNEMO- » séparés par espace
 
 ---
 
 ## RelationsOverview
-**Signature** : `String Relations Overview(Mnemonic Text Mnemonic,String Type,Logical Recursive)`  
-Récupère un texte rédigé en répétant le module de texte spécifié (basé sur 'Person') pour chaque personne apparentée à la personne originale.  
+**Signature** : `String RelationsOverview(Mnemonic TextMnemonic, String Type, Logical Recursive)`  
+- **Retour** : `String`
+- **Paramètres** : 3 — `TextMnemonic` (Mnemonic), `Type` (String), `Recursive` (Logical)
+- **Effet** : texte généré : module de texte (table Person) répété pour chaque personne liée ; tri type puis nom ; option récursive
 
 ---
 
 ## RhesusPhenoType
-**Signature** : `String Rhesus Pheno Type()`  
-Deux fonctions MISPL sont disponibles sur la table Personne: RhesusPhenoType & OtherAntigens.  
+**Signature** : `String RhesusPhenoType()`  
+- **Retour** : `String`
+- **Paramètres** : 0
+- **Effet** : chaîne du phénotype Rhésus, format « MNEMO+ » ou « MNEMO- » séparés par espace
 
 ---
 
 ## SetAntibody
-**Signature** : `Active Logical Set Antibody(String Antigen Mnemonic,Logical Presence)`  
-Afin de prendre en compte les anticorps d'une personne lors d'une transfusion, il est nécessaire de pouvoir les stocker.  
+**Signature** : `Logical SetAntibody(String AntigenMnemonic, Logical Presence)`  
+- **Retour** : `Logical`
+- **Paramètres** : 2 — `AntigenMnemonic` (String), `Presence` (Logical)
+- **Effet** : anticorps (mnémonique d'antigène) : Presence = YES -> noté présent, NO -> noté absent
+- **Propriété** : Active
 
 ---
 
 ## SetHLAAntibodyPresence
-**Signature** : `Active Logical Set HLAAntibody Presence(Mnemonic Antibody Name,Date The Date,Logical Presence)`  
+**Signature** : `Logical SetHLAAntibodyPresence(Mnemonic AntibodyName, Date TheDate, Logical Presence)`  
+- **Retour** : `Logical`
+- **Paramètres** : 3 — `AntibodyName` (Mnemonic), `TheDate` (Date), `Presence` (Logical)
+- **Effet** : enregistre présence/absence d'un anticorps HLA à une date
+- **Propriété** : Active
 
 ---
 
 ## SetHLAAntibodyRValue
-**Signature** : `Active Logical Set HLAAntibody RValue(Mnemonic Antibody Name,Date The Date,Positive Fractional RValue)`  
+**Signature** : `Logical SetHLAAntibodyRValue(Mnemonic AntibodyName, Date TheDate, PositiveFractional RValue)`  
+- **Retour** : `Logical`
+- **Paramètres** : 3 — `AntibodyName` (Mnemonic), `TheDate` (Date), `RValue` (PositiveFractional)
+- **Effet** : enregistre la valeur R d'un anticorps HLA à une date
+- **Propriété** : Active
 
 ---
 
 ## SetHLAAntigenPresence
-**Signature** : `Active Logical Set HLAAntigen Presence(Mnemonic Antigen Name,Logical Presence)`  
-Définir la présence (YES) ou l'absence (NO) de l'antigène HLA spécifié ou l'effacer en spécifiant '?' pour le paramètre 'Presence'.  
+**Signature** : `Logical SetHLAAntigenPresence(Mnemonic AntigenName, Logical Presence)`  
+- **Retour** : `Logical`
+- **Paramètres** : 2 — `AntigenName` (Mnemonic), `Presence` (Logical)
+- **Effet** : ligne HLA de la personne : Presence = YES présent, NO absent, ? suppression de la ligne
+- **Propriété** : Active
 
 ---
 
 ## SetMedicalRecord
-**Signature** : `Active Logical Set Medical Record(String Field Name,String Field Value)`  
-Permet de renseigner ou modifier les champs du dossier médical d'une personne.  
+**Signature** : `Logical SetMedicalRecord(String FieldName, String FieldValue)`  
+- **Retour** : `Logical`
+- **Paramètres** : 2 — `FieldName` (String), `FieldValue` (String)
+- **Effet** : écriture d'un champ (nom, valeur) du dossier médical de la personne
+- **Propriété** : Active
 
 ---
 
 ## SetTypingAdvice
-**Signature** : `Active Logical Set Typing Advice(Mnemonic Antigen Mnemonic,Logical Value)`  
-Met le champ 'Avis de typage' au niveau de la table 'Antigène personne' à la valeur spécifiée (pour cette personne et cet antigène).  
+**Signature** : `Logical SetTypingAdvice(Mnemonic AntigenMnemonic, Logical Value)`  
+- **Retour** : `Logical`
+- **Paramètres** : 2 — `AntigenMnemonic` (Mnemonic), `Value` (Logical)
+- **Effet** : écrit l'avis de typage (PersonAntigen) pour un antigène ; crée la ligne si absente
+- **Propriété** : Active
 
 ---
 
 ## Stays
 **Signature** : `String Stays()`  
-This returns a String list of all open Stays of a Person.  
-
----
+- **Retour** : `String`
+- **Paramètres** : 0
+- **Effet** : liste (String) des séjours ouverts de la personne

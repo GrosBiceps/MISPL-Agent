@@ -24,8 +24,8 @@ Valeur absolue d'un entier.
 **Équivalent ABL** : `ABS(n)`
 
 ```mispl
-Abs(-23)    /* retourne 23 */
-Abs(23)     /* retourne 23 */
+Abs(-7)     /* retourne 7 */
+Abs(0)      /* retourne 0 */
 ```
 
 ---
@@ -35,46 +35,46 @@ Abs(23)     /* retourne 23 */
 Valeur absolue d'un décimal. Utiliser `Fabs` pour les décimaux, `Abs` pour les entiers.
 
 ```mispl
-Fabs(-14.56)    /* retourne 14.56 */
+Fabs(-0.25)     /* retourne 0.25 */
 ```
 
 ---
 
 ## Exp
 **Signature** : `Fractional Exp(Fractional Base, Fractional Exposant)`  
-Élève `Base` à la puissance `Exposant`.  
+Retour : `Base` élevé à l'exposant `Exposant` (Fractional).  
 **Équivalent ABL** : `Base ** Exposant` (opérateur puissance)
 
 ```mispl
-Exp(10, 2)     /* retourne 100.0 */
-Exp(10, -2)    /* retourne 0.01 */
-Exp(2.7, 2)    /* retourne 7.29 */
+Exp(2, 10)     /* retourne 1024.0 */
+Exp(4, 0.5)    /* retourne 2.0 */
+Exp(5, -1)     /* retourne 0.2 */
 ```
 
 ---
 
 ## Fmod
 **Signature** : `Fractional Fmod(Fractional Dividend, Fractional Divider)`  
-Reste de la division décimale `Dividend / Divider`.  
-Pour des entiers, utiliser l'opérateur `%` directement.
+Retour : reste de `Dividend / Divider` (Fractional).  
+Entiers : opérateur `%`.
 
 ```mispl
-Fmod(83.5, 8)    /* retourne 3.5 */
-Fmod(88.0, 8)    /* retourne 0.0 */
-/* Pour entiers : 83 % 8 retourne 3 */
+Fmod(10.75, 2)   /* retourne 0.75 */
+Fmod(12.0, 4)    /* retourne 0.0 */
+/* Pour entiers : 17 % 5 retourne 2 */
 ```
 
 ---
 
 ## Log
 **Signature** : `Fractional Log(Fractional Entrée)`  
-Logarithme naturel (base e) de `Entrée`.
+Retour : ln(`Entrée`).
 
 ---
 
 ## Log10
 **Signature** : `Fractional Log10(Fractional Entrée)`  
-Logarithme décimal (base 10) de `Entrée`.  
+Retour : log10(`Entrée`).  
 Utile pour les calculs de dilutions en bactériologie.
 
 ---
@@ -85,9 +85,9 @@ Arrondit `Valeur` au nombre de décimales spécifié.
 **Équivalent ABL** : `ROUND(x, n)`
 
 ```mispl
-Round(123.456, 2)    /* retourne 123.46 */
-Round(123.456, 0)    /* retourne 123.0 */
-Round(123.456, 1)    /* retourne 123.5 */
+Round(7.849, 2)      /* retourne 7.85 */
+Round(7.849, 0)      /* retourne 8.0 */
+Round(7.849, 1)      /* retourne 7.8 */
 ```
 
 **Usage biochimie** : arrondir un ratio calculé avant comparaison à un seuil.
@@ -112,8 +112,8 @@ Tronque `Valeur` au nombre de décimales spécifié (pas d'arrondi).
 **Équivalent ABL** : `TRUNCATE(x, n)`
 
 ```mispl
-Truncate(123.456, 2)    /* retourne 123.45 (pas 123.46) */
-Truncate(123.456, 0)    /* retourne 123.0 */
+Truncate(7.849, 2)      /* retourne 7.84 (pas 7.85) */
+Truncate(7.849, 0)      /* retourne 7.0 */
 ```
 
 **Différence Round/Truncate** :

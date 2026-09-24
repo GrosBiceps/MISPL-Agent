@@ -20,12 +20,12 @@ tags: [string, substr, Substr, len, Len, index, Index, replace, Replace, trim, T
 
 ## Chr
 **Signature** : `String Chr(Integer OrdinalNumber)`  
-Convertit un code ordinal (0–255) en le caractère correspondant dans le jeu de caractères actif. Retourne `?` hors plage.  
+Retour : caractère du code `OrdinalNumber` (0–255, jeu de caractères actif) ; `?` hors plage.  
 **Équivalent ABL** : `CHR(n)`
 
 ```mispl
-Return Chr(65);   /* retourne "A" */
-Return Chr(27);   /* retourne le caractère ESCAPE */
+Return Chr(59);   /* retourne ";" */
+Return Chr(9);    /* retourne une tabulation */
 ```
 
 ---
@@ -34,21 +34,21 @@ Return Chr(27);   /* retourne le caractère ESCAPE */
 **Signature** : `String Cpad(String s, Integer l, String f)`  
 Génère une chaîne de longueur `l` en centrant `s` et en remplissant les bords avec `f`.  
 ```mispl
-RETURN Cpad("abc", 10, "-");  /* retourne "----abc---" */
+RETURN Cpad("OK", 6, "*");  /* retourne "**OK**" (à vérifier par exécution) */
 ```
 
 ---
 
 ## Entry
 **Signature** : `String Entry(Integer Position, String List, String Delimiter)`  
-Extrait l'élément à la position `Position` dans une liste délimitée par `Delimiter` (défaut: virgule).  
-`Position` hors plage → retourne `?`. Délimiteur vide/inconnu → virgule par défaut.  
+Retour : élément n° `Position` (base 1) de `List`.  
+`?` si `Position` < 1 ou > nombre d'éléments ; `Delimiter` vide ou `?` → `,`.  
 **Équivalent ABL** : `ENTRY(n, list, delim)`
 
 ```mispl
 /* Extraire le 2ème élément d'une liste CSV */
 STRING elem;
-elem := Entry(2, "Hb,Ht,MCV,MCHC", ",");   /* retourne "Ht" */
+elem := Entry(2, "B_NA;B_K;B_CL", ";");   /* retourne "B_K" */
 
 /* Itération sur liste avec NumEntries */
 INTEGER i;
@@ -93,9 +93,9 @@ ligne := Fill("- ", 5);   /* retourne "- - - - - " */
 Coupe `InputString` en lignes de largeur maximale `Maxlinelength`, en préfixant chaque ligne par `Prefix` et suffixant par `Suffix`. La première ligne utilise `FirstPrefix` si fourni (sinon `Prefix`). Retourne `?` si `FirstPrefix` dépasse `Maxlinelength`.
 
 ```mispl
-/* Formater un texte en colonne 60 chars avec marqueurs */
+/* Habiller un commentaire sur 40 colonnes, préfixe "> ", sans suffixe */
 STRING result;
-result := FitText("Texte long à formater en colonnes", 60, "[ Debut: ", "[   ", " ]");
+result := FitText(commentaire, 40, "> ", "  ", ?);
 ```
 
 ---
@@ -123,8 +123,8 @@ ENDIF;
 
 ## Index
 **Signature** : `Integer Index(String Source, String Target)`  
-Retourne la position (base 1) de la première occurrence de `Target` dans `Source`.  
-Retourne `0` si absent. Retourne `1` si `Target` est une chaîne vide. Recherche insensible à la casse.  
+Retour : position (base 1) de la 1re occurrence de `Target` ; `0` si absente ; `1` si `Target` = "".  
+Casse ignorée.  
 **ATTENTION** : Nom exact `Index`, **pas** `InStr` (qui n'existe pas).  
 **Équivalent ABL** : `INDEX(source, target)`
 
@@ -203,14 +203,14 @@ Teste si `Source` correspond au motif regex `Pattern`. `CaseSensitive = NO` pour
 Syntaxe pattern : `.` = n'importe quel caractère, `[0-9]` = plage, `*` = zéro ou plusieurs chars. Caractères spéciaux `(`, `)` doivent être échappés avec `\`.
 
 ```mispl
-/* Tester si un ID commence par 3 zéros */
-IF Matches(.InternalId, "000....", NO) THEN ...
+/* Tester si un mnémonique appartient à la famille PSA */
+IF Matches(.ResultMnemonic, "B_PSA.*", NO) THEN ...
 
 /* Tester résultat textuel négatif (insensible casse) */
 IF Matches(.Result.Attribute("Value"), ".*[Nn][Ee][Gg].*", NO) THEN ...
 
-/* Echapper les parenthèses */
-IF Matches(valeur, "Neg \(z.*", NO) THEN ...
+/* Échapper les parenthèses : valeur du type "Positif (faible)" */
+IF Matches(valeur, "Positif \(.*\)", NO) THEN ...
 ```
 
 ---

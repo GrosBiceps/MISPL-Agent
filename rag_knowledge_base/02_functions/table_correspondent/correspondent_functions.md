@@ -20,7 +20,7 @@ Table GLIMS : `crsp` — représente un correspondant (médecin prescripteur, se
 
 ## SendMail
 **Signature** : `Logical SendMail(String From, String Subject, String Content, MailPriority Priority)`  
-Envoie un email externe à l'adresse du correspondant.  
+Effet : e-mail vers l'adresse enregistrée sur la fiche du correspondant ; retour `YES` si l'envoi est accepté.  
 `From` : `"USER"`, `"RESPONSIBLE"`, `"SITE"` ou adresse email directe.  
 `Priority` : `MailPriority["Low"]`, `MailPriority["Normal"]`, `MailPriority["High"]` (ou 1/2/3).
 

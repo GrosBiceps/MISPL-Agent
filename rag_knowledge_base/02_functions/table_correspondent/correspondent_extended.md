@@ -12,63 +12,87 @@ anti_hallucination: []
 tags: [Correspondent, Company, Institution, Organization, KnownIdentification, TourMnemonicList, Study, CreateIdentification, HCProvider, HealthOffice, Budget]
 ---
 
+
 # Fonctions CRSP — complément exhaustif
 
+> Fiches régénérées à partir de faits bruts (signature, retour, effet observable, contraintes), sans reprise de la rédaction du manuel. Méthode : voir `SOURCES.md`.
+
+---
+
 ## Budget
-**Signature** : `Budget Budget(Mnemonic Budget Class Mnemonic,Invoice Grouping Period Period,Date Validity Date)`  
-Cette fonction MISPL récupère l'enregistrement Budget de ce correspondant qui répond aux paramètres spécifiés.  
+**Signature** : `Budget Budget(Mnemonic BudgetClassMnemonic, InvoiceGroupingPeriod Period, Date ValidityDate)`  
+- **Retour** : `Budget` ; `?` si aucun
+- **Paramètres** : 3 — `BudgetClassMnemonic` (Mnemonic), `Period` (InvoiceGroupingPeriod), `ValidityDate` (Date)
+- **Effet** : Budget du correspondant pour classe de budget, période de regroupement, date de validité
 
 ---
 
 ## Company
 **Signature** : `Company Company()`  
-This function returns the identifier of the company record if the current correspondent is of this type.  
+- **Retour** : `Company` ; `?` si correspondant d'un autre type
+- **Paramètres** : 0
+- **Effet** : enregistrement Company lié
 
 ---
 
 ## CreateIdentification
-**Signature** : `Logical Create Identification(Correspondent Source,String Code,Date Start Date,Date End Date)`  
-Creates an identification record for this (target) correspondent.  
+**Signature** : `Logical CreateIdentification(Correspondent Source, String Code, Date StartDate, Date EndDate)`  
+- **Retour** : `Logical`
+- **Paramètres** : 4 — `Source` (Correspondent), `Code` (String), `StartDate` (Date), `EndDate` (Date)
+- **Effet** : crée une identification (source, code, début, fin) sur ce correspondant
 
 ---
 
 ## HCProvider
 **Signature** : `HCProvider HCProvider()`  
-Cette fonction récupère l'identifiant de l'enregistrement médecin si le correspondant actuel est de ce type.  
+- **Retour** : `HCProvider` ; `?` si correspondant d'un autre type
+- **Paramètres** : 0
+- **Effet** : enregistrement HCProvider lié
 
 ---
 
 ## HealthOffice
-**Signature** : `Health Office Health Office()`  
-Cette fonction récupère l'identifiant de l'enregistrement office de santé si le correspondant actuel est de ce type.  
+**Signature** : `HealthOffice HealthOffice()`  
+- **Retour** : `HealthOffice` ; `?` si correspondant d'un autre type
+- **Paramètres** : 0
+- **Effet** : enregistrement HealthOffice lié
 
 ---
 
 ## KnownIdentification
-**Signature** : `Identification Known Identification(String External Id,Date Validity Date)`  
+**Signature** : `Identification KnownIdentification(String ExternalId, Date ValidityDate)`  
+- **Retour** : `Identification` ; `?` si aucune
+- **Paramètres** : 2 — `ExternalId` (String), `ValidityDate` (Date)
+- **Effet** : identification par identifiant externe et date de validité
 
 ---
 
 ## Organization
 **Signature** : `Organization Organization()`  
-Cette fonction récupère l'identifiant de l'enregistrement organisation si le correspondant actuel est de ce type.  
+- **Retour** : `Organization` ; `?` si correspondant d'un autre type
+- **Paramètres** : 0
+- **Effet** : enregistrement Organization lié
 
 ---
 
 ## PreviousFinancing
-**Signature** : `String Previous Financing(Date Validity Date)`  
-Cette fonction cherche le plus récent groupe de dossiers du correspondant.  
+**Signature** : `String PreviousFinancing(Date ValidityDate)`  
+- **Retour** : `String`
+- **Paramètres** : 1 — `ValidityDate` (Date)
+- **Effet** : identifiants des accords de paiement du dernier groupe de dossiers, liste
 
 ---
 
 ## Study
 **Signature** : `Study Study()`  
-Cette fonction récupère l'identifiant de l'enregistrement étude si le correspondant actuel est de ce type.  
+- **Retour** : `Study` ; `?` si correspondant d'un autre type
+- **Paramètres** : 0
+- **Effet** : enregistrement Study lié
 
 ---
 
 ## TourMnemonicList
-**Signature** : `String Tour Mnemonic List(String Pattern)`  
-Récupère une liste de mnémoniques, séparés par virgules, des tours auxquels ce correspondant appartient, rangés en fonction du mnémonique de tour.  
-
----
+**Signature** : `String TourMnemonicList(String Pattern)`  
+- **Retour** : `String`
+- **Paramètres** : 1 — `Pattern` (String)
+- **Effet** : mnémoniques des tournées du correspondant, CSV, tri par mnémonique ; filtre Pattern optionnel

@@ -12,97 +12,136 @@ anti_hallucination: []
 tags: [Object, MicrobiologicHistory, AttributePeriod, GetResult, BuildHistoryGraph, PatientData, PersonData, PIN, Lot, GetLocusResult, GetVariantResult, GetPhoneLog, HasExternalInfo]
 ---
 
+
 # Fonctions OBJ — complément exhaustif
+
+> Fiches régénérées à partir de faits bruts (signature, retour, effet observable, contraintes), sans reprise de la rédaction du manuel. Méthode : voir `SOURCES.md`.
+
+---
 
 ## Animal
 **Signature** : `Animal Animal()`  
+- **Retour** : `Animal` ; `?` si objet non animal
+- **Paramètres** : 0
+- **Effet** : accès à l'enregistrement Animal de l'objet
 
 ---
 
 ## AttributePeriod
-**Signature** : `Positive Integer Attribute Period(Mnemonic Attribute Mnemonic,Date Reference Date)`  
-Returns the number of days the attribute is/was applicable for the specified object, at the specified reference date.  
+**Signature** : `PositiveInteger AttributePeriod(Mnemonic AttributeMnemonic, Date ReferenceDate)`  
+- **Retour** : `PositiveInteger` ; `?` si attribut absent
+- **Paramètres** : 2 — `AttributeMnemonic` (Mnemonic), `ReferenceDate` (Date)
+- **Effet** : nombre de jours d'application d'un attribut à ReferenceDate ; date ? = aujourd'hui
 
 ---
 
 ## BloodSelectionByNumber
-**Signature** : `Blood Selection Blood Selection By Number(Mnemonic Product Mnemonic,Blood Selection Status Minimal Status,Blood Selection Status Maximal Status,Positive Integer Number)`  
+**Signature** : `BloodSelection BloodSelectionByNumber(Mnemonic ProductMnemonic, BloodSelectionStatus MinimalStatus, BloodSelectionStatus MaximalStatus, PositiveInteger Number)`  
+- **Retour** : `BloodSelection` ; `?` si rang hors plage
+- **Paramètres** : 4 — `ProductMnemonic` (Mnemonic), `MinimalStatus` (BloodSelectionStatus), `MaximalStatus` (BloodSelectionStatus), `Number` (PositiveInteger)
+- **Effet** : n-ième BloodSelection filtrée par produit et plage de statuts
 
 ---
 
 ## BuildHistoryGraph
-**Signature** : `String Build History Graph(String Tagged Parameter List)`  
-Cette fonction génère un graphique historique de résultats précédents pour l'objet actuel au format XML.  
+**Signature** : `String BuildHistoryGraph(String TaggedParameterList)`  
+- **Retour** : `String`
+- **Paramètres** : 1 — `TaggedParameterList` (String)
+- **Effet** : XML de graphique d'historique des résultats (usage : comptes rendus Word)
 
 ---
 
 ## CheckDiagnosisCodeCompatibility
-**Signature** : `String Check Diagnosis Code Compatibility(Diagnosis Code Diagnosis Code,Date Reference Date,Logical Mustbe Billable)`  
-Checks if the specified diagnosis code is compatible (german KBV attributes Sex, Age,.  
+**Signature** : `String CheckDiagnosisCodeCompatibility(DiagnosisCode DiagnosisCode, Date ReferenceDate, Logical MustbeBillable)`  
+- **Retour** : `String`
+- **Paramètres** : 3 — `DiagnosisCode` (DiagnosisCode), `ReferenceDate` (Date), `MustbeBillable` (Logical)
+- **Effet** : contrôle code diagnostic / attributs patient (sexe, âge) ; retour "" si compatible, sinon message
+- **Portée** : Allemagne (DE) uniquement
 
 ---
 
 ## FindMostRecentBilledBillingCode
-**Signature** : `Billing Item Find Most Recent Billed Billing Code(String Billing Code,Date Start Date,Date End Date)`  
-Cette méthode récupère l'enregistrement élément de cotation qui correspond à la date la plus récente à laquelle le code de cotation spécifié était facturé pour cet objet.  
+**Signature** : `BillingItem FindMostRecentBilledBillingCode(String BillingCode, Date StartDate, Date EndDate)`  
+- **Retour** : `BillingItem` ; `?` si aucune facturation
+- **Paramètres** : 3 — `BillingCode` (String), `StartDate` (Date), `EndDate` (Date)
+- **Effet** : BillingItem de la dernière facturation du code dans [StartDate ; EndDate]
 
 ---
 
 ## GetBloodBag
-**Signature** : `Blood Bag Get Blood Bag(String Blood Product Mnemonic,Integer History Index,Date Time Minimal Backwards Time,Date Time Maximal Backwards Time)`  
-L'historique de transfusions de sang consiste en informations sur les poches de sang auparavant administrées au patient.  
+**Signature** : `BloodBag GetBloodBag(String BloodProductMnemonic, Integer HistoryIndex, DateTime MinimalBackwardsTime, DateTime MaximalBackwardsTime)`  
+- **Retour** : `BloodBag` ; `?` si aucune poche
+- **Paramètres** : 4 — `BloodProductMnemonic` (String), `HistoryIndex` (Integer), `MinimalBackwardsTime` (DateTime), `MaximalBackwardsTime` (DateTime)
+- **Effet** : poche transfusée n° HistoryIndex de l'historique, filtrée par produit et fenêtre temporelle
 
 ---
 
 ## GetCheckedOutBag
-**Signature** : `Blood Bag Get Checked Out Bag(String Blood Product Mnemonic,Integer History Index,Date Time Minimal Backwards Time,Date Time Maximal Backwards Time)`  
-Cette méthode permet de récupérer des poches de sang émises qui ne sont pas encore administrées.  
+**Signature** : `BloodBag GetCheckedOutBag(String BloodProductMnemonic, Integer HistoryIndex, DateTime MinimalBackwardsTime, DateTime MaximalBackwardsTime)`  
+- **Retour** : `BloodBag` ; `?` si aucune poche
+- **Paramètres** : 4 — `BloodProductMnemonic` (String), `HistoryIndex` (Integer), `MinimalBackwardsTime` (DateTime), `MaximalBackwardsTime` (DateTime)
+- **Effet** : poche délivrée non transfusée n° HistoryIndex, filtrée par produit et fenêtre temporelle
 
 ---
 
 ## GetLastBillingItemByReceiptDate
-**Signature** : `Billing Item Get Last Billing Item By Receipt Date(String Billing Code,Date Start Date,Date End Date)`  
-Cette méthode récupère l'enregistrement élément de cotation qui correspond à la date (date de tarification = date externe facture) la plus récente à laquelle le code cotation spécifié était facturé po.  
+**Signature** : `BillingItem GetLastBillingItemByReceiptDate(String BillingCode, Date StartDate, Date EndDate)`  
+- **Retour** : `BillingItem` ; `?` si aucune facturation
+- **Paramètres** : 3 — `BillingCode` (String), `StartDate` (Date), `EndDate` (Date)
+- **Effet** : BillingItem le plus récent pour le code, critère = date externe de facture
 
 ---
 
 ## GetLocusResult
-**Signature** : `Locus Result Get Locus Result(String Locus Name,Locus Result Status Minimal Status,Integer Minimal Severity,Integer Index)`  
-Returns a reference to a specific locus result of the object.  
+**Signature** : `LocusResult GetLocusResult(String LocusName, LocusResultStatus MinimalStatus, Integer MinimalSeverity, Integer Index)`  
+- **Retour** : `LocusResult` ; `?` si aucun
+- **Paramètres** : 4 — `LocusName` (String), `MinimalStatus` (LocusResultStatus), `MinimalSeverity` (Integer), `Index` (Integer)
+- **Effet** : LocusResult de l'objet selon locus, statut minimal, sévérité minimale, rang
 
 ---
 
 ## GetPhoneLog
-**Signature** : `Phone Log Get Phone Log(Phone Log Previous,Logical Phoned)`  
-La fonction MISPL Object.  
+**Signature** : `PhoneLog GetPhoneLog(PhoneLog Previous, Logical Phoned)`  
+- **Retour** : `PhoneLog` ; `?` si fin de liste
+- **Paramètres** : 2 — `Previous` (PhoneLog), `Phoned` (Logical)
+- **Effet** : itération sur les PhoneLog de l'objet ; filtre Phoned
 
 ---
 
 ## GetVariantResult
-**Signature** : `Variant Result Get Variant Result(String Variant Name,Variant Result Status Minimal Status,Integer Minimal Severity,Integer Minimal Classification,Variant Retest Status Retest Status,Integer Index)`  
-Returns a reference to a specific variant result of the object.  
+**Signature** : `VariantResult GetVariantResult(String VariantName, VariantResultStatus MinimalStatus, Integer MinimalSeverity, Integer MinimalClassification, VariantRetestStatus RetestStatus, Integer Index)`  
+- **Retour** : `VariantResult` ; `?` si aucun
+- **Paramètres** : 6 — `VariantName` (String), `MinimalStatus` (VariantResultStatus), `MinimalSeverity` (Integer), `MinimalClassification` (Integer), `RetestStatus` (VariantRetestStatus), `Index` (Integer)
+- **Effet** : VariantResult de l'objet selon variant, statut, sévérité, classification, statut de retest, rang
 
 ---
 
 ## HasExternalInfo
-**Signature** : `Logical Has External Info()`  
-Récupère si des infos externes sont disponibles dans le système info externe indiqué.  
+**Signature** : `Logical HasExternalInfo()`  
+- **Retour** : `Logical`
+- **Paramètres** : 0
+- **Effet** : YES si le système d'informations externes signale des données pour l'objet
 
 ---
 
 ## Lot
 **Signature** : `Lot Lot()`  
+- **Retour** : `Lot` ; `?` si objet non lot
+- **Paramètres** : 0
+- **Effet** : accès à l'enregistrement Lot de l'objet
 
 ---
 
 ## NumberOfBilledBillingCodes
-**Signature** : `Positive Integer Number Of Billed Billing Codes(String Billing Code,Date Start Date,Date End Date)`  
-Cette méthode récupère le nombre de fois qu'un code cotation était facturé pour un objet, en fonction du code cotation mentionné et lors de la période donnée.  
+**Signature** : `PositiveInteger NumberOfBilledBillingCodes(String BillingCode, Date StartDate, Date EndDate)`  
+- **Retour** : `PositiveInteger`
+- **Paramètres** : 3 — `BillingCode` (String), `StartDate` (Date), `EndDate` (Date)
+- **Effet** : nombre de facturations d'un code dans [StartDate ; EndDate]
 
 ---
 
 ## QCLot
 **Signature** : `QCLot QCLot()`  
-La fonction MISPL Object.  
-
----
+- **Retour** : `QCLot` ; `?` si objet non lot CQ
+- **Paramètres** : 0
+- **Effet** : accès à l'enregistrement QCLot (objet de type lot CQ)

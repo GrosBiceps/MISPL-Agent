@@ -12,37 +12,56 @@ anti_hallucination: []
 tags: [IsolationTestCount, AntibioticResultIndexed, GetStorageList, GetSequence, PropertyList, ResultOperation, SpecimenInput]
 ---
 
+
 # Fonctions MCRA + ISOL + ACTN — complément exhaustif
 
+> Fiches régénérées à partir de faits bruts (signature, retour, effet observable, contraintes), sans reprise de la rédaction du manuel. Méthode : voir `SOURCES.md`.
+
+---
+
 ## AntibioticResultIndexed (isol)
-**Signature** : `Antibiotic Result Antibiotic Result Indexed(Positive Integer Number)`  
-Permet de récupérer le 'n'-ième résultat d'antibiotique d'un isolement.  
+**Signature** : `AntibioticResult AntibioticResultIndexed(PositiveInteger Number)`  
+- **Retour** : `AntibioticResult` ; `?` si rang hors plage
+- **Paramètres** : 1 — `Number` (PositiveInteger)
+- **Effet** : n-ième AntibioticResult de l'isolement
 
 ---
 
 ## ApproachActivity (actn)
-**Signature** : `Approach Activity Approach Activity()`  
-Retrieve the approach activity (Genetics) linked to this action.  
+**Signature** : `ApproachActivity ApproachActivity()`  
+- **Retour** : `ApproachActivity` ; `?` si aucune
+- **Paramètres** : 0
+- **Effet** : ApproachActivity (génétique) liée à l'action
 
 ---
 
 ## GetSequence (isol)
-**Signature** : `Active Integer Get Sequence(Mnemonic Sequence Type Mnemonic)`  
+**Signature** : `Integer GetSequence(Mnemonic SequenceTypeMnemonic)`  
+- **Retour** : `Integer`
+- **Paramètres** : 1 — `SequenceTypeMnemonic` (Mnemonic)
+- **Effet** : numéro de séquence d'un type donné
+- **Propriété** : Active
 
 ---
 
 ## GetStorageList (isol)
-**Signature** : `String Get Storage List()`  
+**Signature** : `String GetStorageList()`  
+- **Retour** : `String`
+- **Paramètres** : 0
+- **Effet** : liste des stockages de l'isolement
 
 ---
 
 ## IsolationTestCount (mcra)
-**Signature** : `Positive Integer Isolation Test Count(String Organism Mnemonic List,String Test Mnemonic List,Logical Aerobe,String Organism Billing Mark List,Logical Reportable Only,Logical Positive Only,Logical Answered Only)`  
-Récupère le nombre de tests d'isolement.  
+**Signature** : `PositiveInteger IsolationTestCount(String OrganismMnemonicList, String TestMnemonicList, Logical Aerobe, String OrganismBillingMarkList, Logical ReportableOnly, Logical PositiveOnly, Logical AnsweredOnly)`  
+- **Retour** : `PositiveInteger`
+- **Paramètres** : 7 — `OrganismMnemonicList` (String), `TestMnemonicList` (String), `Aerobe` (Logical), `OrganismBillingMarkList` (String), `ReportableOnly` (Logical), `PositiveOnly` (Logical), `AnsweredOnly` (Logical)
+- **Effet** : nombre de tests d'isolement (filtres organismes, tests, aérobie, marques, rapportable, positif, répondu)
 
 ---
 
 ## SpecimenInput (actn)
-**Signature** : `Specimen Input Specimen Input()`  
-
----
+**Signature** : `SpecimenInput SpecimenInput()`  
+- **Retour** : `SpecimenInput`
+- **Paramètres** : 0
+- **Effet** : SpecimenInput de l'action

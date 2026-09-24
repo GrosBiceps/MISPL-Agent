@@ -20,7 +20,7 @@ tags: [Message, AskChoice, AskString, AskYesNo, interactif, dialogue, message, a
 
 ## Message
 **Signature** : `Void Message(String MessageString)`  
-Affiche un message informatif à l'écran. Ne retourne aucune valeur.  
+Effet : affichage d'un message ; retour `Void`.  
 **Utilisé en production** dans `B_declencheurPSAL` pour alerter l'utilisateur.
 
 ```mispl

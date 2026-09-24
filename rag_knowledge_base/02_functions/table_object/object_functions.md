@@ -36,7 +36,7 @@ ENDIF;
 
 ## BirthDate (champ)
 **Type** : `Date`  
-Date de naissance de l'objet.
+Valeur : date de naissance (personne ou animal).
 
 ```mispl
 DATE naissance;

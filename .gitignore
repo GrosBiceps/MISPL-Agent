@@ -57,3 +57,6 @@ data/*.db-journal
 
 # ── Scratch superpowers (ledgers SDD, maquettes brainstorming) ──────────────
 .superpowers/
+
+# Audit PI (contient le texte intégral du manuel GLIMS et des caches) : ne jamais versionner
+docs/audit_PI_*/

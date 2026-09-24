@@ -2,10 +2,10 @@
 
 ## Méthode de constitution
 
-Base construite par **rétro-ingénierie Clean Room** :
-- Aucun texte verbatim du manuel propriétaire Clinisys/MIPS
-- Faits techniques purs (signatures, comportements algorithmiques) rédigés dans le vocabulaire du **langage proxy Progress ABL / OpenEdge**
-- Exemples exclusivement issus des scripts de production du laboratoire
+Base construite à partir de **faits techniques** (signatures, types, valeurs de retour, comportements observables) relevés dans le manuel GLIMS, puis **rédigés à nouveau** en style factuel, dans le vocabulaire du **langage proxy Progress ABL / OpenEdge** :
+- Les fiches de fonctions présentent d'abord la signature, puis le retour, l'effet et les contraintes ; elles ne reprennent ni la rédaction ni les exemples du manuel.
+- Les exemples sont tirés des scripts de production du laboratoire ou ont été créés pour cette base.
+- Un audit de similarité (septembre 2026) a détecté des reprises du manuel dans une version antérieure ; elles ont été remplacées (voir `SOURCES.md` § 5). Le script `tools/check_ip_similarity.py` doit être relancé avant chaque ajout.
 
 Voir [SOURCES.md](SOURCES.md) pour la traçabilité complète.
 

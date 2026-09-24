@@ -42,24 +42,24 @@ Retourne l'heure système courante.
 Datetime DateAndTimeToDateTime(Date Date, Time Time)
 Fractional DateAndTimeToDateTime(Date Date, Integer Time)
 ```
-Combine une date et une heure en un DateTime.
+Retour : `DateTime` = `Date` + `Time`.
 
 ```mispl
-DateAndTimeToDateTime(Today(), Now())   /* datetime courant */
+DateAndTimeToDateTime(DateTimeToDate(Action.Order().ReceiptTime), StringToTime("07:30"))   /* jour de réception à 07:30 */
 ```
 
 ---
 
 ## DateDiffInYears
 **Signature** : `Fractional DateDiffInYears(Date Date1, Date Date2)`  
-Retourne `Date1 - Date2` exprimé en années (tient compte des années bissextiles).  
-Résultat décimal — utiliser `FractionalToInteger()` pour obtenir un entier.
+Retour : écart `Date1 - Date2` en années (Fractional) ; années bissextiles prises en compte.  
+Entier : `FractionalToInteger()`.
 
 ---
 
 ## DateTimeToDate
 **Signature** : `Date DateTimeToDate(DateTime dt)`  
-Extrait la composante date d'un DateTime.
+Retour : partie date du `DateTime`.
 
 ```mispl
 DATE Jour;
@@ -70,13 +70,13 @@ Jour := DateTimeToDate(Action.Order().ReceiptTime);
 
 ## DateTimeToTime
 **Signature** : `Time DateTimeToTime(DateTime dt)`  
-Extrait la composante heure d'un DateTime.
+Retour : partie heure du `DateTime` (secondes depuis minuit).
 
 ---
 
 ## DateTimeToString
 **Signature** : `String DateTimeToString(DateTime dt, String Format)`  
-Formate un DateTime en chaîne. Format style `strftime` :
+Retour : `DateTime` formaté ; directives de type `strftime` :
 
 | Code | Valeur |
 |------|--------|
@@ -98,7 +98,7 @@ jourSemaine := DateTimeToString(Action.Order().ReceiptTime, "%a");
 
 ## DateToString
 **Signature** : `String DateToString(Date Date, String Format)`  
-Formate une Date en chaîne.
+Retour : `Date` formatée (directives `%`).
 
 ---
 
@@ -114,7 +114,7 @@ IF DateTimeToDate(Action.Order().CreationTime) >= StringToDate("13/02/2017") THE
 
 ## StringToTime
 **Signature** : `Time StringToTime(String TimeString)`  
-Convertit une chaîne heure en Time.
+Retour : `Time` depuis un texte HH, HH:MM ou HH:MM:SS.
 
 ---
 

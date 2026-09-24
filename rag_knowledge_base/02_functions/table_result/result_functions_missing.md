@@ -12,37 +12,57 @@ anti_hallucination: []
 tags: [Result, BloodSelectionDiscontinuation, BloodSelectionPromotion, BloodSelectionReported, GetBloodSelection, GetDilutionCode, ReportedNonconformity]
 ---
 
+
 # Fonctions RSLT — complément exhaustif
 
+> Fiches régénérées à partir de faits bruts (signature, retour, effet observable, contraintes), sans reprise de la rédaction du manuel. Méthode : voir `SOURCES.md`.
+
+---
+
 ## BloodSelectionDiscontinuation
-**Signature** : `Active Logical Blood Selection Discontinuation(String Reason)`  
-Cette fonction permet de discontinuer et répéter la sélection de sang pour lequel le résultat actuel est l'épreuve de compatibilité.  
+**Signature** : `Logical BloodSelectionDiscontinuation(String Reason)`  
+- **Retour** : `Logical`
+- **Paramètres** : 1 — `Reason` (String)
+- **Effet** : discontinuation + répétition de la sélection de sang liée (résultat = épreuve de compatibilité) ; motif requis
+- **Propriété** : Active
 
 ---
 
 ## BloodSelectionPromotion
-**Signature** : `Active Logical Blood Selection Promotion()`  
+**Signature** : `Logical BloodSelectionPromotion()`  
+- **Retour** : `Logical`
+- **Paramètres** : 0
+- **Effet** : promotion de la sélection de sang liée
+- **Propriété** : Active
 
 ---
 
 ## BloodSelectionReported
-**Signature** : `Blood Selection Blood Selection Reported()`  
+**Signature** : `BloodSelection BloodSelectionReported()`  
+- **Retour** : `BloodSelection` ; `?` si aucune
+- **Paramètres** : 0
+- **Effet** : BloodSelection rapportée du résultat
 
 ---
 
 ## GetBloodSelection
-**Signature** : `Blood Selection Get Blood Selection()`  
+**Signature** : `BloodSelection GetBloodSelection()`  
+- **Retour** : `BloodSelection` ; `?` si aucune
+- **Paramètres** : 0
+- **Effet** : BloodSelection liée au résultat
 
 ---
 
 ## GetDilutionCode
-**Signature** : `Dilution Code Get Dilution Code(String Code)`  
-Get dilution code id given a dilution code as stringNeeded in order to be able to dilute a result record using MISPL.  
+**Signature** : `DilutionCode GetDilutionCode(String Code)`  
+- **Retour** : `DilutionCode` ; `?` si code inconnu
+- **Paramètres** : 1 — `Code` (String)
+- **Effet** : DilutionCode par code texte ; usage : paramètre de .Dilute()
 
 ---
 
 ## ReportedNonconformity
-**Signature** : `Nonconformity Reported Nonconformity()`  
-Needed for reporting: when the report result value contains a text module reference (hence Result-table based) that must be evaluated and the text module wants to access information of the NC record,.  
-
----
+**Signature** : `Nonconformity ReportedNonconformity()`  
+- **Retour** : `Nonconformity` ; `?` si aucune
+- **Paramètres** : 0
+- **Effet** : Nonconformity liée, accessible depuis un module de texte de compte rendu (table Result)

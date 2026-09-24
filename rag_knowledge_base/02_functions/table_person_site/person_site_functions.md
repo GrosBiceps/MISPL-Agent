@@ -59,7 +59,7 @@ Ces fonctions sont accessibles depuis n'importe quel contexte MISPL.
 Retourne YES si l'environnement courant est une base de données de test.
 
 ```mispl
-/* Désactiver les envois d'email en mode test */
+/* Base de recette : aucun courriel sortant */
 IF NOT IsTestDatabase() THEN
   .Correspondent.SendMail("SITE", "Sujet", "Corps", MailPriority["Normal"]);
 ENDIF;
@@ -120,7 +120,7 @@ bio.SendMail("Valeur critique PSA", "Patient DUPONT — PSA = 12 ng/mL", MailPri
 
 ### SendMail (Role)
 **Signature** : `Logical SendMail(String Subject, String Content, MailPriority Priority)`  
-Envoie un message à TOUS les utilisateurs ayant ce rôle.  
+Effet : un envoi par titulaire du rôle ; canal (interne ou e-mail) selon la méthode de courrier de chacun.
 Utile pour les alertes à l'équipe de garde.
 
 ```mispl

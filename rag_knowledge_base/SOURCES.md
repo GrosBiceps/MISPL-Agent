@@ -2,11 +2,11 @@
 
 ## Méthode appliquée : Clean Room Reverse-Engineering
 
-Ce corpus RAG a été constitué exclusivement par **rétro-ingénierie fonctionnelle** :
-- Les **signatures techniques** (nom, paramètres, types) sont des **faits informatiques purs**, non protégeables en tant que tels.
-- Les **descriptions** sont entièrement réécrites dans le vocabulaire du langage proxy (Progress ABL / OpenEdge).
-- Les **exemples de code** proviennent uniquement des scripts de production du laboratoire (propriété du service de biologie médicale du CHU).
-- **Aucun texte verbatim** du manuel d'origine n'a été reproduit.
+Ce corpus RAG décrit le langage MISPL à partir de **faits techniques** :
+- **Source des faits** : le manuel d'utilisation GLIMS (version française), en particulier le guide de référence des tables (`Content/db/reference_guide/`) et les pages « MISPL et Texte » (`Content/configuration/mispl_texts/`). On en retient les noms de fonctions, les types et l'ordre des paramètres, les types de retour, les comportements observables, les contraintes (pays, contexte d'appel) et les cas limites.
+- **Rédaction** : les descriptions sont rédigées à nouveau en style factuel (signature en tête, puis retour, effet, contraintes), dans le vocabulaire du langage proxy Progress ABL / OpenEdge. Pour les fiches « complément » et `complete_function_data.json`, le texte est **généré par programme** à partir de fiches de faits intermédiaires (voir § 5).
+- **Exemples de code** : ils sont tirés des scripts de production du laboratoire (§ 3) ou ont été créés pour cette base, avec des valeurs, des contextes et des noms qui ne proviennent pas du manuel.
+- **Contrôle** : la base est comparée au manuel par `tools/check_ip_similarity.py` (n-grammes, TF-IDF et, en option, embeddings). Ce contrôle réduit le risque de reprise sans constituer une garantie juridique.
 
 ---
 
@@ -20,7 +20,7 @@ Ce corpus RAG a été constitué exclusivement par **rétro-ingénierie fonction
 | Types natifs | INTEGER, FRACTIONAL, STRING, LOGICAL, DATE, DATETIME | INTEGER, DECIMAL, CHARACTER, LOGICAL, DATE, DATETIME |
 | Appel méthode chaîné | `.Object.Method().SubMethod()` | `OBJECT:Method():SubMethod()` |
 | Inconnue | `?` | `?` (unknown value) |
-| Division entière | `321 / 60 = 5` | identique |
+| Division entière | `7 / 2 = 3` | identique |
 | Boucles | WHILE/DO/DONE, REPEAT/UNTIL | DO WHILE, REPEAT/UNTIL |
 | Conditionnel | IF/THEN/ELSE/ENDIF | IF/THEN/ELSE/END |
 | Assignation | `:=` | `=` |
@@ -71,13 +71,26 @@ Usage : Exemples de cas d'utilisation uniquement (section `03_chu_use_cases/`).
 
 ---
 
-## 4. Déclaration de non-plagiat
+## 4. Méthode de rédaction des fiches
 
-Les fiches du répertoire `02_functions/` ont été rédigées selon la méthode **Clean Room** :
-1. Extraction des faits bruts (signature, comportement algorithmique) depuis le manuel source retapé à la main.
-2. **Destruction immédiate** de la formulation textuelle originale.
-3. Rédaction entièrement nouvelle basée sur les analogies Progress ABL et l'algorithmie standard.
-4. Validation par expertise technique (exécution du code), non par comparaison avec le manuel.
+Les fiches du répertoire `02_functions/` décrivent des faits relevés dans le manuel :
+1. Relevé des faits bruts : signature, types, retour, comportement observable, contraintes.
+2. Rédaction en style factuel, avec le vocabulaire et les analogies du langage proxy Progress ABL.
+3. Vérification technique par exécution de code lorsque c'est possible. Les comportements non encore vérifiés portent la mention « à vérifier par exécution ».
+4. Contrôle de similarité automatisé par rapport au manuel (§ 5).
+
+## 5. Audit de similarité et corrections (septembre 2026)
+
+Un audit technique comparatif (rapport : `docs/audit_PI_V2_vs_GLIMS_2026-09-23/RAPPORT_AUDIT_PI.md`, puis `RAPPORT_REMEDIATION.md`) a constaté, dans la version de la base antérieure à cette correction :
+- des descriptions reprises mot pour mot du guide de référence, dans `complete_function_data.json` et dans huit fichiers « complément » (`*_extended.md` des tables Person, Site et Correspondent, et `*_missing.md`) ;
+- des exemples repris de l'éditeur dans `math_functions.md` et `string_functions.md`, ainsi que quelques valeurs d'exemple isolées.
+
+Corrections appliquées :
+- `complete_function_data.json` et les huit fichiers « complément » sont régénérés **uniquement à partir de fiches de faits** (conservées dans le dossier d'audit, `faits/fiches_faits.json`), par un script qui ne lit ni le manuel ni les anciennes descriptions ;
+- les exemples repris ont été remplacés par des exemples originaux ;
+- le contrôle `tools/check_ip_similarity.py` doit être relancé avant chaque ajout à la base.
+
+Ce dispositif réduit le risque de reprise de l'expression du manuel. Il ne constitue pas un avis juridique ; une validation par un avocat en propriété intellectuelle est recommandée.
 
 **Responsable de la rédaction** : Florian Magne — florian.magne@chu-limoges.fr 
 **Date** : 2026-04-06

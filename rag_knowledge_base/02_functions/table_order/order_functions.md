@@ -76,7 +76,7 @@ Planifie l'édition des rapports pour le dossier courant.
 
 ## PostProcess
 **Signature** : `Logical PostProcess(Logical p1, Logical p2, Logical p3, Logical p4, Logical p5, Logical p6, Logical p7)`  
-Lance le post-traitement du dossier (impression étiquettes, rapports, transmissions...).  
+Effet : déclenche la chaîne de fin de saisie du dossier ; retour `Logical`.  
 Les 7 paramètres booléens contrôlent les différentes étapes du post-traitement.  
 `?` pour valeur par défaut sur un paramètre.
 
@@ -125,7 +125,7 @@ DateTimeToString(Action.Order().CreationTime, "%Y/%m/%d")
 
 ## CreationUser (navigation)
 **Accès** : `Action.Order().CreationUser.LoginName`  
-Accède à l'utilisateur ayant créé le dossier.
+Valeur : `sc_User` créateur ; `.LoginName` donne son identifiant.
 
 ```mispl
 IF Action.Order().CreationUser.LoginName = "presco" THEN ...

@@ -28,19 +28,19 @@ IF CurrentUser() = "admin" THEN ...
 
 ## CurrentDepartment
 **Signature** : `String CurrentDepartment()`  
-Retourne le mnémonique de la discipline de l'utilisateur connecté.
+Retour : mnémonique de discipline de la session.
 
 ---
 
 ## CurrentRole
 **Signature** : `String CurrentRole()`  
-Retourne le mnémonique du rôle sélectionné lors de la connexion.
+Retour : mnémonique du rôle de la session.
 
 ---
 
 ## CurrentOS
 **Signature** : `String CurrentOS()`  
-Retourne `"UNIX"` ou `"WINDOWS"` selon la plateforme du serveur. Utile pour construire des chemins de fichiers.
+Retour : `"UNIX"` ou `"WINDOWS"` (OS du serveur).
 
 ---
 

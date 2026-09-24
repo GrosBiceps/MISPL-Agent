@@ -68,8 +68,8 @@ Relationnel   : < <= > >= = <>  (ou LT LE GT GE EQ NE)
 Logique       : AND OR NOT  (ou && || !)
 ```
 
-**Attention division entière** : `321 / 60` retourne `5` (troncature).  
-Pour un résultat décimal, forcer : `321.0 / 60` retourne `5.35`.
+**Attention division entière** : `7 / 2` retourne `3` (troncature).  
+Pour un résultat décimal, forcer : `7.0 / 2` retourne `3.5`.
 
 ## Valeur inconnue
 

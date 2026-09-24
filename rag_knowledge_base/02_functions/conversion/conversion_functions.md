@@ -38,7 +38,7 @@ ENDIF;
 
 ## FractionalToInteger
 **Signature** : `Integer FractionalToInteger(Fractional Fractional)`  
-Convertit un décimal en entier par **troncature** (pas d'arrondi).  
+Retour : partie entière de `Fractional` (troncature, pas d'arrondi).  
 **Équivalent ABL** : `TRUNCATE(x, 0)` ou cast implicite.
 
 ```mispl
@@ -50,7 +50,7 @@ entier := FractionalToInteger(5.9);   /* retourne 5, pas 6 */
 
 ## FractionalToString
 **Signature** : `String FractionalToString(Fractional Fractional, String Format)`  
-Convertit un décimal en chaîne selon une directive de format style `printf` :
+Retour : `Fractional` formaté selon une directive `printf` :
 
 | Directive | Description |
 |-----------|-------------|
@@ -60,8 +60,8 @@ Convertit un décimal en chaîne selon une directive de format style `printf` :
 | `%7.2f` | Largeur 7, 2 décimales |
 
 ```mispl
-FractionalToString(40.3399, "%7.2f")   /* "  40.34" */
-FractionalToString(40.3399, "%G")       /* "40.3399" */
+FractionalToString(12.5, "%6.2f")   /* " 12.50" */
+FractionalToString(0.00042, "%G")  /* "0.00042" (à vérifier par exécution) */
 ```
 
 ---
