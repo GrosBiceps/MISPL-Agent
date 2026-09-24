@@ -4,9 +4,13 @@ Gestion d'accès à deux modes — DSI (génération complète) / Technicien (br
 Défense en profondeur à deux couches :
   1. Consigne injectée dans le prompt système (le LLM doit refuser de lui-même).
   2. Barrière dure post-génération (enforce_access_mode) qui remplace la réponse
-     si une boucle WHILE/REPEAT apparaît quand même dans un bloc ```mispl,
-     réutilisant le même extracteur que le linter — jamais de confiance
-     aveugle dans le respect du prompt par le LLM.
+     si une boucle WHILE/REPEAT apparaît quand même — que ce soit dans un bloc
+     effectivement extrait par le linter (```mispl, ou ``` générique contenant
+     PROGRAM) ou n'importe où ailleurs dans la réponse (fence générique non
+     reconnue par le linter, pseudo-code non fenêtré, etc.), dès lors qu'il a
+     une saveur MISPL à proximité — jamais de confiance aveugle dans le
+     respect du prompt par le LLM, et surtout pas dans l'hypothèse qu'« être
+     dans une fence ``` » suffirait à garantir qu'un bloc a été vérifié.
 
 Mode par défaut : TECHNICIEN (fail-safe). Le mode DSI ne peut être atteint
 qu'en fournissant le mot de passe correspondant au hash stocké en .env.
@@ -45,6 +49,27 @@ réponds uniquement :
 """
 
 _LOOP_PATTERN = re.compile(r"\b(WHILE|REPEAT)\b", re.IGNORECASE)
+
+# Marqueurs indiquant une "saveur" MISPL dans du texte non fenêtré. Utilisé
+# pour scoper la détection de boucle en texte brut et éviter de bloquer à tort
+# une prose ordinaire contenant le mot anglais "while" (ex: "while this works").
+#
+# L'accesseur `.Champ` n'est PAS sous re.IGNORECASE (voir plus bas) : matché
+# case-sensitive sur `.MotMajuscule`, comme le pattern nom titré de
+# src/security/dlp.py pour le même type de faux positif. Sous IGNORECASE, ce
+# bras matchait n'importe quel point suivi d'un mot — y compris les extensions
+# de fichier dans les citations `## Source` obligatoires du format de réponse
+# (CLAUDE.md), ex. "Source : function_string.htm" — bloquant à tort un refus
+# légitime en mode Technicien qui cite sa source en prose.
+# RETURN a été retiré des marqueurs : trop fréquent en prose ordinaire
+# (française ou anglaise) parlant de code, pas spécifique aux boucles. DONE et
+# UNTIL ont été ajoutés : signaux forts et spécifiques aux boucles WHILE/REPEAT,
+# présents dans tous les payloads de contournement déjà couverts par les tests.
+_MISPL_FLAVOR_PATTERN = re.compile(
+    r"\bPROGRAM\b|\bENDIF\b|\bDONE\b|\bUNTIL\b|:="
+    r"|(?-i:\.[A-Z][A-Za-z0-9_]*\b)",
+    re.IGNORECASE,
+)
 
 
 def hash_password(password: str, salt_hex: str) -> str:
@@ -91,11 +116,62 @@ def _contains_loop(mispl_code: str) -> bool:
     return bool(_LOOP_PATTERN.search(mispl_code))
 
 
+_FENCED_BLOCK_PATTERN = re.compile(r"```(?:mispl)?\s*([\s\S]*?)```", re.IGNORECASE)
+_LOOP_CONTEXT_WINDOW = 2  # lignes avant/après à inspecter pour la saveur MISPL
+
+
+def _contains_unfenced_loop(response: str, already_checked_blocks: list[str]) -> bool:
+    """
+    Détecte une boucle WHILE/REPEAT dans le texte de la réponse qui n'a PAS
+    déjà été inspecté par la vérification par bloc (extract_mispl_blocks).
+
+    Important : un bloc ```...``` fenêtré n'est « déjà couvert » que s'il a
+    effectivement été extrait et inspecté par extract_mispl_blocks (blocs
+    ```mispl, ou blocs génériques ``` contenant PROGRAM). Un bloc ``` sans
+    tag `mispl` et sans le mot `PROGRAM` (ex: pseudo-code brut dans une
+    fence générique) n'est PAS extrait par extract_mispl_blocks — il ne faut
+    donc pas le retirer aveuglément ici, sous peine de le rendre invisible
+    aux deux couches de vérification. On ne retire du texte scanné que les
+    fences dont le contenu correspond exactement à un bloc réellement
+    vérifié par le for-loop de enforce_access_mode.
+
+    Scopée par proximité : un match WHILE/REPEAT ne déclenche le refus que si
+    une marque de saveur MISPL (PROGRAM, ENDIF, RETURN, `:=`, accesseur
+    `.Champ`) apparaît sur la même ligne ou à quelques lignes d'écart. Cela
+    évite de bloquer à tort une prose ordinaire contenant le mot anglais
+    "while" loin de tout code MISPL (ex: "while this works...").
+    """
+
+    def _strip_checked_block(match: re.Match) -> str:
+        content = match.group(0)
+        inner = match.group(1).strip()
+        if inner in already_checked_blocks:
+            return ""
+        return content
+
+    remaining = _FENCED_BLOCK_PATTERN.sub(_strip_checked_block, response)
+
+    lines = remaining.splitlines()
+    for i, line in enumerate(lines):
+        if not _LOOP_PATTERN.search(line):
+            continue
+        window_start = max(0, i - _LOOP_CONTEXT_WINDOW)
+        window_end = min(len(lines), i + _LOOP_CONTEXT_WINDOW + 1)
+        window = "\n".join(lines[window_start:window_end])
+        if _MISPL_FLAVOR_PATTERN.search(window):
+            return True
+    return False
+
+
 def enforce_access_mode(response: str, mode: str) -> str:
     """
-    Barrière dure : en mode Technicien, si un bloc ```mispl contient WHILE/REPEAT
-    malgré la consigne du prompt système, la réponse entière est remplacée par
-    le message de refus. Ne fait rien en mode DSI.
+    Barrière dure : en mode Technicien, si la réponse contient WHILE/REPEAT
+    malgré la consigne du prompt système, elle est remplacée par le message
+    de refus — que la boucle apparaisse dans un bloc effectivement extrait
+    par extract_mispl_blocks (```mispl, ou ``` générique contenant PROGRAM),
+    ou ailleurs dans la réponse (fence générique non reconnue par le linter,
+    pseudo-code non fenêtré, etc.) ayant une saveur MISPL à proximité. Ne
+    fait rien en mode DSI.
     """
     if mode != MODE_TECHNICIEN:
         return response
@@ -103,9 +179,13 @@ def enforce_access_mode(response: str, mode: str) -> str:
     # Import différé pour garder src/agent importable sans src/security (et inversement).
     from src.agent.linter import extract_mispl_blocks
 
-    for block in extract_mispl_blocks(response):
+    checked_blocks = extract_mispl_blocks(response)
+    for block in checked_blocks:
         if _contains_loop(block):
             return REFUSAL_MESSAGE
+
+    if _contains_unfenced_loop(response, checked_blocks):
+        return REFUSAL_MESSAGE
 
     return response
 

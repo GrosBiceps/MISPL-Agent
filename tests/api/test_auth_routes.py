@@ -67,6 +67,29 @@ class TestLogin:
         assert resp.status_code == 429
 
 
+class TestLoginRateLimiterCleanup:
+    def test_abandoned_keys_are_purged_from_memory(self, client, db_session_factory, monkeypatch):
+        """`_login_attempts`/`_login_attempts_by_ip` sont des dicts module-level
+        qui vivent pour toute la durée du process. Une clé (IP, email) touchée
+        une seule fois puis jamais revisitée ne doit pas rester indéfiniment en
+        mémoire une fois sa fenêtre de rate limiting expirée."""
+        import time
+        import api.routers.auth as auth_router
+
+        client.post("/auth/login", json={"email": "abandoned@labo.fr", "password": "x"})
+        assert any("abandoned@labo.fr" in k for k in auth_router._login_attempts)
+
+        future = time.monotonic() + auth_router._LOGIN_RATE_WINDOW_SECONDS + 1
+        monkeypatch.setattr(auth_router.time, "monotonic", lambda: future)
+
+        # Une tentative sans rapport, une fois la fenêtre expirée, déclenche le
+        # nettoyage — la clé abandonnée doit disparaître du dict, pas juste
+        # voir sa liste de timestamps vidée silencieusement.
+        client.post("/auth/login", json={"email": "other@labo.fr", "password": "x"})
+
+        assert not any("abandoned@labo.fr" in k for k in auth_router._login_attempts)
+
+
 class TestMe:
     def test_me_without_login_returns_401(self, client, db_session_factory):
         resp = client.get("/auth/me")

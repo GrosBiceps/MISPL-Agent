@@ -66,7 +66,11 @@ def create_user(
         is_active=True,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email déjà utilisé")
     db.refresh(user)
 
     return CreateUserResponse(

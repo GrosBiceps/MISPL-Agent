@@ -53,6 +53,52 @@ class TestRequestValidation:
         resp = client.post("/chat/ask", json={"question": ""})
         assert resp.status_code == 422
 
+    def test_oversized_history_message_content_rejected_with_422(self, client, db_session_factory):
+        make_user(db_session_factory)
+        login(client)
+        history = [{"role": "user", "content": "x" * 8001}]
+        resp = client.post(
+            "/chat/ask",
+            json={"question": "Comment utiliser Substr ?", "conversation_history": history},
+        )
+        assert resp.status_code == 422
+
+    def test_history_message_content_at_max_length_accepted(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
+        monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("ok", []))
+
+        history = [{"role": "user", "content": "x" * 8000}]
+        resp = client.post(
+            "/chat/ask",
+            json={"question": "Comment utiliser Substr ?", "conversation_history": history},
+        )
+        assert resp.status_code == 200
+
+    def test_too_many_history_messages_rejected_with_422(self, client, db_session_factory):
+        make_user(db_session_factory)
+        login(client)
+        history = [{"role": "user", "content": "hello"} for _ in range(51)]
+        resp = client.post(
+            "/chat/ask",
+            json={"question": "Comment utiliser Substr ?", "conversation_history": history},
+        )
+        assert resp.status_code == 422
+
+    def test_history_message_count_at_max_accepted(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
+        monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("ok", []))
+
+        history = [{"role": "user", "content": "hello"} for _ in range(50)]
+        resp = client.post(
+            "/chat/ask",
+            json={"question": "Comment utiliser Substr ?", "conversation_history": history},
+        )
+        assert resp.status_code == 200
+
 
 class TestDLPBlocking:
     def test_dlp_blocked_does_not_call_ask_mispl(self, client, db_session_factory, monkeypatch):
@@ -351,6 +397,42 @@ class TestConversationPersistence:
 
         db = db_session_factory()
         assert db.query(Conversation).count() == 0
+
+
+class TestRateLimiting:
+    def test_exceeding_per_user_rate_limit_returns_429(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory)
+        login(client)
+
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
+        monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("ok", []))
+
+        for _ in range(chat_router._CHAT_RATE_LIMIT_PER_USER):
+            resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
+            assert resp.status_code == 200
+
+        resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
+        assert resp.status_code == 429
+
+    def test_rate_limit_is_per_user_not_global(self, client, db_session_factory, monkeypatch):
+        make_user(db_session_factory, email="a@labo.fr")
+        make_user(db_session_factory, email="b@labo.fr")
+
+        monkeypatch.setattr(chat_router, "dlp_check", lambda text, escalate_combinations=True: (False, []))
+        monkeypatch.setattr(chat_router, "ask_mispl", lambda question, **kwargs: ("ok", []))
+
+        login(client, email="a@labo.fr")
+        for _ in range(chat_router._CHAT_RATE_LIMIT_PER_USER):
+            resp = client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
+            assert resp.status_code == 200
+        assert client.post("/chat/ask", json={"question": "Comment utiliser Substr ?"}).status_code == 429
+
+        from fastapi.testclient import TestClient
+        from api.main import app
+        client_b = TestClient(app)
+        login(client_b, email="b@labo.fr")
+        resp = client_b.post("/chat/ask", json={"question": "Comment utiliser Substr ?"})
+        assert resp.status_code == 200
 
 
 class TestUsageTracking:

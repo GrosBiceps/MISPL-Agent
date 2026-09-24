@@ -59,6 +59,25 @@ class TestDLPBlocking:
         blocked, alerts = dlp_check("DUPONT Marie: 12/03/1980, resultat glycemie anormal")
         assert blocked is True
 
+    def test_full_title_word_monsieur_with_born_date_blocks(self):
+        """Régression audit F-02 : le titre en toutes lettres 'Monsieur' (pas
+        seulement l'abréviation 'M'/'Mr') doit être reconnu comme un titre
+        patient valide."""
+        blocked, alerts = dlp_check("Monsieur DUPONT Marie né le 12/03/1980")
+        assert blocked is True
+
+    def test_full_title_word_madame_with_born_date_blocks(self):
+        """Régression audit F-02 : idem pour 'Madame' (pas seulement 'Mme')."""
+        blocked, alerts = dlp_check("Madame MARTIN Sophie, née le 03/07/1955")
+        assert blocked is True
+
+    def test_intervening_word_between_name_and_date_blocks(self):
+        """Régression audit F-02 : un mot intercalaire ('patiente') entre le nom
+        et la date ne doit plus permettre de contourner le filtre — l'ancienne
+        contrainte d'adjacence stricte laissait passer ce copié-collé."""
+        blocked, alerts = dlp_check("DUPONT Marie, patiente née le 12/03/1980")
+        assert blocked is True
+
 
 class TestDLPWarningsNonBlocking:
     def test_date_triggers_warning_not_block(self):
@@ -134,6 +153,21 @@ class TestDLPWarningsNonBlocking:
         rester stricte."""
         blocked, alerts = dlp_check("dr Martin BERNARD a valide ce resultat")
         assert any("Nom patient" in a for a in alerts)
+
+    def test_product_names_alone_no_date_not_blocked(self):
+        """Régression audit F-02 : élargir l'alternation de titre et la fenêtre
+        nom+date ne doit pas faire (re)matcher 'MISPL Agent'/'GLIMS Server'
+        comme un nom patient, même sans aucune date dans le texte."""
+        blocked, alerts = dlp_check("MISPL Agent GLIMS Server")
+        assert blocked is False
+
+    def test_bare_birthdate_phrase_no_name_not_blocked_exact_audit_wording(self):
+        """Régression audit F-02 (libellé exact du brief) : une date de naissance
+        seule, sans nom, ne doit pas bloquer."""
+        blocked, alerts = dlp_check(
+            "le patient est né le 29/02, comment vérifier une année bissextile ?"
+        )
+        assert blocked is False
 
 
 class TestDLPEscalationParameter:

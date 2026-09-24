@@ -32,9 +32,10 @@ function extractRationale(sectionBody: string, emoji: string): string | null {
   if (!line) return null;
 
   let text = line.slice(line.indexOf(emoji) + emoji.length).trim();
-  // Retire les marqueurs de gras sans perdre le texte qu'ils entourent, pour
-  // que le mot de niveau soit détectable qu'il ait été en gras ou non.
-  text = text.replace(/\*\*/g, "").trim();
+  // Déballe un SEUL marqueur de gras en tête (ex: "**Certain**"), sans
+  // toucher au gras utilisé ailleurs dans la justification (ex: "**Substr**
+  // confirmée" ne doit pas perdre son emphase).
+  text = text.replace(/^\*\*([^*]+)\*\*/, "$1").trim();
   // Retire le mot de niveau lui-même (ex: "Certain"), déjà affiché par le badge.
   const levelWord = LEVEL_WORDS[emoji];
   if (levelWord) {

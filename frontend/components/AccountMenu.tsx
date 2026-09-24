@@ -31,6 +31,7 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
   const [open, setOpen] = useState(false);
   const [legalOpen, setLegalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -40,7 +41,27 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
       }
     }
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        const panel = panelRef.current;
+        if (!panel) return;
+        const items = Array.from(
+          panel.querySelectorAll<HTMLElement>('[role="menuitem"], [role="menuitemradio"]')
+        );
+        if (items.length === 0) return;
+        e.preventDefault();
+        const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+        let nextIndex: number;
+        if (e.key === "ArrowDown") {
+          nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % items.length;
+        } else {
+          nextIndex = currentIndex === -1 ? items.length - 1 : (currentIndex - 1 + items.length) % items.length;
+        }
+        items[nextIndex].focus();
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
@@ -71,7 +92,7 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
               }
         }
         aria-expanded={open}
-        aria-haspopup="true"
+        aria-haspopup="menu"
         aria-label={`Paramètres du compte (${displayName})`}
         title={compact ? displayName : undefined}
       >
@@ -110,6 +131,9 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
       </button>
       {open && (
         <div
+          ref={panelRef}
+          role="menu"
+          aria-label={`Menu du compte (${displayName})`}
           className="card"
           style={{
             position: "absolute",
@@ -131,13 +155,14 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
           >
             Couleur de l&apos;interface
           </p>
-          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+          <div role="group" aria-label="Couleur de l'interface" style={{ display: "flex", gap: 10, marginBottom: 16 }}>
             {THEME_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
+                role="menuitemradio"
                 onClick={() => setTheme(opt.value)}
                 aria-label={opt.label}
-                aria-pressed={theme === opt.value}
+                aria-checked={theme === opt.value}
                 style={{
                   width: 28,
                   height: 28,
@@ -153,6 +178,7 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
           {isAdmin && (
             <Link
               href="/admin"
+              role="menuitem"
               style={{
                 display: "block",
                 padding: "8px 0",
@@ -202,6 +228,7 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
           </div>
           <button
             onClick={onLogout}
+            role="menuitem"
             style={{
               width: "100%",
               textAlign: "left",
@@ -214,6 +241,40 @@ export default function AccountMenu({ displayName, onLogout, compact = false, is
           >
             Déconnexion
           </button>
+          <div role="group" aria-label="Mentions" style={{ borderTop: "1px solid var(--line)", marginTop: 4, paddingTop: 6 }}>
+            <button
+              onClick={() => setLegalOpen((v) => !v)}
+              role="menuitem"
+              aria-expanded={legalOpen}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                width: "100%",
+                textAlign: "left",
+                background: "transparent",
+                border: "none",
+                padding: "4px 0",
+                color: "var(--ink-soft)",
+                fontSize: 11,
+                cursor: "pointer",
+              }}
+            >
+              <span aria-hidden="true">ⓘ</span> Mentions
+            </button>
+            {legalOpen && (
+              <p
+                style={{
+                  fontSize: 10.5,
+                  lineHeight: 1.5,
+                  color: "var(--ink-soft)",
+                  marginTop: 4,
+                }}
+              >
+                {LEGAL_NOTICE}
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>

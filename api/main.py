@@ -6,8 +6,9 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 try:
     from dotenv import load_dotenv
@@ -33,6 +34,66 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="MISPL Agent API", lifespan=lifespan)
+
+# Taille maximale acceptée pour le corps d'une requête HTTP. Le payload JSON
+# de /chat/ask (question + lab_context + conversation_history, tous bornés
+# côté schéma Pydantic — cf. api/schemas.py) ne devrait jamais s'en approcher ;
+# cette limite est une défense en profondeur contre un corps de requête
+# volumineux qui saturerait la mémoire/le CPU avant même la validation Pydantic.
+MAX_REQUEST_BODY_BYTES = 1 * 1024 * 1024  # 1 Mo
+
+
+@app.middleware("http")
+async def limit_request_body_size(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            if int(content_length) > MAX_REQUEST_BODY_BYTES:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": "Corps de requête trop volumineux"},
+                )
+        except ValueError:
+            pass
+
+    # Content-Length est absent pour un corps en Transfer-Encoding: chunked —
+    # un client peut alors contourner le contrôle ci-dessus. On borne aussi le
+    # flux réel, chunk par chunk, indépendamment de tout en-tête déclaré par
+    # le client (jamais fiable pour une limite de sécurité).
+    received = 0
+    original_receive = request.receive
+
+    async def limited_receive():
+        nonlocal received
+        message = await original_receive()
+        if message["type"] == "http.request":
+            received += len(message.get("body", b""))
+            if received > MAX_REQUEST_BODY_BYTES:
+                raise HTTPException(status_code=413, detail="Corps de requête trop volumineux")
+        return message
+
+    request._receive = limited_receive
+    return await call_next(request)
+
+
+# Chemins servant du HTML/JS interactif (Swagger UI / ReDoc, générés par
+# FastAPI) : ils ont besoin d'exécuter des scripts/styles externes (CDN) et
+# ne peuvent donc pas recevoir le CSP strict "default-src 'none'" appliqué au
+# reste de l'API (purement JSON). On les exempte explicitement plutôt que de
+# relâcher le CSP globalement.
+_DOCS_PATHS = {"/docs", "/redoc", "/openapi.json"}
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if request.url.path not in _DOCS_PATHS:
+        response.headers["Content-Security-Policy"] = "default-src 'none'"
+    return response
+
 
 _frontend_origins = os.environ.get("MISPL_FRONTEND_ORIGIN", "http://localhost:3000").split(",")
 app.add_middleware(

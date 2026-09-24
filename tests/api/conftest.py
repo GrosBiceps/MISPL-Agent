@@ -17,6 +17,20 @@ from sqlalchemy.pool import StaticPool
 from api.db import Base, get_db
 from api.main import app
 import api.routers.auth as auth_router
+import api.routers.chat as chat_router
+
+
+@pytest.fixture(autouse=True)
+def _reset_chat_rate_limiter():
+    # `_chat_attempts` (api/routers/chat.py) est un dict module-level, indexé
+    # par user_id, qui vit pour toute la durée du process pytest. Comme chaque
+    # test recrée sa propre base SQLite en mémoire, les ids utilisateurs
+    # recommencent souvent à 1 d'un test à l'autre : sans ce reset, les appels
+    # à /chat/ask cumulés d'un test à l'autre finiraient par dépasser le seuil
+    # de rate limiting par utilisateur et feraient échouer des tests sans
+    # rapport avec des 429 inattendus.
+    chat_router._chat_attempts.clear()
+    yield
 
 
 @pytest.fixture(autouse=True)

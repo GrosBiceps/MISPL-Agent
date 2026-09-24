@@ -86,6 +86,85 @@ class TestEnforceAccessMode:
         response = "Cette fonction ne nécessite pas de boucle while.\n```mispl\nRETURN Today();\n```"
         assert enforce_access_mode(response, MODE_TECHNICIEN) == response
 
+    def test_technicien_blocks_unfenced_while_loop(self):
+        # F-01 : une boucle WHILE en pseudo-code MISPL sans aucun fencing
+        # ``` doit être bloquée — le contournement historique de la barrière
+        # dure consistait justement à demander une réponse non fenêtrée.
+        response = (
+            "Voici le code sans fence :\n"
+            "STRING PROGRAM\n"
+            "  WHILE i < 10 DO\n"
+            "    i := i + 1;\n"
+            "  DONE\n"
+            "RETURN i;"
+        )
+        result = enforce_access_mode(response, MODE_TECHNICIEN)
+        assert result == REFUSAL_MESSAGE
+
+    def test_technicien_blocks_unfenced_repeat_loop(self):
+        response = (
+            "STRING PROGRAM\n"
+            "  REPEAT\n"
+            "    i := i + 1;\n"
+            "  UNTIL i >= 10\n"
+            "RETURN i;"
+        )
+        result = enforce_access_mode(response, MODE_TECHNICIEN)
+        assert result == REFUSAL_MESSAGE
+
+    def test_dsi_mode_unfenced_loop_not_blocked(self):
+        # Mode DSI : la barrière dure ne s'applique pas, fenced ou non.
+        response = (
+            "STRING PROGRAM\n"
+            "  WHILE i < 10 DO\n"
+            "    i := i + 1;\n"
+            "  DONE\n"
+            "RETURN i;"
+        )
+        assert enforce_access_mode(response, MODE_DSI) == response
+
+    def test_technicien_blocks_plain_fence_loop_without_program_keyword(self):
+        # Régression (revue Critical) : une fence ``` générique, sans tag
+        # `mispl` et sans le mot PROGRAM, n'est PAS extraite par
+        # extract_mispl_blocks — elle ne doit donc pas non plus être retirée
+        # aveuglément de l'analyse texte-brut, sinon la boucle qu'elle
+        # contient devient invisible aux deux couches de vérification.
+        response = (
+            "Voici un extrait :\n"
+            "```\n"
+            "WHILE i < 10 DO\n"
+            "  i := i + 1;\n"
+            "DONE\n"
+            "```"
+        )
+        result = enforce_access_mode(response, MODE_TECHNICIEN)
+        assert result == REFUSAL_MESSAGE
+
+    def test_technicien_allows_ordinary_prose_with_english_while(self):
+        # "while" au sens anglais courant, dans une explication sans aucune
+        # saveur MISPL à proximité, ne doit pas déclencher le refus.
+        response = (
+            "Cette approche reste valable while this works correctly on your "
+            "current dataset, mais nécessite une revue si le volume augmente."
+        )
+        assert enforce_access_mode(response, MODE_TECHNICIEN) == response
+
+    def test_technicien_allows_prose_refusal_citing_htm_source(self):
+        # Régression (revue finale) : un refus légitime en mode Technicien,
+        # rédigé en prose et citant sa source au format `## Source` obligatoire
+        # (CLAUDE.md, ex: "function_string.htm"), ne doit PAS être écrasé par
+        # REFUSAL_MESSAGE. Avant le correctif, le bras `.Champ` du pattern de
+        # saveur MISPL matchait n'importe quel point suivi d'un mot (donc
+        # ".htm" dans la citation) sous IGNORECASE, et RETURN comptait comme
+        # marqueur de saveur — la combinaison avec WHILE dans la même fenêtre
+        # de proximité déclenchait à tort le remplacement.
+        response = (
+            "Une boucle WHILE serait nécessaire, mais elle est interdite en "
+            "mode Technicien.\n"
+            'Source : function_string.htm — section "Substr"'
+        )
+        assert enforce_access_mode(response, MODE_TECHNICIEN) == response
+
 
 class TestAccessModeForUser:
     def test_dsi_flag_true_gives_dsi_mode(self):

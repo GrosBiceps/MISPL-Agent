@@ -118,8 +118,63 @@ class TestScoreLeakGuard:
 
     def test_wired_into_weak_evidence_guard_output(self):
         """La suppression de fuite de score s'applique aussi sur le chemin
-        'documentation faible' (_enforce_weak_evidence_warning)."""
+        'documentation faible' (_enforce_weak_evidence_warning), y compris
+        dans du texte qui survit à la rétrogradation de la ligne ✅ Certain
+        (donc pas uniquement parce que toute la ligne a été remplacée)."""
         docs = [{"score": 0.05}]
-        response = "✅ Certain — signature confirmée avec un score de 0,95."
+        response = (
+            "## Niveau de certitude\n"
+            "✅ Certain — tout va bien.\n\n"
+            "## Notes techniques\n"
+            "Cette fonction a été retrouvée avec un score de 0,95 dans le RAG."
+        )
         result = _enforce_weak_evidence_warning(response, docs)
         assert "score" not in result.lower()
+        assert "0,95" not in result
+
+    def test_code_block_never_altered(self):
+        """Régression critique (revue du 2026-08-27) : le nettoyage ne doit
+        jamais toucher l'intérieur d'un bloc ``` ``` ``` — une première
+        version cassait la syntaxe MISPL à point initial (".Sample.Id" →
+        "IF.Sample.Id") et écrasait l'indentation, car le nettoyage
+        s'appliquait à la réponse entière au lieu de la seule prose."""
+        response = (
+            "## Code MISPL\n"
+            "```mispl\n"
+            "STRING PROGRAM\n"
+            "  IF .Sample.Id NE ? THEN\n"
+            "    code := Substr(.Sample.Id, 1, 3);\n"
+            "  ENDIF;\n"
+            "RETURN code;\n"
+            "```\n\n"
+            "## Sources documentaires\n"
+            "Source : function_string.htm\n\n"
+            "## Niveau de certitude\n"
+            "✅ Certain — la signature de `Substr` est présente avec un score "
+            "de 1,00 dans le RAG.\n"
+        )
+        result = _strip_leaked_retrieval_scores(response)
+        assert "IF .Sample.Id NE ? THEN" in result
+        assert "code := Substr(.Sample.Id, 1, 3);" in result
+        assert "Source : function_string.htm" in result  # typographie française préservée
+        assert "1,00" not in result
+
+    def test_clinical_score_variable_and_prose_untouched(self):
+        """Régression critique : un score métier (variable MISPL nommée
+        "score", score de Glasgow, z-score) n'est pas une fuite de retrieval
+        et ne doit jamais être effacé — seul un nombre au format 0.xxx/1.xxx
+        (plage des scores de retrieval de ce RAG) est concerné."""
+        response = (
+            "```mispl\n"
+            "FRACTIONAL PROGRAM\n"
+            "  FRACTIONAL score;\n"
+            "  score := 0.95;\n"
+            "RETURN score;\n"
+            "```\n"
+            "Le score de Glasgow est de 8. Calcul du z-score : 2.58.\n"
+        )
+        result = _strip_leaked_retrieval_scores(response)
+        assert "FRACTIONAL score;" in result
+        assert "score := 0.95;" in result
+        assert "Glasgow" in result
+        assert "z-score : 2.58" in result
