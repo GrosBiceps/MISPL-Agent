@@ -42,10 +42,19 @@ REFUSAL_MESSAGE = (
 # Consigne injectée dans le prompt système en mode Technicien.
 TECHNICIEN_PROMPT_RESTRICTIONS = """## Restriction — Mode Technicien actif
 Le mode DSI (génération complète) n'est PAS activé pour cette session.
-INTERDICTION ABSOLUE de générer une boucle `WHILE` ou `REPEAT` dans le code MISPL.
-Si la demande nécessite une boucle pour être satisfaite, NE GÉNÈRE AUCUN CODE et
-réponds uniquement :
-"🔒 Génération réservée au mode DSI — cette demande nécessite une boucle. Contactez la DSI."
+INTERDICTION ABSOLUE de générer une boucle dans le code MISPL.
+1. Une demande SANS boucle (tester une analyse, lire une valeur, formater, remplacer...) se
+   traite normalement, au format habituel : ce mode ne bride QUE les boucles.
+2. Si l'utilisateur parle de boucle, cherche d'abord une fonction intégrée qui rend la boucle
+   inutile (ex. Replace, Lpad, Index, NumEntries, IsRequested, Attribute("...List")). Si elle
+   couvre le besoin, réponds normalement avec ce code sans boucle.
+3. Sinon, n'écris AUCUN bloc de code et réponds exactement :
+## Contexte GLIMS
+🔒 Génération réservée au mode DSI — cette demande nécessite une boucle. Contactez la DSI.
+   Tu peux ajouter une phrase proposant une alternative sans boucle, sans code.
+4. N'écris JAMAIS les mots-clés WHILE, REPEAT, DONE ou UNTIL dans ta réponse, ni dans le
+   code, ni dans les commentaires, ni dans les notes : écris « boucle ». Une barrière
+   automatique remplace par un refus toute réponse qui contient une boucle.
 """
 
 _LOOP_PATTERN = re.compile(r"\b(WHILE|REPEAT)\b", re.IGNORECASE)
@@ -118,6 +127,11 @@ def _contains_loop(mispl_code: str) -> bool:
 
 _FENCED_BLOCK_PATTERN = re.compile(r"```(?:mispl)?\s*([\s\S]*?)```", re.IGNORECASE)
 _LOOP_CONTEXT_WINDOW = 2  # lignes avant/après à inspecter pour la saveur MISPL
+_WHILE_DO_PATTERN = re.compile(r"\bWHILE\b.*\bDO\b", re.IGNORECASE)
+_DONE_PATTERN = re.compile(r"\bDONE\b", re.IGNORECASE)
+_UNTIL_PATTERN = re.compile(r"\bUNTIL\b", re.IGNORECASE)
+# Mot-clé de boucle en tête de ligne (indentation, puce ou numéro tolérés).
+_STATEMENT_LOOP_PATTERN = re.compile(r"^\s*(?:[-*>]\s+|\d+[.)]\s+)?`?(WHILE|REPEAT)\b", re.IGNORECASE)
 
 
 def _contains_unfenced_loop(response: str, already_checked_blocks: list[str]) -> bool:
@@ -140,6 +154,12 @@ def _contains_unfenced_loop(response: str, already_checked_blocks: list[str]) ->
     `.Champ`) apparaît sur la même ligne ou à quelques lignes d'écart. Cela
     évite de bloquer à tort une prose ordinaire contenant le mot anglais
     "while" loin de tout code MISPL (ex: "while this works...").
+
+    Depuis le banc temps réel du 2026-09-24, la règle de proximité ne vaut
+    que pour un mot-clé en position d'instruction (début de ligne). Une
+    boucle structurellement complète (WHILE ... DO / DONE, REPEAT ... UNTIL)
+    reste bloquée où qu'elle soit. Une mention en prose (« aucune boucle
+    WHILE/REPEAT n'est nécessaire ») ne bloque plus une réponse valide.
     """
 
     def _strip_checked_block(match: re.Match) -> str:
@@ -153,7 +173,25 @@ def _contains_unfenced_loop(response: str, already_checked_blocks: list[str]) ->
 
     lines = remaining.splitlines()
     for i, line in enumerate(lines):
-        if not _LOOP_PATTERN.search(line):
+        match = _LOOP_PATTERN.search(line)
+        if not match:
+            continue
+        # 1. Structure de boucle complète (quelle que soit la position) :
+        #    `WHILE ... DO` sur la ligne, ou un DONE plus loin ; `REPEAT` suivi
+        #    d'un UNTIL plus loin. Ne dépend d'aucune fenêtre : un corps de
+        #    boucle long reste détecté.
+        after = "\n".join([line[match.end():]] + lines[i + 1:])
+        if match.group(1).upper() == "WHILE":
+            if _WHILE_DO_PATTERN.search(line) or _DONE_PATTERN.search(after):
+                return True
+        elif _UNTIL_PATTERN.search(after):
+            return True
+        # 2. Mot-clé en position d'instruction (début de ligne) avec une
+        #    saveur MISPL à proximité : pseudo-code incomplet.
+        #    Une simple MENTION du mot-clé au fil d'une phrase (« Aucune boucle
+        #    WHILE/REPEAT requise », banc temps réel 2026-09-24, ORD-001) n'est
+        #    pas une boucle, même si un accesseur `.Champ` figure à côté.
+        if not _STATEMENT_LOOP_PATTERN.match(line):
             continue
         window_start = max(0, i - _LOOP_CONTEXT_WINDOW)
         window_end = min(len(lines), i + _LOOP_CONTEXT_WINDOW + 1)

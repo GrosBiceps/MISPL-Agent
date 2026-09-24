@@ -10,93 +10,212 @@ pinned: false
 
 # MISPL Agent
 
-Assistant IA spécialisé dans le langage **MISPL** (le langage de scripting propriétaire du SIL **GLIMS**, édité par Clinisys/MIPS). Il aide les **techniciens de laboratoire de biologie médicale** et la DSI à écrire, comprendre et sécuriser des scripts MISPL (règles de calcul, validations, comptes-rendus, navigation ERD) en répondant en français, avec des sources documentaires citées à chaque réponse.
+Assistant IA spécialisé dans le langage **MISPL**, le langage de scripting propriétaire du SIL **GLIMS** (Clinisys/MIPS). Il aide les **techniciens de laboratoire de biologie médicale** et la DSI à écrire, comprendre et sécuriser des scripts MISPL (règles de calcul, validations, comptes-rendus, navigation ERD). Il répond en français et cite ses sources documentaires à chaque réponse.
 
-Priorité absolue : **zéro hallucination**. L'agent ne doit jamais inventer une fonction MISPL — toute réponse s'appuie sur une base de connaissances constituée manuellement (593 fonctions indexées), et signale explicitement quand la documentation est absente ou partielle.
+Priorité absolue : **zéro hallucination**. L'agent ne doit jamais inventer une fonction MISPL. Chaque réponse s'appuie sur une base de connaissances rédigée pour ce projet (38 fiches Markdown, 301 fonctions reconnues par l'index), et l'agent signale explicitement quand la documentation est absente ou partielle.
 
 ## Architecture
 
-- **RAG hybride BM25 + ChromaDB** (`src/rag/retriever.py`) : fusion par *Reciprocal Rank Fusion* entre une recherche lexicale BM25 (stemming français) et une recherche vectorielle dense ChromaDB, avec boost sur les correspondances exactes de nom de fonction et réordonnancement anti-« lost in the middle ». La base est construite depuis `rag_knowledge_base/` par `src/rag/build_vectorstore.py` / `src/rag/ingest_knowledge_base.py` et stockée dans `docs/chunks/`.
-- **LLM via OpenRouter** (`src/agent/mispl_agent.py`) : appel à l'API OpenRouter (compatible OpenAI) avec une liste de modèles gratuits (`FREE_MODELS`), un ordre de repli automatique en cas de rate-limit, un cache question→réponse (24h) et une purge automatique des sessions journalisées.
-- **Prompt système** (`src/agent/prompt_builder.py`) : construit dynamiquement selon le profil de skill sélectionné (`auto`, `code`, `report`, `erd`, `perf`), en s'appuyant sur les skills métier définies dans `.claude/skills/`.
-- **Linter de sécurité MISPL** (`src/agent/linter.py`) : analyse le code généré avant affichage — détecte boucles infinies potentielles, division par zéro, assignation de champs read-only, division entière silencieuse sur des résultats biologiques.
-- **Modes d'accès DSI / Technicien** (`src/security/access_mode.py`) : défense en profondeur à deux couches. Le mode par défaut (**Technicien**) interdit la génération de boucles `WHILE`/`REPEAT` — à la fois via une consigne injectée dans le prompt système et via une barrière post-génération (`enforce_access_mode`) qui remplace la réponse si une boucle apparaît malgré tout. Le mode **DSI** (génération complète) ne se débloque qu'avec un mot de passe dont le hash PBKDF2-HMAC-SHA256 est stocké dans `.env` (généré via `scripts/set_dsi_password.py`) ; sans ce hash configuré, le mode DSI est définitivement inatteignable (fail-safe).
-- **DLP (protection des données patient)** (`src/security/dlp.py`) : filtre les questions et le contexte labo avant envoi au LLM — bloque les motifs à haut risque (NIR, IPP/NIP) et alerte sur les motifs sensibles (noms, dates de naissance).
-- **Interface** : application Streamlit (`app.py`) avec suivi des sources RAG par réponse, export de conversation, et relevé optionnel des ressources machine (CPU/RAM/GPU) avec rapport Plotly HTML (`src/utils/resource_monitor.py`).
+Le projet comporte deux interfaces qui partagent le même moteur (agent, RAG, sécurité) :
+
+- **Plateforme multi-utilisateurs** : API **FastAPI** (`api/`) et frontend **Next.js** (`frontend/`). Comptes, sessions, historique des conversations, tableau de bord d'administration et suivi de consommation de jetons.
+- **Interface Streamlit** (`app.py`) : interface mono-poste historique, toujours fonctionnelle. Elle est lancée par `start.ps1 run` et par le `Dockerfile` (déploiement de type Hugging Face Space).
+
+### Moteur
+
+- **Agent** (`src/agent/mispl_agent.py`, fonction `ask_mispl`) : appelle l'API OpenRouter (compatible OpenAI) avec une liste de modèles gratuits (`FREE_MODELS`). En cas de limite de débit ou d'indisponibilité, il bascule automatiquement vers un autre modèle (`FALLBACK_ORDER`). Il utilise un cache question → réponse sur disque (24 h par défaut) et purge automatiquement les sessions journalisées. Avant de renvoyer une réponse, il applique plusieurs traitements :
+  - suppression du raisonnement interne (*chain-of-thought*) qui aurait fuité ;
+  - auto-corrections MISPL ;
+  - barrière du mode d'accès ;
+  - **garde-fou mécanique de certitude** : un avertissement est ajouté quand les preuves documentaires sont faibles, indépendamment de l'auto-évaluation du LLM ;
+  - suppression des scores de retrieval internes qui auraient fuité ;
+  - lint de sécurité.
+- **Prompt système** (`src/agent/prompt_builder.py`) : construit selon le profil de skills (`code`, `report`, `erd`, `perf`, `full`, ou détection automatique) à partir des skills métier de `.claude/skills/mispl-*` et des règles de `.claude/rules/`. Il inclut toujours une **garde anti-extraction**, qui refuse de révéler ou de reformuler les instructions système.
+- **Linter MISPL** (`src/agent/linter.py`) : analyse le code généré avant affichage. Il détecte les boucles potentiellement infinies, les divisions par zéro, les assignations de champs en lecture seule, les divisions entières silencieuses et les fonctions inventées connues.
+- **RAG hybride** (`src/rag/retriever.py`) :
+  - recherche lexicale BM25 (racinisation française, NLTK) et recherche dense ChromaDB (embeddings locaux `paraphrase-multilingual-MiniLM-L12-v2`), fusionnées par *Reciprocal Rank Fusion* (k = 25) ;
+  - épinglage des correspondances exactes de nom de fonction et élargissement par catégorie selon les skills actifs ;
+  - **reranking cross-encoder** (`src/rag/reranker.py`, `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`), désactivable par `MISPL_RERANK_ENABLED=false` ;
+  - réordonnancement « anti lost-in-the-middle ».
+  
+  L'index est construit à partir de `rag_knowledge_base/` par `src/rag/build_vectorstore.py`, qui délègue à `src/rag/ingest_knowledge_base.py` (1 section H2 = 1 bloc, frontmatter YAML → métadonnées).
+- **Sécurité** (`src/security/`) :
+  - `access_mode.py` : modes **Technicien** (par défaut, sans génération de boucles `WHILE`/`REPEAT`) et **DSI** (génération complète). La défense est double : une consigne dans le prompt et une barrière après génération (`enforce_access_mode`), qui détecte aussi les boucles hors bloc de code. Dans Streamlit, le mode DSI se débloque par un mot de passe dont le hash PBKDF2-HMAC-SHA256 est stocké dans `.env`. Sans ce hash, le mode DSI est inatteignable (fail-safe). Dans l'API, le mode dépend du droit `can_use_dsi_mode` du compte, attribué par un administrateur.
+  - `dlp.py` : filtre la question, le contexte labo et l'historique avant tout envoi au LLM. Il bloque les motifs à haut risque (NIR, NISS, IPP/NIP) et signale les motifs sensibles (noms, dates de naissance). Une combinaison de motifs identifiants, par exemple un nom et une date, devient bloquante.
+
+### API (`api/`)
+
+- Routes : `/auth` (login, logout, me), `/chat/ask`, `/conversations` (liste, détail, suppression), `/admin/users` (création, modification, réinitialisation du mot de passe, révocation des sessions, consommation quotidienne).
+- Stockage SQLite (`data/mispl.db`, non versionné), créé au démarrage. Mots de passe hachés en Argon2.
+- Sessions par cookie `HttpOnly`, valables 8 h.
+- Protections : verrouillage du compte après 5 échecs (15 min) ; limite de tentatives de connexion par compte et par IP ; limite de 20 requêtes par minute et par utilisateur sur `/chat/ask` ; corps de requête limité à 1 Mo, y compris en `Transfer-Encoding: chunked` ; en-têtes de sécurité (CSP `default-src 'none'`, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`) ; CORS restreint à `MISPL_FRONTEND_ORIGIN`.
+- Pour une conversation existante, l'historique envoyé au LLM est relu en base : le client ne le fournit pas.
+
+### Frontend (`frontend/`)
+
+Next.js 16 / React 19 (App Router), avec les pages `/login`, `/chat` et `/admin`. Il appelle l'API à l'adresse `NEXT_PUBLIC_API_BASE` (par défaut `http://localhost:8000`) et applique ses propres en-têtes de sécurité (`next.config.ts`). **Attention** : cette version de Next.js diffère des versions antérieures. Consultez `frontend/AGENTS.md` avant de modifier le code.
+
+## Structure du dépôt
+
+- `rag_knowledge_base/` : base de connaissances MISPL (fiches Markdown par thème : `01_core_syntax/`, `02_functions/`, `03_chu_use_cases/`), avec son registre de traçabilité `SOURCES.md`. Voir la section « Propriété intellectuelle » ci-dessous.
+- `docs/chunks/` : index généré (ChromaDB `vectorstore/`, `bm25_corpus.json`, `manifest_kb.json`). Non versionné ; se reconstruit avec `build_vectorstore.py`.
+- `src/agent/`, `src/rag/`, `src/security/` : moteur (voir plus haut). `src/utils/resource_monitor.py` : relevé CPU/RAM/GPU et rapport Plotly (Streamlit).
+- `api/` : backend FastAPI. `frontend/` : interface Next.js. `app.py` : interface Streamlit.
+- `tools/check_ip_similarity.py` et `tools/ip_allowlist.json` : contrôle anti-régression de propriété intellectuelle de la base.
+- `scripts/` : utilitaires, dont `create_admin.py`, `set_dsi_password.py`, `eval_retrieval_kb.py`, `health_check.py`, `list_free_models.py` et d'anciens scripts d'évaluation.
+- `tests/` : suite pytest (`agent/`, `api/`, `rag/`, `security/`, `mispl_examples/`).
+- `.claude/skills/mispl-*`, `.claude/rules/` et `.claude/agents/` : skills métier, règles globales et sous-agents chargés dans le prompt système.
+- `outputs/` : scripts générés, sessions, cache, rapports de monitoring et d'évaluation. Les sessions, le cache et les rapports JSON ne sont pas versionnés.
+- `docs/superpowers/` : spécifications et plans de conception. `docs/etude_faisabilite.md` : étude de faisabilité initiale (juin 2026).
 
 ## Installation
 
-Prérequis : Python 3.10+.
+Prérequis : Python 3.10 ou plus récent ; Node.js pour le frontend.
 
 ```powershell
-# 1. Créer et activer un environnement virtuel (ou utiliser setup.py)
+# 1. Environnement virtuel (ou : python setup.py)
 python -m venv .venv
 .venv\Scripts\activate
 
-# 2. Installer les dépendances
+# 2. Dépendances Python
 pip install -r requirements.txt
 
-# 3. Copier le fichier d'environnement et renseigner la clé API
+# 3. Fichier d'environnement
 Copy-Item .env.example .env
-# éditer .env et renseigner OPENROUTER_API_KEY (clé gratuite sur https://openrouter.ai/keys)
+# puis renseigner OPENROUTER_API_KEY dans .env
 
-# 4. (Optionnel) Configurer le mot de passe du mode DSI
+# 4. (Optionnel, Streamlit) mot de passe du mode DSI
 python scripts/set_dsi_password.py
+
+# 5. Frontend
+cd frontend
+npm install
 ```
 
-Sans exécution de `set_dsi_password.py`, le mode DSI reste inatteignable et l'agent fonctionne uniquement en mode Technicien (bridé, sans génération de boucles).
+Au premier usage, les modèles d'embedding et de reranking sont téléchargés depuis Hugging Face, puis mis en cache localement.
 
-## Construction de la base RAG
+## Variables d'environnement
 
-La base vectorielle (ChromaDB + corpus BM25) doit être construite une fois avant le premier lancement, à partir des fiches de `rag_knowledge_base/` :
+Ne versionnez jamais les valeurs : `.env` est exclu par `.gitignore`.
+
+| Variable | Rôle | Défaut |
+|---|---|---|
+| `OPENROUTER_API_KEY` | Clé API OpenRouter (obligatoire pour interroger le LLM) | — |
+| `OPENAI_API_KEY` | Embeddings OpenAI en option (`use_openai_embeddings=True`) | — |
+| `PYTHONUTF8` | Force l'UTF-8 sous Windows (`1`) | — |
+| `MISPL_DSI_PASSWORD_SALT`, `MISPL_DSI_PASSWORD_HASH` | Mot de passe du mode DSI (Streamlit). Générés par `scripts/set_dsi_password.py`, jamais saisis à la main | absent = mode DSI inatteignable |
+| `MISPL_SESSION_RETENTION_DAYS` | Durée de conservation des sessions journalisées (jours) | `30` |
+| `MISPL_CACHE_RETENTION_HOURS` | Durée de conservation du cache de réponses (heures) | `24` |
+| `MISPL_RERANK_ENABLED` | Active le reranking cross-encoder | `true` |
+| `MISPL_MONITOR` | `0` désactive le monitoring des ressources (Streamlit) | `1` |
+| `MISPL_FRONTEND_ORIGIN` | Origine(s) autorisée(s) par CORS, séparées par des virgules | `http://localhost:3000` |
+| `MISPL_COOKIE_SECURE` | Attribut `Secure` du cookie de session (`false` uniquement en développement HTTP local) | `true` |
+| `NEXT_PUBLIC_API_BASE` | URL de l'API appelée par le frontend | `http://localhost:8000` |
+
+## Construction de l'index RAG
+
+L'index (ChromaDB et corpus BM25) doit être construit avant le premier lancement, puis reconstruit après toute modification de `rag_knowledge_base/` :
 
 ```powershell
-.\start.ps1 build
+python src/rag/build_vectorstore.py          # reconstruction complète (équivalent : .\start.ps1 build)
+python src/rag/build_vectorstore.py --dry-run  # statistiques, sans écriture
 ```
 
-Équivalent direct : `python src\rag\build_vectorstore.py`. Le résultat est écrit dans `docs/chunks/` (vectorstore ChromaDB, corpus BM25, manifest). Sans cette base, l'interface affiche une erreur « Base documentaire absente ».
+Le résultat est écrit dans `docs/chunks/`. Sur la base actuelle, la construction donne **38 fiches, 439 blocs et 301 fonctions reconnues** (voir `docs/chunks/manifest_kb.json`). Après une reconstruction, le cache de réponses (`outputs/cache/`) peut contenir des réponses calculées sur l'ancien index. Il expire au bout de 24 h ; vous pouvez aussi le vider manuellement.
 
-## Lancement
+## Démarrage
+
+**Plateforme API et frontend :**
 
 ```powershell
-.\start.ps1 run
+# Terminal 1 : API (crée data/mispl.db au premier démarrage)
+uvicorn api.main:app --host 127.0.0.1 --port 8000
+
+# Premier compte administrateur (une seule fois)
+python scripts/create_admin.py
+
+# Terminal 2 : frontend
+cd frontend
+npm run dev        # http://localhost:3000
 ```
 
-Ouvre l'interface Streamlit sur `http://localhost:8501`. Équivalent direct : `streamlit run app.py`.
+**HTTPS est obligatoire en production.** Le cookie de session porte l'attribut `Secure` par défaut (`MISPL_COOKIE_SECURE`). En HTTP simple, le navigateur refuse le cookie sans afficher d'erreur et la connexion échoue. En développement local HTTP, définissez `MISPL_COOKIE_SECURE=false`.
 
-Un mode CLI interactif est aussi disponible :
+**Interface Streamlit :**
 
 ```powershell
-.\start.ps1 cli
+.\start.ps1 run    # http://localhost:8501  (équivalent : streamlit run app.py)
+.\start.ps1 cli    # mode ligne de commande interactif
 ```
-
-## Structure du repo
-
-- `rag_knowledge_base/` — base de connaissances MISPL constituée manuellement (rétro-ingénierie clean room), organisée par thème (`01_core_syntax/`, `02_functions/`, `03_chu_use_cases/`), avec registre de traçabilité (`SOURCES.md`).
-- `docs/chunks/` — chunks vectorisés générés par le pipeline RAG (ChromaDB, corpus BM25, manifest) ; non versionnés en l'état source, reconstruits via `start.ps1 build`.
-- `src/rag/` — pipeline de chunking, ingestion et récupération hybride (BM25 + ChromaDB).
-- `src/agent/` — agent principal (`mispl_agent.py`), construction du prompt système (`prompt_builder.py`), linter de sécurité (`linter.py`).
-- `src/security/` — modes d'accès DSI/Technicien (`access_mode.py`) et protection des données patient (`dlp.py`).
-- `src/utils/` — utilitaires, notamment le monitoring de ressources machine.
-- `.claude/skills/` — skills métier MISPL pilotant le comportement de l'IA selon le profil de demande (code, comptes-rendus, ERD, performance).
-- `.claude/rules/` — règles globales de l'agent (anti-hallucination, sécurité laboratoire).
-- `.claude/agents/` — définitions de sous-agents spécialisés (génération et revue de code MISPL).
-- `outputs/generated_scripts/` — scripts MISPL générés, journalisés à des fins de traçabilité.
-- `outputs/sessions/` — sessions de conversation journalisées (purge automatique configurable via `MISPL_SESSION_RETENTION_DAYS`).
-- `outputs/monitoring/` — rapports HTML Plotly du monitoring ressources.
-- `scripts/` — scripts utilitaires (configuration du mot de passe DSI, évaluations, health check, inspection HTML, etc.).
-- `tests/` — suite de tests (agent, sécurité, exemples MISPL validés).
 
 ## Tests
 
 ```powershell
-pytest tests/
+pytest
 ```
 
-La suite couvre le cache et le linter de l'agent (`tests/agent/`), les modes d'accès et le DLP (`tests/security/`), ainsi que des exemples de fonctions MISPL validés (`tests/mispl_examples/`).
+La configuration se trouve dans `pytest.ini` (`testpaths = tests`). La suite compte 270 tests. Elle couvre :
+- l'agent : cache, repli entre modèles, linter, prompt, garde-fou de certitude, consommation ;
+- l'API : authentification, routes, CORS, en-têtes, limite de taille, propriété des conversations ;
+- le RAG : enrichissement BM25, formatage, reranking, catégories ;
+- la sécurité : modes d'accès, DLP ;
+- des exemples MISPL.
 
-## API — Authentification & comptes (nouveau)
+Les tests n'appellent pas OpenRouter, et les tests d'API utilisent une base SQLite en mémoire. En revanche, `tests/mispl_examples/` interroge l'index réel : construisez-le avant de lancer la suite complète.
 
-1. Lancer le serveur : `uvicorn api.main:app --host 0.0.0.0 --port 8000` — le schéma DB (`data/mispl.db`) est créé automatiquement au démarrage (voir `lifespan` dans `api/main.py`).
-2. Créer le premier compte admin : `python scripts/create_admin.py` (à exécuter après le premier démarrage du serveur, ou le script crée lui-même le schéma s'il est absent).
-3. **HTTPS obligatoire en production** — le cookie de session est marqué `Secure` (`COOKIE_SECURE = True` dans `api/routers/auth.py`). Sur un déploiement HTTP simple, le navigateur refuse silencieusement le cookie et l'authentification échoue sans message d'erreur explicite.
+## Évaluation du retrieval
+
+```powershell
+python scripts/eval_retrieval_kb.py                  # exact-match + sémantique
+python scripts/eval_retrieval_kb.py --semantic-only  # sémantique seule
+python scripts/eval_retrieval_kb.py --out mon_eval.json
+```
+
+Le script mesure deux choses :
+1. **Exact-match** : chaque fonction connue de l'index est interrogée par son nom.
+2. **Sémantique** : 50 questions en français, sans nom de fonction.
+
+Il affiche hit@1, hit@3, hit@5, le MRR et les échecs, et écrit le détail dans `outputs/eval_retrieval_kb.json`.
+
+Résultats sur l'index reconstruit le 2026-09-24 :
+
+| Évaluation | n | hit@1 | hit@3 | hit@5 | MRR |
+|---|---|---|---|---|---|
+| Exact-match | 301 | 1,000 | — | — | — |
+| Sémantique, index actuel | 50 | 0,600 | 0,740 | 0,800 | 0,693 |
+| Sémantique, index précédent | 50 | 0,560 | 0,720 | 0,740 | 0,662 |
+
+## Propriété intellectuelle de la base de connaissances
+
+Le dépôt est public. La base `rag_knowledge_base/` ne doit contenir **aucune reprise de l'expression du manuel éditeur GLIMS**. Le manuel lui-même, ses exports et tout rapport d'audit qui en cite le texte ne sont jamais versionnés : `.gitignore` exclut `*.htm`, `*.html`, `*.pdf` et `docs/audit_PI_*/`.
+
+**Méthode.** La base décrit des **faits techniques** : noms de fonctions, types et ordre des paramètres, types de retour, comportements observables, contraintes. Ces faits sont rédigés à nouveau en style factuel, dans le vocabulaire du langage proxy Progress ABL / OpenEdge. Les fiches « complément » (`*_extended.md`, `*_missing.md`) et `complete_function_data.json` sont générées par programme à partir de fiches de faits intermédiaires, sans lecture du manuel ni des anciennes descriptions. Les exemples de code proviennent de scripts du laboratoire ou ont été créés pour la base.
+
+**Remédiation de septembre 2026.** Un audit de similarité a détecté des reprises du manuel dans une version antérieure de la base. Les fichiers concernés ont été régénérés à partir des fiches de faits, et les exemples repris ont été remplacés par des exemples originaux. Le contre-audit du 2026-09-23 ne relève plus aucun risque ÉLEVÉ ni MOYEN (avant : 281 ÉLEVÉ et 153 MOYEN).
+
+**Garde-fou : `tools/check_ip_similarity.py`.** Ce script compare toute la base au manuel, qui reste sur le poste local, et, si on les fournit, aux sources déclarées. Il recherche :
+- les reprises littérales de n-grammes : ≥ 15 mots = ÉLEVÉ, 8 à 14 mots = MOYEN ;
+- la similarité TF-IDF sur un segment de 8 mots ou plus : ≥ 0,80 = MOYEN ;
+- en option, les paraphrases, par embeddings e5 (≥ 0,95 avec TF-IDF < 0,60 = MOYEN) ;
+- les exemples d'appel identiques à ceux du manuel.
+
+Le script sort avec le code 1 dès qu'un risque ÉLEVÉ ou MOYEN est trouvé. Les exceptions justifiées se déclarent dans `tools/ip_allowlist.json` (fichier, fragment, justification). Ce contrôle réduit le risque de reprise ; il ne constitue pas une garantie juridique.
+
+```powershell
+python tools/check_ip_similarity.py --manual "<chemin local de l'aide GLIMS>"
+python tools/check_ip_similarity.py --manual "<...>" --sources "<dossier de sources déclarées>"
+python tools/check_ip_similarity.py --manual "<...>" --gpu-host <alias-ssh>   # embeddings e5 sur un poste GPU (optionnel)
+python tools/check_ip_similarity.py --manual "<...>" --report ip_check.json  # rapport détaillé
+```
+
+Dépendances : `numpy`, `scikit-learn` et `beautifulsoup4` ; `pypdf` est optionnel. Elles sont listées dans `requirements.txt`. Le rapport produit par `--report` peut citer des passages du manuel : ne le versionnez pas.
+
+**Procédure avant tout ajout ou toute modification de la base :**
+1. Relever uniquement des faits (signature, paramètres, retour, comportement) et les rédiger avec vos propres mots. N'utilisez jamais d'exemple ou de valeur d'exemple du manuel.
+2. Lancer `python tools/check_ip_similarity.py --manual ...`. Il doit se terminer par `RÉSULTAT : OK`. Corrigez tout signalement ÉLEVÉ ou MOYEN ; n'ajoutez une exception à `tools/ip_allowlist.json` qu'avec une justification écrite.
+3. Mettre à jour `rag_knowledge_base/SOURCES.md` si une nouvelle source est utilisée.
+4. Reconstruire l'index (`python src/rag/build_vectorstore.py`), puis relancer `pytest` et `scripts/eval_retrieval_kb.py`.
+
+Pour la traçabilité complète (méthode, langage proxy, sources publiques, scripts d'exemple, audit), voir [`rag_knowledge_base/SOURCES.md`](rag_knowledge_base/SOURCES.md) et [`rag_knowledge_base/README.md`](rag_knowledge_base/README.md).
+
+Voir aussi [`CHANGELOG.md`](CHANGELOG.md).

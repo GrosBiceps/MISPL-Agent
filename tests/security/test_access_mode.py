@@ -172,3 +172,37 @@ class TestAccessModeForUser:
 
     def test_dsi_flag_false_gives_technicien_mode(self):
         assert access_mode_for_user(False) == MODE_TECHNICIEN
+
+
+class TestUnfencedLoopMentions:
+    """Banc temps réel 2026-09-24 (ORD-001) : une mention en prose des
+    mots-clés de boucle ne doit pas remplacer une réponse valide sans boucle,
+    tandis que toute boucle structurée hors bloc reste bloquée."""
+
+    ORD_001 = (
+        "## Code MISPL\n```mispl\nLOGICAL PROGRAM\n"
+        "  RETURN Action.Order().IsRequested(\"TSH\", NO);\n```\n\n"
+        "## Notes techniques\n"
+        "- Alternative : `Action.Order().Result(\"TSH\", ?, ?).Id <> ?`.\n"
+        "- Aucune boucle WHILE/REPEAT requise — pattern conforme au mode technicien.\n"
+    )
+
+    def test_prose_mention_next_to_accessor_is_not_blocked(self):
+        assert enforce_access_mode(self.ORD_001, MODE_TECHNICIEN) == self.ORD_001
+
+    def test_unfenced_while_do_mid_sentence_still_blocked(self):
+        response = "Il suffit d'écrire WHILE i < 10 DO i := i + 1; DONE dans le script."
+        assert enforce_access_mode(response, MODE_TECHNICIEN) == REFUSAL_MESSAGE
+
+    def test_unfenced_repeat_with_long_body_still_blocked(self):
+        body = "".join(f"  x{n} := {n};\n" for n in range(8))
+        response = f"Voici :\nREPEAT\n{body}UNTIL x7 > 0\n"
+        assert enforce_access_mode(response, MODE_TECHNICIEN) == REFUSAL_MESSAGE
+
+    def test_statement_position_loop_without_done_still_blocked(self):
+        response = "STRING PROGRAM\n  WHILE i < 10\n    i := i + 1;\nRETURN i;"
+        assert enforce_access_mode(response, MODE_TECHNICIEN) == REFUSAL_MESSAGE
+
+    def test_bulleted_statement_loop_still_blocked(self):
+        response = "- WHILE .Next <> ?\n  x := .Next;"
+        assert enforce_access_mode(response, MODE_TECHNICIEN) == REFUSAL_MESSAGE

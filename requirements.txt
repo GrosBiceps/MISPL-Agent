@@ -36,3 +36,11 @@ sqlalchemy==2.0.52
 argon2-cffi==25.1.0
 email-validator==2.3.0                   # requis par pydantic.EmailStr
 httpx==0.28.1                             # requis par fastapi.testclient.TestClient
+
+# ── Outil de contrôle PI (optionnel) — tools/check_ip_similarity.py ──────────
+# numpy et scikit-learn sont déjà installés comme dépendances de
+# sentence-transformers ; ils sont épinglés ici aux mêmes versions.
+numpy==2.5.0                            # matrices n-grammes / similarités
+scikit-learn==1.9.0                     # TF-IDF + similarité cosinus
+beautifulsoup4==4.15.0                  # extraction du texte de l'aide HTML
+pypdf==6.19.0                           # optionnel : lecture des PDF du manuel

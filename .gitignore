@@ -60,3 +60,6 @@ data/*.db-journal
 
 # Audit PI (contient le texte intégral du manuel GLIMS et des caches) : ne jamais versionner
 docs/audit_PI_*/
+
+# Notes internes DSI / juridiques : jamais versionnées (dépôt public)
+DSI/

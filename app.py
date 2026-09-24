@@ -277,7 +277,9 @@ def _is_vs_ready():
            (ROOT/"docs"/"chunks"/"bm25_corpus.json").exists()
 
 def _manifest():
-    p = ROOT/"docs"/"chunks"/"manifest.json"
+    # manifest_kb.json : écrit par src/rag/ingest_knowledge_base.py (pipeline Markdown actuel).
+    # manifest.json n'est plus produit (ancien pipeline HTML).
+    p = ROOT/"docs"/"chunks"/"manifest_kb.json"
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 EXAMPLES = [

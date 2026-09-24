@@ -6,7 +6,7 @@ Prévenir les accès incorrects qui pourraient casser des règles métiers ou co
 
 ## Method
 1. Identifier la table de contexte demandée (Sample, Patient, Order, Result, Material…)
-2. Chercher dans RAG : `mispl_erd.htm` + documentation spécifique à la table
+2. Chercher dans RAG : documentation spécifique à la table (`rag_knowledge_base/02_functions/table_*/`)
 3. Lister les champs accessibles en MISPL avec leur type
 4. Signaler les champs READ-ONLY vs READ-WRITE
 5. Avertir si la modification d'un champ peut avoir des effets secondaires GLIMS
@@ -20,7 +20,7 @@ Prévenir les accès incorrects qui pourraient casser des règles métiers ou co
 
 ### Pattern sécurisé pour accès champ
 ```mispl
-// Toujours vérifier l'existence avant accès relationnel
+/* Toujours vérifier l'existence avant accès relationnel */
 STRING PROGRAM
   STRING mnem;
   IF .Examination = ? THEN
@@ -32,19 +32,19 @@ RETURN mnem;
 
 ### Accès aux attributs site
 ```mispl
-// Lecture variable partagée (thread-safe en lecture)
+/* Lecture variable partagée (thread-safe en lecture) */
 STRING val;
 val := GetSiteAttribute("MON_PARAMETRE");
 IF val = ? THEN
   val := "valeur_defaut";
 ENDIF;
 
-// Écriture — ATTENTION : modifie l'état global GLIMS
+/* Écriture — ATTENTION : modifie l'état global GLIMS */
 SetSiteAttribute("MON_COMPTEUR", IntegerToString(counter, "%d"));
 ```
-Source : `function_miscellaneous.htm` — GetSiteAttribute / SetSiteAttribute
+Source : `rag_knowledge_base/02_functions/misc/misc_functions.md` — GetSiteAttribute / SetSiteAttribute
 
-## ERD Key Tables (issues de mispl_erd.htm)
+## ERD Key Tables
 - **Sample** : échantillon principal, contient barcode, dates collecte/réception
 - **Patient** : données démographiques, ExternalId = NIP
 - **Order** : demande d'examen, lie Patient ↔ Sample ↔ Examination
@@ -62,8 +62,8 @@ Source : `function_miscellaneous.htm` — GetSiteAttribute / SetSiteAttribute
 |-------|------|-------|-------------|
 | .FieldName | STRING | R | ... |
 
-## Source ERD
-[mispl_erd.htm section ou table spécifique]
+## Sources documentaires
+[chemin rag_knowledge_base/... exact — section]
 
 ## Avertissements
 [Risques de modification, effets secondaires]

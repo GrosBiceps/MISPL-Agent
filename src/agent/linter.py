@@ -226,6 +226,44 @@ _FAKE_FUNCTIONS = [
 ]
 
 
+# ── Lexique minimal : chaînes littérales et commentaires ─────────────────────
+#
+# Un seul balayage gauche → droite, pour que chaque construction masque les
+# autres comme le ferait l'analyseur MISPL : un `//` ou un `/*` à l'intérieur
+# d'une chaîne n'ouvre pas de commentaire, un `//` à l'intérieur d'un
+# commentaire /* ... */ n'en est pas un, et un appel `Nom(` écrit dans une
+# chaîne ("... utilise CreatePatient() ...") n'est pas un appel.
+# Banc temps réel 2026-09-24 : les anciennes suppressions séquentielles
+# (d'abord `//`, puis `/* */`) mangeaient le `*/` d'un commentaire bloc
+# contenant `//`, et le commentaire non gourmand avalait ensuite le RETURN
+# du programme (faux « Programme sans RETURN », PFI-002) ; les appels dans
+# une chaîne étaient signalés comme fonctions inexistantes (PIJ-005).
+_LEXEME_RE = re.compile(
+    r'(?P<string>"[^"\n]*")'
+    r"|(?P<block>/\*[\s\S]*?\*/)"
+    r"|(?P<line>//[^\n]*)"
+)
+
+
+def _mask_code(code: str) -> str:
+    """Retourne `code` sans commentaires et avec des chaînes vidées (`""`).
+
+    Les commentaires bloc sont remplacés par autant de sauts de ligne qu'ils
+    en contenaient : les numéros de ligne des diagnostics restent exacts."""
+
+    def repl(m: re.Match) -> str:
+        if m.group("string") is not None:
+            return '""'
+        return "\n" * m.group(0).count("\n") + " "
+
+    return _LEXEME_RE.sub(repl, code)
+
+
+def _line_comments(code: str) -> list[re.Match]:
+    """Commentaires `//` réels : hors chaînes et hors commentaires bloc."""
+    return [m for m in _LEXEME_RE.finditer(code) if m.group("line") is not None]
+
+
 def lint_mispl_code(code: str) -> LintResult:
     """
     Analyse un bloc de code MISPL et retourne les problèmes détectés.
@@ -234,8 +272,8 @@ def lint_mispl_code(code: str) -> LintResult:
     if not code or not code.strip():
         return result
 
-    # ── Détection AVANT strip : commentaires // invalides en MISPL ──────────────
-    for m in re.finditer(r"//[^\n]*", code):
+    # ── Commentaires // invalides en MISPL (hors chaînes et commentaires bloc)
+    for m in _line_comments(code):
         line_num = code[: m.start()].count("\n") + 1
         result.issues.append(LintIssue(
             severity=Severity.WARNING,
@@ -244,9 +282,13 @@ def lint_mispl_code(code: str) -> LintResult:
             pattern_matched=m.group(0)[:40],
         ))
 
+    # Code sans commentaires, chaînes vidées : toutes les règles suivantes
+    # portent sur le code exécutable uniquement.
+    clean_code = _mask_code(code)
+
     # ── CascadeRequest : fonction legacy ancienne version GLIMS ────────────────
-    for m in re.finditer(r"\bCascadeRequest\s*\(", code):
-        line_num = code[: m.start()].count("\n") + 1
+    for m in re.finditer(r"\bCascadeRequest\s*\(", clean_code):
+        line_num = clean_code[: m.start()].count("\n") + 1
         result.issues.append(LintIssue(
             severity=Severity.WARNING,
             message="CascadeRequest est une fonction d'ancienne version GLIMS — utiliser Action.Order().AddRequest(\"MNEM\", ?, ?)",
@@ -254,22 +296,18 @@ def lint_mispl_code(code: str) -> LintResult:
         ))
 
     # ── sc_Role.SendMail sans GetRole ──────────────────────────────────────────
-    if re.search(r"\bsc_Role\.SendMail\s*\(", code) and "GetRole" not in code:
+    if re.search(r"\bsc_Role\.SendMail\s*\(", clean_code) and "GetRole" not in clean_code:
         result.issues.append(LintIssue(
             severity=Severity.ERROR,
             message="sc_Role.SendMail appelé sur le type — utiliser GetRole(\"MNEM\").SendMail(...)",
         ))
 
     # ── Navigation ERD invalide pour l'âge ─────────────────────────────────────
-    if re.search(r"\.Order\(\)\.Specimen\.Object\.AgeInYears", code):
+    if re.search(r"\.Order\(\)\.Specimen\.Object\.AgeInYears", clean_code):
         result.issues.append(LintIssue(
             severity=Severity.WARNING,
             message="Navigation ERD invalide pour l'âge — utiliser .Action().Object.AgeInYears(Today())",
         ))
-
-    # Normaliser le code (supprimer les commentaires MISPL si présents)
-    clean_code = re.sub(r"//[^\n]*", "", code)  # commentaires ligne
-    clean_code = re.sub(r"/\*[\s\S]*?\*/", "", clean_code)  # commentaires bloc
 
     # Détection fonctions inexistantes (hallucinations LLM fréquentes)
     for fake_fn, correct_fn in _FAKE_FUNCTIONS:
@@ -386,15 +424,18 @@ def autofix_mispl(text: str) -> tuple[str, list[str]]:
     """
     corrections: list[str] = []
 
-    def fix_block(m):
-        code = m.group(1)
+    def fix_line_comment(c: re.Match) -> str:
+        # Le texte du commentaire ne doit ni fermer le commentaire bloc créé
+        # (`*/`), ni en ouvrir un imbriqué (`/*`) ; les `//` internes sont
+        # neutralisés pour ne pas être relus comme commentaires.
+        text = c.group(0)[2:].strip()
+        text = text.replace("*/", "* /").replace("/*", "/ *").replace("//", "/ /")
+        return f"/* {text} */"
 
-        # 1. // → /* */
-        before = code
-        code = re.sub(r"//\s*([^\n]*)", lambda c: f"/* {c.group(1).strip()} */", code)
-        if code != before:
-            corrections.append("Commentaires // convertis en /* */")
-
+    def fix_code(code: str) -> str:
+        """Réécritures d'appels : uniquement sur du code exécutable, jamais
+        dans un commentaire (où « ANCIEN : CascadeRequest(...) » doit rester
+        tel quel) ni dans une chaîne."""
         # 2. CascadeRequest("X") → Action.Order().AddRequest("X", ?, ?)
         before = code
         code = re.sub(
@@ -417,8 +458,30 @@ def autofix_mispl(text: str) -> tuple[str, list[str]]:
         code = re.sub(r"SendMailToRole\s*\(([\s\S]*?)\)\s*;", lambda x: repl_sendmail(x) + ";", code)
         if code != before:
             corrections.append("SendMailToRole() converti en GetRole().SendMail()")
+        return code
 
-        return "```mispl\n" + code + "```"
+    def fix_block(m):
+        code = m.group(1)
+        # Découpage en segments « code (chaînes comprises) » / « commentaire » :
+        # les chaînes restent dans les segments de code pour que les motifs
+        # d'appel (dont les arguments sont des chaînes) les voient.
+        out: list[str] = []
+        converted = False
+        pos = 0
+        for lx in _LEXEME_RE.finditer(code):
+            if lx.group("string") is not None:
+                continue
+            out.append(fix_code(code[pos:lx.start()]))
+            if lx.group("line") is not None:
+                out.append(fix_line_comment(lx))
+                converted = True
+            else:
+                out.append(lx.group(0))
+            pos = lx.end()
+        out.append(fix_code(code[pos:]))
+        if converted:
+            corrections.append("Commentaires // convertis en /* */")
+        return "```mispl\n" + "".join(out) + "```"
 
     fixed = re.sub(r"```mispl\s*([\s\S]*?)```", fix_block, text, flags=re.IGNORECASE)
-    return fixed, corrections
+    return fixed, list(dict.fromkeys(corrections))

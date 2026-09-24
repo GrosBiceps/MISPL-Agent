@@ -14,11 +14,11 @@ Un script MISPL mal écrit peut impacter toute l'interface utilisateur (GLIMS es
 
 ### ❌ Boucle sur liste avec recalcul répété
 ```mispl
-// MAUVAIS : NumEntries() appelé à chaque itération
+/* MAUVAIS : NumEntries() appelé à chaque itération */
 INTEGER i;
 i := 1;
 WHILE i <= NumEntries(i, .MyList, ",") DO
-  // ...
+  /* ... */
   i := i + 1;
 DONE
 ```
@@ -29,7 +29,7 @@ INTEGER i, total;
 total := NumEntries(1, .MyList, ",");
 i := 1;
 WHILE i <= total DO
-  // ...
+  /* ... */
   i := i + 1;
 DONE
 ```
@@ -46,14 +46,14 @@ DONE
 
 ### ✅ Éviter si possible via fonctions dédiées
 ```mispl
-// Utiliser les fonctions built-in quand disponibles
-// Ex : Sort(), Replace(), Translate() au lieu de boucles manuelles
+/* Utiliser les fonctions built-in quand disponibles */
+/* Ex : Sort(), Replace(), Translate() au lieu de boucles manuelles */
 RETURN Replace(.MyString, "ancien", "nouveau");
 ```
 
 ### ❌ Accès relationnel répété inutile
 ```mispl
-// Appel .Patient.LastName 5 fois = 5 accès DB
+/* Appel .Patient.LastName 5 fois = 5 accès DB */
 RETURN .Patient.LastName + " " + .Patient.FirstName + 
        " DDN:" + DateToString(.Patient.BirthDate, "%d/%m/%Y") +
        " NIP:" + .Patient.ExternalId;
@@ -61,12 +61,12 @@ RETURN .Patient.LastName + " " + .Patient.FirstName +
 
 ### ✅ Variable locale pour accès répété
 ```mispl
-// En MISPL, les variables locales sont en mémoire = rapide
-// Si l'accès relationnel est coûteux, stocker dans variable
-// Note : vérifier dans doc GLIMS si le caching est automatique
+/* En MISPL, les variables locales sont en mémoire = rapide */
+/* Si l'accès relationnel est coûteux, stocker dans variable */
+/* Note : vérifier dans doc GLIMS si le caching est automatique */
 ```
 
-## Règles d'optimisation prioritaires (source: `mispl_performance_tips.htm`)
+## Règles d'optimisation prioritaires
 1. Préférer les fonctions intégrées aux implémentations manuelles
 2. Éviter les boucles WHILE longues dans les contextes d'impression de masse
 3. Tester avec `Expand()` pour les textes dynamiques récursifs

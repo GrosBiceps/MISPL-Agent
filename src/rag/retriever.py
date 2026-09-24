@@ -42,7 +42,7 @@ RERANK_POOL_SIZE = 20
 # par catégorie + modèle de reranking). À incrémenter dès que l'un de ces
 # trois éléments change, pour invalider le cache réponse de mispl_agent.py
 # (cf. RETRIEVAL_PIPELINE_VERSION dans src/agent/mispl_agent.py::_cache_key).
-RETRIEVAL_PIPELINE_VERSION = "r1"
+RETRIEVAL_PIPELINE_VERSION = "r2"
 
 # Mapping skill (nom de fichier .md sous .claude/skills/) → catégories de la
 # base pertinentes pour ce skill. Utilisé pour GARANTIR l'inclusion de chunks
@@ -855,22 +855,55 @@ _INTENT_EXPANSIONS_NORM = [
 ]
 
 
+_PLURAL_SUFFIX = r"(?:s|x|es)?"
+
+
 def _fuzzy_trigger_match(trigger: str, query_norm: str, min_len: int = 6) -> bool:
-    """Matching flou : substring exact + préfixe 80% (absorbe troncatures/fautes finales)."""
-    if trigger in query_norm:
+    """Matching d'un déclencheur d'expansion sur la requête normalisée.
+
+    - Correspondance par MOTS ENTIERS (tolère un pluriel s/x/es) : avant r2,
+      un simple `trigger in query` faisait matcher « plaque » dans
+      « plaquettes » (FIB-4 → expansion microbiologie) ou « label » dans
+      « labels » comme dans « libellé ».
+    - Préfixe flou 80 % réservé aux déclencheurs MONO-MOT (absorbe une faute
+      ou une troncature finale), et seulement si le mot de la requête n'est
+      pas beaucoup plus long que le déclencheur : « arrondi » ↔ « arrondis »
+      oui, « plaque » ↔ « plaquettes » non.
+    """
+    trig = trigger.strip()
+    if not trig:
+        return False
+    pattern = r"(?<![a-z0-9])" + re.escape(trig)
+    if trig[-1].isalnum():
+        pattern += _PLURAL_SUFFIX + r"(?![a-z0-9])"
+    if re.search(pattern, query_norm):
         return True
     # Le prefix-fuzzy 80% est réservé aux triggers MONO-MOT. Sur un trigger
     # multi-mots, 80% du préfixe tombe sur le 1er mot et matchait n'importe
     # quelle requête le contenant (ex: "extraire ipp" → matchait "extraire une
     # sous-chaine" et injectait l'expansion IPP/Identification, qui écrasait
     # Substr). On n'autorise donc le fuzzy que pour un mot unique.
-    if " " in trigger:
+    if " " in trig or not trig.isalnum() or len(trig) < min_len:
         return False
-    if len(trigger) >= min_len:
-        prefix_len = max(min_len, int(len(trigger) * 0.8))
-        if trigger[:prefix_len] in query_norm:
+    prefix = trig[: max(min_len, int(len(trig) * 0.8))]
+    for word in re.findall(r"[a-z0-9]+", query_norm):
+        if word.startswith(prefix) and len(word) <= len(trig) + 2:
             return True
     return False
+
+
+def _expansion_functions(expansion_text: str, known_functions: set[str]) -> list[str]:
+    """Fonctions connues citées par une expansion, dans leur ORDRE D'APPARITION
+    (l'expansion place la fonction dominante en tête). Les qualificatifs de
+    table (`Specimen` dans `Specimen.AddCarriers`) ne comptent pas : avant r2,
+    ils étaient épinglés comme fonctions (« Specimen » ×3 sur une question
+    sans rapport)."""
+    out: list[str] = []
+    for m in re.finditer(r"[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)*", expansion_text):
+        name = m.group(0).split(".")[-1]
+        if name in known_functions and name not in out:
+            out.append(name)
+    return out
 
 
 def _expand_query(query: str) -> str:
@@ -889,6 +922,68 @@ def _expand_query(query: str) -> str:
     return query
 
 
+# ── Sélection finale (diversité, blocs sans fonction) ────────────────────────
+
+def _max_non_function_docs(k: int) -> int:
+    """Blocs sans function_name (patterns, cas d'usage) admis au premier tour :
+    un pattern complet aide le LLM, mais au-delà ils évincent les fiches de
+    fonction dont il a besoin pour la syntaxe."""
+    return 1 if k <= 6 else 2
+
+
+def _select_final(
+    exact_docs: list[dict[str, Any]],
+    ranked_docs: list[dict[str, Any]],
+    k: int,
+) -> list[dict[str, Any]]:
+    """Construit le top-k final à partir des correspondances exactes (épinglées
+    en tête) et des candidats classés.
+
+    Premier tour, dans l'ordre du classement :
+      - une seule fiche par function_name (pas trois blocs « Specimen ») ;
+      - un seul bloc par section multi-fonction éclatée (`group_section`) ;
+      - blocs sans function_name plafonnés (`_max_non_function_docs`), et
+        blocs « intro » (sommaires de fichier) exclus.
+    Second tour : si le budget n'est pas atteint, les candidats écartés
+    complètent la liste dans l'ordre du classement. Rien n'est donc perdu
+    quand les fiches de fonction manquent.
+    """
+    chosen: list[dict[str, Any]] = list(exact_docs[:k])
+    chosen_ids = {d["id"] for d in chosen}
+    seen_fns = {d.get("function_name") for d in chosen if d.get("function_name")}
+    seen_groups = {(d.get("source_file") or d.get("source"), d.get("group_section"))
+                   for d in chosen if d.get("group_section")}
+    non_fn_budget = _max_non_function_docs(k)
+    deferred: list[dict[str, Any]] = []
+    for d in ranked_docs:
+        if len(chosen) >= k:
+            break
+        if d["id"] in chosen_ids:
+            continue
+        fn = d.get("function_name") or ""
+        group = (d.get("source_file") or d.get("source"), d.get("group_section")) if d.get("group_section") else None
+        if fn:
+            if fn in seen_fns or (group and group in seen_groups):
+                deferred.append(d)
+                continue
+            seen_fns.add(fn)
+            if group:
+                seen_groups.add(group)
+        else:
+            if non_fn_budget <= 0 or (d.get("section") or "").startswith("intro"):
+                deferred.append(d)
+                continue
+            non_fn_budget -= 1
+        chosen.append(d)
+        chosen_ids.add(d["id"])
+    for d in deferred:
+        if len(chosen) >= k:
+            break
+        chosen.append(d)
+        chosen_ids.add(d["id"])
+    return chosen
+
+
 # ── Interface publique ─────────────────────────────────────────────────────────
 
 class MISPLRetriever:
@@ -905,6 +1000,15 @@ class MISPLRetriever:
         self._state = _RetrieverState.get(use_openai)
 
     # ── Détection exact-match ──────────────────────────────────────────────────
+
+    def _detect_extra_function_names(self, query: str, primary: str | None) -> list[str]:
+        """Autres fonctions citées verbatim (2 au plus), en plus de `primary`.
+        Seuls les noms composés (≥ 2 majuscules : AddRequest, NumericValue)
+        sont retenus : un mot simple capitalisé (« Message », « Result ») en
+        tête de phrase n'est pas une citation fiable."""
+        tokens = set(re.findall(r"[A-Za-z][A-Za-z0-9]+", query))
+        match = sorted(tokens & self._state.known_functions, key=lambda f: (-len(f), f))
+        return [f for f in match if f != primary and sum(c.isupper() for c in f) >= 2][:2]
 
     def _detect_function_name(self, query: str) -> str | None:
         """Retourne le nom de fonction MISPL si trouvé verbatim dans la query."""
@@ -932,7 +1036,7 @@ class MISPLRetriever:
                 **{k: results["metadatas"][0][i].get(k, "") for k in [
                     "source", "source_file", "section", "doc_title", "function_name",
                     "return_type", "signature", "category", "priority",
-                    "has_examples", "is_table_independent",
+                    "has_examples", "is_table_independent", "group_section",
                 ]},
             })
         return docs
@@ -963,6 +1067,7 @@ class MISPLRetriever:
                 "priority": c.get("priority", False),
                 "has_examples": c.get("has_examples", False),
                 "is_table_independent": False,
+                "group_section": c.get("group_section", ""),
             })
         return docs
 
@@ -988,9 +1093,10 @@ class MISPLRetriever:
                     "score": 1.0,  # exact match → certitude maximale
                     "exact_match": True,
                     **{k: results["metadatas"][0][i].get(k, "") for k in [
-                        "source", "section", "doc_title", "function_name",
+                        "source", "source_file", "section", "doc_title", "function_name",
                         "return_type", "signature", "category", "priority",
-                        "has_examples", "is_table_independent",
+                        "has_examples", "is_table_independent", "group_section",
+                        "see_also",
                     ]},
                 })
             return docs
@@ -1040,7 +1146,7 @@ class MISPLRetriever:
                 **{k: meta.get(k, "") for k in [
                     "source", "source_file", "section", "doc_title", "function_name",
                     "return_type", "signature", "category", "priority",
-                    "has_examples", "is_table_independent",
+                    "has_examples", "is_table_independent", "group_section",
                 ]},
             })
             if len(docs) >= limit:
@@ -1079,35 +1185,50 @@ class MISPLRetriever:
             _RetrieverState.invalidate()
             self._state = _RetrieverState.get(self._state.use_openai)
 
-        # Niveau 1 : exact-match si nom de fonction détecté dans la question
+        # Niveau 1 : exact-match — UNIQUEMENT pour les fonctions citées verbatim
+        # dans la question (score 1.0, épinglées en tête : « CORRESPONDANCE
+        # EXACTE » est alors vraie).
         exact_docs: list[dict[str, Any]] = []
-        detected_fn = self._detect_function_name(question)
-        if detected_fn:
-            exact_docs = self._exact_match_search(detected_fn)
+        seen_exact: set[str] = set()
+        primary = self._detect_function_name(question)
+        detected = [primary] + self._detect_extra_function_names(question, primary) if primary else []
+        for i, fn in enumerate(detected):
+            found = self._exact_match_search(fn)
+            for d in (found if i == 0 else found[:1]):
+                if d["id"] not in seen_exact:
+                    exact_docs.append(d)
+                    seen_exact.add(d["id"])
 
         # Query expansion : enrichit la requête avec mots-clés MISPL inférés de l'intent
         expanded_question = _expand_query(question)
 
-        # Exact-match ciblé sur les tokens de l'expansion
-        # Stratégie : prendre seulement les 2 fonctions les plus longues de l'expansion
-        # (les plus longues = les plus spécifiques, évite de diluer avec 11 fonctions string)
+        # Candidats d'expansion : fiches des fonctions citées par l'expansion
+        # (2 au plus, dans l'ordre de l'expansion) et fonctions « voir aussi »
+        # des correspondances exactes (ex. fonction obsolète → remplaçante).
+        # Depuis r2, ils NE SONT PLUS épinglés avec un score 1.0 : une
+        # expansion déclenchée par un mot ambigu (« étiquette », « commentaire »)
+        # imposait des fiches hors sujet en tête et faussait max_score (garde-fou
+        # de documentation faible jamais déclenché). Ils entrent en tête du pool
+        # pré-reranking ; le reranker et la fusion décident de leur rang et leur
+        # score est celui du reranker.
+        expansion_fns: list[str] = []
         if expanded_question != question:
-            seen_exact = {d["id"] for d in exact_docs}
-            expansion_part = expanded_question[len(question):]
-            expansion_tokens = set(re.findall(r"[A-Za-z][A-Za-z0-9]+", expansion_part))
-            # Priorité : fonctions aussi présentes dans la query originale (plus pertinentes)
-            orig_tokens = set(re.findall(r"[A-Za-z][A-Za-z0-9]+", question.lower()))
-            fn_hits = expansion_tokens & self._state.known_functions
-            # Scorer : +2 si token présent dans query originale, sinon longueur
-            def _fn_priority(fn: str) -> int:
-                return len(fn) + (20 if fn.lower() in orig_tokens else 0)
-            for fn in sorted(fn_hits, key=_fn_priority, reverse=True)[:2]:  # max 2
-                if fn == detected_fn:
-                    continue
-                for d in self._exact_match_search(fn):
-                    if d["id"] not in seen_exact:
-                        exact_docs.append(d)
-                        seen_exact.add(d["id"])
+            expansion_fns = [
+                f for f in _expansion_functions(expanded_question[len(question):], self._state.known_functions)
+                if f not in detected
+            ][:2]
+        for d in exact_docs:
+            for fn in (d.get("see_also") or "").split(","):
+                fn = fn.strip()
+                if fn and fn not in detected and fn not in expansion_fns and fn in self._state.known_functions:
+                    expansion_fns.append(fn)
+        expansion_docs: list[dict[str, Any]] = []
+        for fn in expansion_fns:
+            for d in self._exact_match_search(fn)[:1]:
+                if d["id"] not in seen_exact:
+                    d = dict(d, exact_match=False, score=0.0)
+                    expansion_docs.append(d)
+                    seen_exact.add(d["id"])
 
         # Niveau 2 : dense + BM25 (sur requête expandée)
         dense_docs = self._dense_search(expanded_question, fetch_n)
@@ -1127,8 +1248,8 @@ class MISPLRetriever:
         # Assembler pool de candidats RRF élargi (pour laisser le reranker
         # cross-encoder trancher parmi un choix plus large que k)
         pool_size = max(k * 3, RERANK_POOL_SIZE)
-        rrf_docs: list[dict[str, Any]] = []
-        seen_ids: set[str] = set(d["id"] for d in exact_docs)
+        rrf_docs: list[dict[str, Any]] = list(expansion_docs)
+        seen_ids: set[str] = set(d["id"] for d in exact_docs) | {d["id"] for d in expansion_docs}
         for doc_id, rrf_score in rrf_ranked:
             if doc_id in seen_ids:
                 continue
@@ -1138,7 +1259,7 @@ class MISPLRetriever:
                 doc["exact_match"] = False
                 rrf_docs.append(doc)
                 seen_ids.add(doc_id)
-            if len(rrf_docs) >= pool_size:
+            if len(rrf_docs) >= pool_size + len(expansion_docs):
                 break
 
         # Garantie d'inclusion par catégorie selon les skills actifs — n'exclut
@@ -1174,11 +1295,12 @@ class MISPLRetriever:
         # score relatif aux candidats rerankés — le cross-encoder produit des
         # logits non bornés qui peuvent dépasser le score sentinelle 1.0 des
         # exact-match ; les mélanger dans un tri par score casserait l'épinglage
-        # (cf. revue finale, finding F1). Seule la partie rerankée est réordonnée
-        # anti-Lost-in-the-Middle, après troncature au budget restant.
-        remaining_budget = max(k - len(exact_docs), 0)
-        reranked_slice = _reorder_for_llm(rrf_docs[:remaining_budget]) if remaining_budget else []
-        return exact_docs[:k] + reranked_slice
+        # (cf. revue finale, finding F1). La sélection (_select_final) assure
+        # la diversité des fonctions et plafonne les blocs sans fonction ; seule
+        # la partie rerankée est réordonnée anti-Lost-in-the-Middle.
+        selected = _select_final(exact_docs, rrf_docs, k)
+        n_exact = min(len(exact_docs), k)
+        return selected[:n_exact] + _reorder_for_llm(selected[n_exact:])
 
     # ── Formatage contexte pour LLM ────────────────────────────────────────────
 

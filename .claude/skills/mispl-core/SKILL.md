@@ -31,7 +31,7 @@ DATE birthdate;
 
 ## Anti-Hallucination Protocol
 - Chercher la fonction dans RAG AVANT de l'utiliser
-- Si absente → pseudo-code avec commentaire `// À VÉRIFIER dans GLIMS`
+- Si absente → pseudo-code avec commentaire `/* À VÉRIFIER dans GLIMS */`, sans jamais appeler la fonction absente
 - Ne jamais inventer de paramètres non documentés
 - Si plusieurs surcharges existent → lister toutes les signatures
 
@@ -45,7 +45,7 @@ STRING PROGRAM
   num := IntegerToString(NextValue("SampleCounter"), "%05d");
 RETURN prefix + "-" + num;
 ```
-Source : `function_datetime.htm`, `function_datatypeconversion.htm`, `function_miscellaneous.htm`
+Source : `rag_knowledge_base/02_functions/datetime/datetime_functions.md`, `rag_knowledge_base/02_functions/conversion/conversion_functions.md`, `rag_knowledge_base/02_functions/misc/misc_functions.md`
 
 ### Gestion valeur inconnue
 ```mispl
@@ -66,7 +66,7 @@ LOGICAL PROGRAM
     "Résultat modifié par " + CurrentUser());
 RETURN ok;
 ```
-Source : `function_miscellaneous.htm` — AddLogEntry
+Source : `rag_knowledge_base/02_functions/misc/misc_functions.md` — AddLogEntry
 
 ## Output Format
 ```
@@ -78,13 +78,13 @@ Source : `function_miscellaneous.htm` — AddLogEntry
 [code]
 ```
 
-## Source
-[fichier source documentaire exact]
+## Sources documentaires
+[chemin rag_knowledge_base/... exact — section]
 
 ## Niveau de certitude
 [✅ Certain | ⚠️ Probable | 🔬 À vérifier]
 
-## Notes
+## Notes techniques
 [optimisations, risques, alternatives]
 ```
 

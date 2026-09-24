@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -20,6 +22,36 @@ from api.db import Base, engine
 from api.routers import admin, auth, chat, conversations
 
 
+logger = logging.getLogger(__name__)
+
+
+def warm_up_rag() -> bool:
+    """Précharge le retriever (ChromaDB + modèle d'embeddings + index BM25) et
+    le cross-encoder de reranking, puis exécute une requête à blanc.
+
+    Sans ce préchargement, la première question posée après le démarrage
+    payait tout le chargement : 43 s au banc e2e du 2026-09-24 (60 s pour le
+    retriever et 7 s pour le cross-encoder mesurés isolément), contre ~11 s
+    ensuite. Désactivable via MISPL_PRELOAD_RETRIEVER=false (démarrage rapide
+    en développement). Ne fait jamais échouer le démarrage de l'API : en cas
+    d'erreur (index absent...), la première requête retentera le chargement
+    et remontera l'erreur comme avant. Retourne True si le préchargement a
+    eu lieu et a réussi."""
+    if os.environ.get("MISPL_PRELOAD_RETRIEVER", "true").strip().lower() in ("false", "0", "no"):
+        return False
+    try:
+        from src.agent.mispl_agent import DEFAULT_TOP_K
+        from src.rag.retriever import get_retriever
+
+        start = time.monotonic()
+        get_retriever(top_k=DEFAULT_TOP_K).query("Substr", active_skills=["mispl-core"])
+        logger.info(f"RAG préchargé en {time.monotonic() - start:.1f}s")
+        return True
+    except Exception as e:  # noqa: BLE001 — le démarrage ne doit jamais échouer ici
+        logger.warning(f"Préchargement du RAG impossible ({e}) : chargement différé à la première requête")
+        return False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Exécuté uniquement au démarrage réel du serveur (uvicorn) — jamais à
@@ -30,6 +62,9 @@ async def lifespan(app: FastAPI):
     from src.agent.mispl_agent import purge_old_cache, purge_old_sessions
     purge_old_sessions()
     purge_old_cache()
+    # Bloquant avant d'accepter des requêtes : aucune requête ne peut
+    # déclencher un second chargement concurrent du singleton du retriever.
+    warm_up_rag()
     yield
 
 

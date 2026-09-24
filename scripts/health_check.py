@@ -73,12 +73,15 @@ run("BM25 corpus présent", lambda: (
 ) or "OK")
 
 def check_manifest():
-    p = ROOT / "docs" / "chunks" / "manifest.json"
-    assert p.exists(), "manifest.json absent"
+    p = ROOT / "docs" / "chunks" / "manifest_kb.json"
+    assert p.exists(), "manifest_kb.json absent"
     m = json.loads(p.read_text(encoding="utf-8"))
-    n_ch = m.get("total_chunks", 0)
+    n_ch = m.get("total_md_chunks", 0)
     n_fn = m.get("known_functions_count", 0)
-    assert n_ch > 5000, f"Seulement {n_ch} chunks — rebuild nécessaire"
+    if not n_fn:  # manifest antérieur au champ known_functions_count
+        bm25 = json.loads((ROOT / "docs" / "chunks" / "bm25_corpus.json").read_text(encoding="utf-8"))
+        n_fn = len(bm25.get("known_functions", []))
+    assert n_ch > 300, f"Seulement {n_ch} chunks — rebuild nécessaire"
     assert n_fn > 50,   f"Seulement {n_fn} fonctions — rebuild nécessaire"
     return f"{n_ch} chunks | {n_fn} fonctions MISPL"
 run("Manifest valide", check_manifest)

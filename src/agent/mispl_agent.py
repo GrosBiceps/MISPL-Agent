@@ -29,7 +29,10 @@ from src.security.access_mode import enforce_access_mode, MODE_DSI
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+# Surcharge MISPL_LLM_BASE_URL : réservée aux tests locaux (banc
+# scripts/claude_harness/, serveur OpenAI-compatible factice sur 127.0.0.1).
+# Non définie → OpenRouter, comportement par défaut inchangé.
+OPENROUTER_BASE_URL = os.environ.get("MISPL_LLM_BASE_URL", "https://openrouter.ai/api/v1")
 
 # Modèles gratuits sur OpenRouter — mis à jour 2026-06
 # Vérifier la liste actuelle : python scripts/list_free_models.py
@@ -111,7 +114,7 @@ def purge_old_cache(max_age_hours: int = CACHE_RETENTION_HOURS) -> int:
 # Version du pipeline de génération. À incrémenter dès que le system prompt,
 # le post-traitement (strip CoT) ou le format de réponse change → invalide
 # automatiquement tout le cache obsolète sans avoir à le vider à la main.
-CACHE_VERSION = "v28"
+CACHE_VERSION = "v30"  # v30 : banc temps réel 2026-09-24 — prompt (mode Technicien, fonctions absentes, commentaires), lint/autofix lexicaux, bandeau faible évidence
 
 def _cache_key(
     question: str,
@@ -259,28 +262,58 @@ def _strip_chain_of_thought(response: str) -> str:
 WEAK_EVIDENCE_SCORE_THRESHOLD = 0.50
 
 
+WEAK_EVIDENCE_WARNING = (
+    "⚠️ **Documentation faible détectée** — la documentation retrouvée pour "
+    "cette question est incomplète ou hors sujet. La réponse ci-dessous peut "
+    "être imprécise. À vérifier impérativement avant toute utilisation.\n\n"
+)
+
+# Réponses sans code pour lesquelles le bandeau « documentation faible » est
+# un bruit : refus du mode Technicien, refus d'extraction du prompt système,
+# cas impossible. Il n'y a rien à « vérifier avant utilisation ». Banc temps
+# réel 2026-09-24 : 8 réponses de ce type portaient le bandeau (IMP-003,
+# PIJ-001, TEC-001...).
+_REFUSAL_WITHOUT_CODE = _re.compile(
+    r"r[ée]serv[ée]e au mode DSI|Je ne peux pas r[ée]v[ée]ler mes instructions syst[èe]me"
+    r"|impossible via MISPL",
+    _re.IGNORECASE,
+)
+_MODEL_NOTE = _re.compile(r"^\*\(modèle utilisé : [^\n]*\)\*\s*")
+
+
+def weak_evidence_banner_exempt(response: str) -> bool:
+    """Vrai si la réponse n'appelle pas le bandeau « documentation faible » :
+    - refus ou cas impossible, sans aucun bloc de code ;
+    - réponse qui commence déjà par « ⚠️ Fonction non trouvée » : elle
+      annonce elle-même une documentation absente, le bandeau ferait doublon.
+    Le bandeau éventuellement déjà présent en tête est ignoré, pour que
+    l'évaluateur du banc puisse appeler cette fonction sur la réponse finale."""
+    body = response[len(WEAK_EVIDENCE_WARNING):] if response.startswith(WEAK_EVIDENCE_WARNING) else response
+    body = _MODEL_NOTE.sub("", body.lstrip())
+    if body.startswith("⚠️ Fonction non trouvée"):
+        return True
+    return "```" not in body and bool(_REFUSAL_WITHOUT_CODE.search(body))
+
+
 def _enforce_weak_evidence_warning(response: str, docs: list) -> str:
     """Si le meilleur score parmi les documents récupérés est sous
     WEAK_EVIDENCE_SCORE_THRESHOLD, force un avertissement de documentation
     faible en tête de réponse et rétrograde toute affirmation "✅ Certain"
     trouvée dans le texte — correction mécanique, indépendante de ce que le
-    LLM a lui-même affirmé."""
+    LLM a lui-même affirmé. La rétrogradation s'applique toujours ; seul le
+    bandeau est omis pour les réponses listées par weak_evidence_banner_exempt."""
     max_score = max((d.get("score", 0) or 0 for d in docs), default=0.0)
     if max_score >= WEAK_EVIDENCE_SCORE_THRESHOLD:
         return response
 
-    warning = (
-        "⚠️ **Documentation faible détectée** — la documentation retrouvée pour "
-        "cette question est incomplète ou hors sujet. La réponse ci-dessous peut "
-        "être imprécise. À vérifier impérativement avant toute utilisation.\n\n"
-    )
     downgraded = _re.sub(
         r"^\s*✅\s*\**Certain\**.*$",
         "🔬 À vérifier — documentation insuffisante pour confirmer",
         response,
         flags=_re.MULTILINE,
     )
-    return warning + _strip_leaked_retrieval_scores(downgraded)
+    banner = "" if weak_evidence_banner_exempt(response) else WEAK_EVIDENCE_WARNING
+    return banner + _strip_leaked_retrieval_scores(downgraded)
 
 
 # ── Garde-fou mécanique — fuite de scores de retrieval internes ─────────────
@@ -589,8 +622,11 @@ def ask_mispl(
         "Si un extrait montre un pattern complet correspondant a la demande, suis-le comme modele. "
         "INTERDIT d'utiliser CascadeRequest (ancienne version GLIMS) — toujours Action.Order().AddRequest. "
         "CAS IMPOSSIBLE (creer/supprimer un patient, un objet, une analyse au referentiel, modifier les bornes) : "
-        "repondre UNIQUEMENT 'impossible via MISPL — se fait via la configuration GLIMS', "
-        "SANS pseudo-code, SANS inventer CreatePatient/CreatePerson/CreateObject."
+        "repondre UNIQUEMENT '## Contexte GLIMS' puis, a la ligne, "
+        "'impossible via MISPL — se fait via la configuration GLIMS.' (une phrase d'explication au plus), "
+        "SANS bloc de code, SANS pseudo-code, SANS inventer CreatePatient/CreatePerson/CreateObject. "
+        "Une fonction nommee dans la question mais absente des extraits ne doit JAMAIS etre appelee, "
+        "meme en pseudo-code. Commentaires : uniquement /* ... */."
     )
 
     # Injection de l'historique entre system et user (max 6 échanges)

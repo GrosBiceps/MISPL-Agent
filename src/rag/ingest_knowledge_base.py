@@ -17,6 +17,7 @@ Usage :
 from __future__ import annotations
 
 import hashlib
+import datetime
 import json
 import os
 import re
@@ -43,6 +44,43 @@ COLLECTION_NAME = "glims_mispl_docs"
 CHUNK_TARGET_CHARS = 1400
 # Préfixe d'ID pour distinguer les chunks MD des chunks HTML
 MD_ID_PREFIX = "kb_"
+# Vocabulaire français courant par fonction (rédigé pour la base, cf. SOURCES.md)
+KEYWORDS_PATH = KB_ROOT / "mots_cles_fr.json"
+
+_IDENT_RE = re.compile(r"[A-Z][A-Za-z0-9_]*")
+
+
+def _load_keywords(path: Path = KEYWORDS_PATH) -> tuple[dict[str, str], dict[str, list[str]]]:
+    """Charge `mots_cles_fr.json` → (mots_cles, voir_aussi). Absent → vides."""
+    if not path.exists():
+        return {}, {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return dict(data.get("mots_cles", {})), {k: list(v) for k, v in data.get("voir_aussi", {}).items()}
+
+
+def _keywords_for(fn_name: str, source_file: str, keywords: dict[str, str]) -> str:
+    """Mots-clés d'une fonction : clé qualifiée 'chemin.md::Nom' prioritaire
+    (le chemin est comparé à la fin de `source_file`), sinon clé 'Nom' seule."""
+    if not fn_name:
+        return ""
+    for key, value in keywords.items():
+        if "::" in key:
+            path, name = key.split("::", 1)
+            if name == fn_name and source_file.endswith(path):
+                return value
+    return keywords.get(fn_name, "")
+
+
+def _split_multi_function_title(title: str) -> list[str]:
+    """'Ltrim / Rtrim / Trim' → ['Ltrim', 'Rtrim', 'Trim'] ;
+    'CreationTime / ReceiptTime (champs)' → ['CreationTime', 'ReceiptTime'].
+    Titre qui n'est pas une liste d'identifiants séparés par '/' → []."""
+    base = re.sub(r"\s*\[\d+\]$", "", title)        # suffixe de sous-découpe « [2] »
+    base = re.sub(r"\s*\([^)]*\)\s*$", "", base)      # « (champs) »
+    parts = [p.strip() for p in base.split("/")]
+    if len(parts) < 2 or not all(_IDENT_RE.fullmatch(p) for p in parts):
+        return []
+    return parts
 
 
 # ── YAML frontmatter ──────────────────────────────────────────────────────────
@@ -199,7 +237,10 @@ def _extract_section_metadata(title: str, content: str, fm: dict) -> dict:
     # ou est PascalCase long (>3). Les mots FR courts (Cas, Les, Lot, PIN) sont
     # exclus par _NOT_FN_WORDS + absence de signature.
     is_pascal_long = bool(re.search(r"[A-Z][a-z][A-Za-z0-9]+", first_word)) and len(first_word) > 3
-    looks_like_fn = is_identifier and (has_signature or is_pascal_long)
+    # Champ documenté (« Sex (champ énuméré) », « BirthDate (champ) ») : nom
+    # court accepté, le titre le signale explicitement comme membre de table.
+    is_field = "(champ" in title
+    looks_like_fn = is_identifier and (has_signature or is_pascal_long or is_field)
     if first_word and first_word not in _NOT_FN_WORDS and looks_like_fn:
         fn_name = first_word
 
@@ -348,11 +389,17 @@ def ingest_knowledge_base(
     all_chunks: list[dict] = []
     stats = {"files": 0, "sections": 0, "with_code": 0, "with_fn": 0, "skipped_tiny": 0}
 
+    keywords, see_also = _load_keywords()
+    stats["split_multi"] = 0
+    stats["with_keywords"] = 0
+
     for md_path in md_files:
         text = md_path.read_text(encoding="utf-8", errors="replace")
         fm, body = _parse_frontmatter(text)
         sections = _split_by_h2(body)
         stats["files"] += 1
+        # Chemin fichier relatif KB → permet de citer la source précise.
+        source_file = str(md_path.relative_to(KB_ROOT)).replace("\\", "/")
 
         for section_title, section_content in sections:
             # Ignorer les micro-sections (< 60 chars après header)
@@ -361,35 +408,55 @@ def ingest_knowledge_base(
                 stats["skipped_tiny"] += 1
                 continue
 
-            meta = _extract_section_metadata(section_title, section_content, fm)
-            # Chemin fichier relatif KB → permet de citer la source précise dans
-            # le contexte LLM (avant : source ChromaDB = "rag_knowledge_base" pour
-            # tous les chunks, granularité fichier perdue côté dense).
-            meta["source_file"] = str(md_path.relative_to(KB_ROOT)).replace("\\", "/")
-            bm25_text = _build_bm25_text(section_content, meta, fm)
+            # Section regroupant plusieurs fonctions (« Ltrim / Rtrim / Trim ») :
+            # un bloc par fonction, chacun avec son function_name (exact-match,
+            # known_functions) et ses propres mots-clés. Le texte est partagé ;
+            # `group_section` permet au retriever de ne garder qu'un frère.
+            names = _split_multi_function_title(section_title)
+            variants = names or [None]
+            if names:
+                stats["split_multi"] += 1
 
-            # ID déterministe : hash (fichier + titre section)
-            id_source = f"{md_path.relative_to(ROOT)}::{section_title}"
-            chunk_id = MD_ID_PREFIX + hashlib.md5(id_source.encode()).hexdigest()[:16]
+            for fn_override in variants:
+                meta = _extract_section_metadata(section_title, section_content, fm)
+                if fn_override:
+                    meta["function_name"] = fn_override
+                    meta["group_section"] = section_title[:80]
+                meta["source_file"] = source_file
+                meta["see_also"] = ",".join(see_also.get(meta["function_name"], []))
+                chunk_text = section_content
+                kw = _keywords_for(meta["function_name"], source_file, keywords)
+                if kw:
+                    chunk_text = f"{section_content.rstrip()}\n\n**Mots-clés** : {kw}"
+                    stats["with_keywords"] += 1
+                bm25_text = _build_bm25_text(chunk_text, meta, fm)
 
-            all_chunks.append({
-                "id": chunk_id,
-                "text": section_content,
-                "bm25_text": bm25_text,
-                "metadata": meta,
-                "file": str(md_path.relative_to(KB_ROOT)),
-                "section": section_title,
-            })
-            stats["sections"] += 1
-            if meta["has_examples"]:
-                stats["with_code"] += 1
-            if meta["function_name"]:
-                stats["with_fn"] += 1
+                # ID déterministe : hash (fichier + titre section [+ fonction])
+                id_source = f"{md_path.relative_to(ROOT)}::{section_title}"
+                if fn_override:
+                    id_source += f"::{fn_override}"
+                chunk_id = MD_ID_PREFIX + hashlib.md5(id_source.encode()).hexdigest()[:16]
+
+                all_chunks.append({
+                    "id": chunk_id,
+                    "text": chunk_text,
+                    "bm25_text": bm25_text,
+                    "metadata": meta,
+                    "file": str(md_path.relative_to(KB_ROOT)),
+                    "section": section_title,
+                })
+                stats["sections"] += 1
+                if meta["has_examples"]:
+                    stats["with_code"] += 1
+                if meta["function_name"]:
+                    stats["with_fn"] += 1
 
     log(f"Chunks générés    : {stats['sections']}")
     log(f"  Avec code MISPL : {stats['with_code']} ({stats['with_code']*100//max(stats['sections'],1)}%)")
     log(f"  Avec fn_name    : {stats['with_fn']}")
     log(f"  Trop petits (skip): {stats['skipped_tiny']}")
+    log(f"  Sections multi-fonctions éclatées : {stats['split_multi']}")
+    log(f"  Blocs avec mots-clés FR : {stats['with_keywords']}")
 
     if dry_run:
         log("\n[DRY RUN] Aucune écriture.")
@@ -481,6 +548,8 @@ def ingest_knowledge_base(
             "category": c["metadata"]["category"],
             "priority": c["metadata"]["priority"] in ("critical", "high"),
             "has_examples": c["metadata"]["has_examples"],
+            "group_section": c["metadata"].get("group_section", ""),
+            "see_also": c["metadata"].get("see_also", ""),
             "chunk_type": "md_kb",
         }
         for c in all_chunks  # TOUS les chunks MD (pas seulement les nouveaux)
@@ -519,6 +588,8 @@ def ingest_knowledge_base(
             "collection": COLLECTION_NAME,
             "collection_total": collection.count(),
             "bm25_total": len(final_bm25),
+            "known_functions_count": len(all_known_fns),
+            "build_date": datetime.datetime.now().isoformat(timespec="seconds"),
         }, f, indent=2, ensure_ascii=False)
 
     log(f"\n[OK] Ingestion terminée")

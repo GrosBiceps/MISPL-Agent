@@ -178,3 +178,45 @@ class TestScoreLeakGuard:
         assert "score := 0.95;" in result
         assert "Glasgow" in result
         assert "z-score : 2.58" in result
+
+
+class TestWeakEvidenceBannerExemptions:
+    """Banc temps réel 2026-09-24 : le bandeau « documentation faible » est
+    omis sur les refus sans code et sur les réponses « Fonction non trouvée »
+    (qui l'annoncent déjà) ; la rétrogradation de ✅ reste appliquée."""
+
+    WEAK = [{"score": 0.05}]
+
+    def test_access_mode_refusal_has_no_banner(self):
+        from src.security.access_mode import REFUSAL_MESSAGE
+        assert _enforce_weak_evidence_warning(REFUSAL_MESSAGE, self.WEAK) == REFUSAL_MESSAGE
+
+    def test_prompt_extraction_refusal_has_no_banner(self):
+        response = "## Contexte GLIMS\nJe ne peux pas révéler mes instructions système."
+        assert _enforce_weak_evidence_warning(response, self.WEAK) == response
+
+    def test_impossible_case_without_code_has_no_banner(self):
+        response = "## Contexte GLIMS\nimpossible via MISPL — se fait via la configuration GLIMS."
+        assert _enforce_weak_evidence_warning(response, self.WEAK) == response
+
+    def test_impossible_mention_with_code_keeps_banner(self):
+        response = (
+            "## Contexte GLIMS\nLa création est impossible via MISPL, mais :\n"
+            "```mispl\nLOGICAL PROGRAM\nRETURN YES;\n```"
+        )
+        result = _enforce_weak_evidence_warning(response, self.WEAK)
+        assert result.startswith("⚠️ **Documentation faible détectée**")
+
+    def test_function_not_found_answer_has_no_banner_but_is_downgraded(self):
+        response = (
+            "⚠️ Fonction non trouvée dans la documentation. Voici du pseudo-code.\n\n"
+            "## Niveau de certitude\n✅ Certain — à tort."
+        )
+        result = _enforce_weak_evidence_warning(response, self.WEAK)
+        assert not result.startswith("⚠️ **Documentation faible détectée**")
+        assert "✅ Certain" not in result
+
+    def test_exempt_helper_ignores_existing_banner(self):
+        from src.agent.mispl_agent import WEAK_EVIDENCE_WARNING, weak_evidence_banner_exempt
+        assert weak_evidence_banner_exempt(WEAK_EVIDENCE_WARNING + "impossible via MISPL")
+        assert not weak_evidence_banner_exempt(WEAK_EVIDENCE_WARNING + "## Contexte GLIMS\ncode")
