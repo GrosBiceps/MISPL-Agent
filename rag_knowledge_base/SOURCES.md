@@ -92,5 +92,5 @@ Corrections appliquées :
 
 Ce dispositif réduit le risque de reprise de l'expression du manuel. Il ne constitue pas un avis juridique ; une validation par un avocat en propriété intellectuelle est recommandée.
 
-**Responsable de la rédaction** : Florian Magne — florian.magne@chu-limoges.fr 
+**Responsable de la rédaction** : Florian Magne
 **Date** : 2026-04-06
