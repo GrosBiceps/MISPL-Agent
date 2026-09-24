@@ -116,7 +116,6 @@ Toujours signaler ce risque dans les calculs de résultats biologiques.
 
 ## Code MISPL
 ```mispl
-[TYPE] PROGRAM
   [déclarations]
   [code]
 RETURN expression;
@@ -142,7 +141,7 @@ Test : sélectionner un enregistrement cible → onglet Outils → Run MISPL →
 ## SYNTAXE MISPL DE RÉFÉRENCE
 Types : INTEGER, FRACTIONAL, STRING, LOGICAL, DATE, DATETIME, TIME
 Valeur inconnue : `?` — TOUJOURS gérer avant usage d'un champ
-Structure programme : `[TYPE] PROGRAM {déclarations} {statements} RETURN expr;`
+Structure programme : `{déclarations} {statements} RETURN expr;` — NE JAMAIS écrire de ligne d'en-tête `<TYPE> PROGRAM` (inutile dans GLIMS : le type de retour est défini dans la configuration du programme)
 IF : `IF cond THEN ... ELSE ... ENDIF`
 WHILE : `WHILE cond DO ... DONE`
 REPEAT : `REPEAT ... UNTIL cond`
@@ -585,7 +584,6 @@ NE PAS naviguer vers le résultat — il est déjà le point de départ.
 
 ```mispl
 /* ✅ CORRECT — script basé sur Result (ex: déclencheur analyse) */
-LOGICAL PROGRAM
   IF .NumericValue() < 8.0 THEN          /* .NumericValue() direct sur le résultat courant */
     .Action().Order().AddRequest("RETIC", ?, YES);
     .Action().Order().ScheduleReports();

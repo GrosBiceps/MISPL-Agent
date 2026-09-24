@@ -15,7 +15,6 @@ Contrainte absolue : zéro hallucination, toujours sourcer depuis la documentati
 
 ## Syntax Rules
 ```
-[TYPE] PROGRAM
   [DECLARATIONS]
   [STATEMENTS]
 RETURN expression;
@@ -39,7 +38,6 @@ DATE birthdate;
 
 ### Formatage d'identifiant échantillon
 ```mispl
-STRING PROGRAM
   STRING prefix, num;
   prefix := DateToString(Today(), "%Y%m%d");
   num := IntegerToString(NextValue("SampleCounter"), "%05d");
@@ -49,7 +47,6 @@ Source : `rag_knowledge_base/02_functions/datetime/datetime_functions.md`, `rag_
 
 ### Gestion valeur inconnue
 ```mispl
-LOGICAL PROGRAM
   STRING val;
   val := .SomeField;
   IF val = ? THEN
@@ -60,7 +57,6 @@ RETURN val <> "";
 
 ### Log d'audit obligatoire
 ```mispl
-LOGICAL PROGRAM
   LOGICAL ok;
   ok := AddLogEntry("Sample", .Id, "RESULT_CHANGE", Info, FALSE,
     "Résultat modifié par " + CurrentUser());

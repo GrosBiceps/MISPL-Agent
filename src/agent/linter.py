@@ -178,6 +178,22 @@ _RULES: list[tuple[str, Severity, str]] = [
 
 ]
 
+# Ligne d'en-tête « <TYPE> PROGRAM » (seule sur sa ligne) — inutile dans GLIMS,
+# supprimée par autofix_mispl.
+_PROGRAM_HEADER_RE = re.compile(
+    r"^[ \t]*(?:CHARACTER|STRING|DATE|DATETIME|TIME|DECIMAL|FRACTIONAL|INTEGER|LOGICAL|BOOLEAN|ENUMERATED)"
+    r"[ \t]+PROGRAM[ \t]*;?[ \t]*(?:\r?\n|$)",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+# Déclaration de variable typée en début de ligne (ex. « STRING s, t; ») : signe
+# qu'un bloc est un programme complet, même sans en-tête PROGRAM.
+_TYPED_DECL_RE = re.compile(
+    r"^\s*(?:CHARACTER|STRING|DATE|DATETIME|TIME|DECIMAL|FRACTIONAL|INTEGER|LOGICAL|BOOLEAN|ENUMERATED)"
+    r"\s+[A-Za-z_]\w*\s*[,;]",
+    re.IGNORECASE | re.MULTILINE,
+)
+
 # Patterns nécessitant une analyse ligne par ligne
 _LINE_RULES: list[tuple[str, Severity, str]] = [
     (
@@ -332,7 +348,7 @@ def lint_mispl_code(code: str) -> LintResult:
             ))
 
     # Vérification RETURN présent dans tout programme
-    if re.search(r"\bPROGRAM\b", clean_code, re.IGNORECASE):
+    if re.search(r"\bPROGRAM\b", clean_code, re.IGNORECASE) or _TYPED_DECL_RE.search(clean_code):
         if not re.search(r"\bRETURN\b", clean_code, re.IGNORECASE):
             result.issues.append(LintIssue(
                 severity=Severity.ERROR,
@@ -458,6 +474,12 @@ def autofix_mispl(text: str) -> tuple[str, list[str]]:
         code = re.sub(r"SendMailToRole\s*\(([\s\S]*?)\)\s*;", lambda x: repl_sendmail(x) + ";", code)
         if code != before:
             corrections.append("SendMailToRole() converti en GetRole().SendMail()")
+
+        # 4. En-tête « <TYPE> PROGRAM » supprimé (inutile dans GLIMS)
+        before = code
+        code = _PROGRAM_HEADER_RE.sub("", code)
+        if code != before:
+            corrections.append("En-tête « <TYPE> PROGRAM » supprimé (inutile dans GLIMS)")
         return code
 
     def fix_block(m):

@@ -42,7 +42,7 @@ RERANK_POOL_SIZE = 20
 # par catégorie + modèle de reranking). À incrémenter dès que l'un de ces
 # trois éléments change, pour invalider le cache réponse de mispl_agent.py
 # (cf. RETRIEVAL_PIPELINE_VERSION dans src/agent/mispl_agent.py::_cache_key).
-RETRIEVAL_PIPELINE_VERSION = "r2"
+RETRIEVAL_PIPELINE_VERSION = "r3"
 
 # Mapping skill (nom de fichier .md sous .claude/skills/) → catégories de la
 # base pertinentes pour ce skill. Utilisé pour GARANTIR l'inclusion de chunks
@@ -1102,6 +1102,47 @@ class MISPLRetriever:
             return docs
         except Exception:
             return []
+
+    # ── Fonctions utilitaires pour les demandes de script complet ─────────────
+    # Un script complet combine presque toujours des utilitaires (lecture de la
+    # valeur numérique, formatage décimal, date/heure, valeur inconnue) que la
+    # question ne nomme pas : le retrieval sémantique les rate. On ajoute leurs
+    # fiches (recherche exacte par nom, sans reranker) EN FIN de liste, avec un
+    # score modeste pour ne pas masquer une documentation faible.
+    _SCRIPT_REQUEST_RE = re.compile(
+        r"\b(?:[ée]cri[st]|script|programme|calcul|formule|score|rapport|ratio|en-t[êe]te)\b",
+        re.IGNORECASE,
+    )
+    _HELPER_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+        (r"d[ée]cimal|arrondi|ratio|rapport|score|calcul|formule|µmol|mmol|/l\b",
+         ("NumericValue", "FractionalToString", "Round")),
+        (r"\bdate\b|jj/mm|aaaa|du jour|aujourd", ("Today", "DateToString")),
+        (r"\bheure|hh:mm|maintenant|d[ée]lai", ("Now", "TimeToString")),
+        (r"inconnu|\?\s*\)|vide", ("IfKnownString",)),
+        (r"\bsexe\b|\bgenre\b|énum|enum", ("EnumeratedToString",)),
+        (r"exponenti|\bexp\b|puissance", ("Exp",)),
+        (r"racine", ("Sqrt",)),
+    )
+
+    def helper_docs(
+        self, question: str, present: set[str], max_extra: int = 4
+    ) -> list[dict[str, Any]]:
+        """Fiches utilitaires manquantes pour une demande de script complet."""
+        if not self._SCRIPT_REQUEST_RE.search(question):
+            return []
+        wanted: list[str] = []
+        for pattern, fns in self._HELPER_RULES:
+            if re.search(pattern, question, re.IGNORECASE):
+                wanted += [f for f in fns if f not in present and f not in wanted]
+        extra: list[dict[str, Any]] = []
+        for fn in wanted:
+            if len(extra) >= max_extra:
+                break
+            hits = self._exact_match_search(fn)[:1]
+            for d in hits:
+                d.update(score=0.5, exact_match=False, helper=True)
+            extra += hits
+        return extra
 
     # ── Boost d'inclusion par catégorie (skill actif) ──────────────────────────
 

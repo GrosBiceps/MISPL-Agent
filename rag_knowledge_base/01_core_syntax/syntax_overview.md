@@ -7,39 +7,37 @@ context: ["all"]
 table_abbrev: null
 return_type: null
 priority: "critical"
-keywords_fr: ["programme", "déclarer", "type", "retour", "variable", "instruction", "opérateur", "division", "entier", "inconnu", "NULL", "LOGICAL PROGRAM", "INTEGER PROGRAM", "CHARACTER PROGRAM"]
-anti_hallucination: ["FRACTIONAL PROGRAM n'existe pas — utiliser DECIMAL PROGRAM ou LOGICAL PROGRAM"]
+keywords_fr: ["programme", "déclarer", "type", "retour", "variable", "instruction", "opérateur", "division", "entier", "inconnu", "NULL", "type de retour"]
+anti_hallucination: ["Ne jamais écrire de ligne d'en-tête <TYPE> PROGRAM : inutile dans GLIMS, le type de retour est défini dans la configuration du programme"]
 tags: [programme, structure, types, retour, declaration, LOGICAL, INTEGER, CHARACTER, DECIMAL, DATE, PROGRAM, RETURN, IF, WHILE, REPEAT]
 ---
 
 # Structure d'un programme MISPL
 
 ## Analogie Progress ABL
-En ABL, un bloc de code est encapsulé dans `PROCEDURE ... END PROCEDURE` avec des déclarations de variables et un flux de contrôle explicite. MISPL suit la même philosophie : un programme est une unité compilable avec un type de retour déclaré, des variables locales, des instructions, et une valeur de retour obligatoire.
+En ABL, un bloc de code est encapsulé dans `PROCEDURE ... END PROCEDURE` avec des déclarations de variables et un flux de contrôle explicite. MISPL suit la même philosophie : un programme est une unité compilable dont le type de retour est défini dans la configuration GLIMS (aucune ligne d'en-tête à écrire), des variables locales, des instructions, et une valeur de retour obligatoire.
 
 ## Signature technique
 
 ```
-(CHARACTER | DATE | DECIMAL | INTEGER | LOGICAL) PROGRAM
-  { <Déclaration> }
-  { <Instruction> }
+{ <Déclaration> }
+{ <Instruction> }
 RETURN <Expression>;
 ```
 
 ## Types de programmes disponibles
 
-| Type déclaré | Valeur retournée |
+| Type de retour (défini dans la configuration GLIMS du programme) | Valeur retournée |
 |--------------|-----------------|
-| `LOGICAL PROGRAM` | YES / NO |
-| `CHARACTER PROGRAM` | Chaîne de texte |
-| `INTEGER PROGRAM` | Entier |
-| `DECIMAL PROGRAM` | Décimal (FRACTIONAL) |
-| `DATE PROGRAM` | Date |
+| `LOGICAL` | YES / NO |
+| `CHARACTER` | Chaîne de texte |
+| `INTEGER` | Entier |
+| `DECIMAL` | Décimal (FRACTIONAL) |
+| `DATE` | Date |
 
 ## Déclaration de variables
 
 ```mispl
-LOGICAL PROGRAM
   STRING maVariable;
   INTEGER compteur;
   FRACTIONAL ratio;
@@ -80,7 +78,6 @@ Passer en paramètre optionnel : `AddRequest("MNEM", ?, ?)`
 ## Exemple minimal
 
 ```mispl
-LOGICAL PROGRAM
   IF .NumericValue() <> ? AND .NumericValue() >= 3.5 THEN
     .Action().Order().AddRequest("PSAL", ?, YES);
     .MarkAsSolicited();

@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT))
 from src.rag.retriever import get_retriever, RETRIEVAL_PIPELINE_VERSION
 from src.agent.prompt_builder import build_system_prompt, SKILL_PROFILES
 from src.agent.linter import lint_response, autofix_mispl, Severity
-from src.security.access_mode import enforce_access_mode, MODE_DSI
+from src.security.access_mode import enforce_access_mode, MODE_DSI, MODE_TECHNICIEN
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ def purge_old_cache(max_age_hours: int = CACHE_RETENTION_HOURS) -> int:
 # Version du pipeline de génération. À incrémenter dès que le system prompt,
 # le post-traitement (strip CoT) ou le format de réponse change → invalide
 # automatiquement tout le cache obsolète sans avoir à le vider à la main.
-CACHE_VERSION = "v30"  # v30 : banc temps réel 2026-09-24 — prompt (mode Technicien, fonctions absentes, commentaires), lint/autofix lexicaux, bandeau faible évidence
+CACHE_VERSION = "v31"  # v31 : suppression en-tête « <TYPE> PROGRAM », rappel mode Technicien, fiches utilitaires pour scripts
 
 def _cache_key(
     question: str,
@@ -601,6 +601,11 @@ def ask_mispl(
     # 2. Retrieval hybride BM25 + dense
     retriever = get_retriever(use_openai=use_openai_embeddings, top_k=effective_top_k)
     docs = retriever.query(question, active_skills=active_skills)
+    # 2.b Script complet : ajoute les fiches utilitaires (formatage décimal,
+    # date/heure, valeur inconnue...) que la question ne nomme pas.
+    docs = docs + retriever.helper_docs(
+        question, {d.get("function_name", "") for d in docs}
+    )
     context = retriever.format_context(docs)
 
     # 3. Prompt système depuis Skills Markdown
@@ -626,8 +631,15 @@ def ask_mispl(
         "'impossible via MISPL — se fait via la configuration GLIMS.' (une phrase d'explication au plus), "
         "SANS bloc de code, SANS pseudo-code, SANS inventer CreatePatient/CreatePerson/CreateObject. "
         "Une fonction nommee dans la question mais absente des extraits ne doit JAMAIS etre appelee, "
-        "meme en pseudo-code. Commentaires : uniquement /* ... */."
+        "meme en pseudo-code. Commentaires : uniquement /* ... */. "
+        "N'ecris JAMAIS de ligne d'en-tete '<TYPE> PROGRAM' (inutile dans GLIMS)."
     )
+    if access_mode == MODE_TECHNICIEN:
+        user_prompt += (
+            "\nRAPPEL MODE TECHNICIEN : aucune boucle (ni WHILE, ni REPEAT). Si le besoin "
+            "exige une boucle et qu'aucune fonction integree ne la remplace, reponds "
+            "uniquement le refus '🔒 Génération réservée au mode DSI', sans code."
+        )
 
     # Injection de l'historique entre system et user (max 6 échanges)
     messages = [{"role": "system", "content": system_prompt}]

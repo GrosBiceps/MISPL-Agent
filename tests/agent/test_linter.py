@@ -175,7 +175,7 @@ class TestCommentsAndStrings:
         assert corrections == ["CascadeRequest() (legacy) converti en Action.Order().AddRequest()"]
 
     def test_autofix_keeps_double_slash_inside_strings(self):
-        text = '```mispl\nSTRING PROGRAM\nRETURN "http://exemple.local";\n```'
+        text = '```mispl\nSTRING s;\nRETURN "http://exemple.local";\n```'
         fixed, corrections = autofix_mispl(text)
         assert fixed == text and corrections == []
 
@@ -185,3 +185,35 @@ class TestCommentsAndStrings:
         assert "/* a := 1; / / puis b * / fin */" in fixed
         block = extract_mispl_blocks(fixed)[0]
         assert lint_mispl_code(block).is_clean
+
+
+# ── En-tête « <TYPE> PROGRAM » : inutile dans GLIMS, supprimé par autofix ──────
+
+def test_autofix_supprime_entete_program():
+    from src.agent.linter import autofix_mispl
+    src = "```mispl\nSTRING PROGRAM\n  STRING s;\n  s := \"A\";\nRETURN s;\n```"
+    fixed, corrections = autofix_mispl(src)
+    assert "PROGRAM" not in fixed
+    assert "STRING s;" in fixed and "RETURN s;" in fixed
+    assert any("PROGRAM" in c for c in corrections)
+
+
+def test_autofix_entete_program_tous_types_et_point_virgule():
+    from src.agent.linter import autofix_mispl
+    for t in ("LOGICAL", "INTEGER", "FRACTIONAL", "DECIMAL", "CHARACTER", "DATE"):
+        fixed, _ = autofix_mispl(f"```mispl\n  {t} PROGRAM;\nRETURN YES;\n```")
+        assert "PROGRAM" not in fixed, t
+
+
+def test_autofix_ne_touche_pas_program_dans_chaine_ou_commentaire():
+    from src.agent.linter import autofix_mispl
+    src = '```mispl\n/* STRING PROGRAM */\nRETURN "STRING PROGRAM";\n```'
+    fixed, corrections = autofix_mispl(src)
+    assert fixed.count("STRING PROGRAM") == 2
+    assert not any("PROGRAM" in c for c in corrections)
+
+
+def test_lint_return_manquant_detecte_sans_entete_program():
+    from src.agent.linter import lint_response
+    res = lint_response("```mispl\nSTRING s;\ns := \"A\";\n```")
+    assert any("RETURN" in i.message for i in res.issues)

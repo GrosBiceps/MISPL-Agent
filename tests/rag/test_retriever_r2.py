@@ -172,3 +172,30 @@ class TestIngestion:
         assert mots_cles, "rag_knowledge_base/mots_cles_fr.json doit exister et être non vide"
         assert all(isinstance(v, str) and v for v in mots_cles.values())
         assert all(isinstance(v, list) for v in voir_aussi.values())
+
+
+# ── helper_docs : fiches utilitaires pour les demandes de script complet ─────
+
+def _bare_retriever(monkeypatch):
+    from src.rag.retriever import MISPLRetriever
+    r = MISPLRetriever.__new__(MISPLRetriever)
+    monkeypatch.setattr(
+        r, "_exact_match_search",
+        lambda fn: [{"function_name": fn, "score": 1.0, "exact_match": True}],
+    )
+    return r
+
+
+def test_helper_docs_script_decimal_et_date(monkeypatch):
+    r = _bare_retriever(monkeypatch)
+    docs = r.helper_docs("Écris le calcul du rapport ASAT/ALAT avec la date du jour", {"NumericValue"})
+    fns = [d["function_name"] for d in docs]
+    assert "NumericValue" not in fns                       # déjà présent
+    assert fns[:2] == ["FractionalToString", "Round"]
+    assert all(d["score"] == 0.5 and not d["exact_match"] and d["helper"] for d in docs)
+    assert len(docs) <= 4
+
+
+def test_helper_docs_ignore_question_simple(monkeypatch):
+    r = _bare_retriever(monkeypatch)
+    assert r.helper_docs("Comment utiliser Substr ?", set()) == []

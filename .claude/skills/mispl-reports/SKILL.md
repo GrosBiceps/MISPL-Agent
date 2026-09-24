@@ -19,7 +19,6 @@ Focus : mise en forme, conditionnels cliniques, fusion de données patient.
 
 ### En-tête patient dynamique
 ```mispl
-STRING PROGRAM
   STRING nom, ddn, nip;
   nom := .Patient.LastName + " " + .Patient.FirstName;
   ddn := DateToString(.Patient.BirthDate, "%d/%m/%Y");
@@ -29,7 +28,6 @@ RETURN "Patient : " + nom + " | DDN : " + ddn + " | NIP : " + nip;
 
 ### Résultat conditionnel avec unité
 ```mispl
-STRING PROGRAM
   STRING res, unite;
   FRACTIONAL val;
   val := .NumericResult;
@@ -48,7 +46,6 @@ RETURN FractionalToString(val, "%6.2f") + " " + unite;
 
 ### Étiquette tube formatée
 ```mispl
-STRING PROGRAM
   STRING barcode, dt;
   barcode := .Sample.Barcode;
   dt := DateTimeToString(.Sample.CollectionDateTime, "%d/%m/%Y %H:%M");

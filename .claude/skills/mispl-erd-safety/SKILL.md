@@ -21,7 +21,6 @@ Prévenir les accès incorrects qui pourraient casser des règles métiers ou co
 ### Pattern sécurisé pour accès champ
 ```mispl
 /* Toujours vérifier l'existence avant accès relationnel */
-STRING PROGRAM
   STRING mnem;
   IF .Examination = ? THEN
     RETURN "N/A";
