@@ -230,6 +230,61 @@ _COT_SIGNATURES = (
     "il faut verifier", "il faut vérifier", "regardons",
 )
 
+def _first_answer_marker(response: str) -> int | None:
+    """Position du premier marqueur de réponse structurée situé en DÉBUT DE
+    LIGNE. Un marqueur cité au fil d'un raisonnement (ex. « repondre
+    UNIQUEMENT '## Contexte GLIMS' puis… », recopié du prompt) n'est pas le
+    début de la réponse : le prendre pour tel exposait le prompt au technicien
+    (incident 2026-10-23, dots-3-note-preview)."""
+    earliest = None
+    for marker in _ANSWER_MARKERS:
+        for m in _re.finditer(_re.escape(marker), response):
+            idx = m.start()
+            if idx == 0 or response[idx - 1] == "\n":
+                if earliest is None or idx < earliest:
+                    earliest = idx
+                break
+    return earliest
+
+
+# Fragments verbatim des consignes internes (user_prompt de ask_mispl). Leur
+# présence dans une réponse signifie que le modèle recopie ses instructions au
+# lieu de répondre : réponse inexploitable, jamais montrée au technicien.
+_PROMPT_LEAK_FRAGMENTS = (
+    "SANS bloc de code, SANS pseudo-code",
+    "ne doit JAMAIS etre appelee",
+    "Construis ta reponse a partir des fonctions",
+    "INTERDIT d'utiliser CascadeRequest",
+    "RAPPEL MODE TECHNICIEN",
+    "Documentation GLIMS disponible (resultats RAG",
+    "repondre UNIQUEMENT '## Contexte GLIMS'",
+)
+
+
+def _is_unusable_response(response: str, finish_reason: str | None = None) -> bool:
+    """Réponse à rejeter (le modèle suivant est alors essayé) : vide, fuite
+    des consignes internes, ou raisonnement à voix haute sans réponse
+    structurée (souvent tronqué par max_tokens)."""
+    text = _strip_chain_of_thought(response or "").strip()
+    if not text:
+        return True
+    if any(frag in text for frag in _PROMPT_LEAK_FRAGMENTS):
+        return True
+    if _first_answer_marker(text) is None:
+        head = text[:200].lower()
+        if finish_reason == "length" or any(head.startswith(sig) for sig in _COT_SIGNATURES):
+            return True
+    return False
+
+
+def _completion_unusable(completion) -> bool:
+    try:
+        choice = completion.choices[0]
+        return _is_unusable_response(choice.message.content or "", getattr(choice, "finish_reason", None))
+    except (AttributeError, IndexError, TypeError):
+        return False
+
+
 def _strip_chain_of_thought(response: str) -> str:
     """
     Supprime tout texte de raisonnement précédant la réponse structurée.
@@ -241,12 +296,7 @@ def _strip_chain_of_thought(response: str) -> str:
     if not response:
         return response
 
-    # Trouver la première occurrence d'un marqueur de réponse structurée
-    earliest = None
-    for marker in _ANSWER_MARKERS:
-        idx = response.find(marker)
-        if idx != -1 and (earliest is None or idx < earliest):
-            earliest = idx
+    earliest = _first_answer_marker(response)
 
     # Pas de marqueur trouvé → retourner tel quel
     if earliest is None or earliest == 0:
@@ -521,7 +571,7 @@ def _call_with_fallback(
     for current_model in models_to_try:
         for attempt in range(max_retries):
             try:
-                return current_model, client.chat.completions.create(
+                completion = client.chat.completions.create(
                     model=current_model,
                     messages=messages,
                     max_tokens=2048,
@@ -529,6 +579,11 @@ def _call_with_fallback(
                     stream=stream,
                     timeout=45,
                 )
+                if not stream and _completion_unusable(completion):
+                    logger.warning(f"Réponse inexploitable de {current_model} (raisonnement/fuite de consignes), modèle suivant")
+                    last_error = RuntimeError(f"Réponse inexploitable de {current_model}")
+                    break
+                return current_model, completion
             except RateLimitError as e:
                 last_error = e
                 retry_after = 15
@@ -580,7 +635,11 @@ def _call_llm(api_key: str | None, model: str, messages: list):
             )
             completion = raw.parse()
             routed_via = raw.headers.get("x-routed-via") or getattr(completion, "model", "") or LLM_ROUTER_MODEL
-            return f"router:{routed_via}", completion, True
+            if not _completion_unusable(completion):
+                return f"router:{routed_via}", completion, True
+            # Pas de nouvel essai via le routeur : sa session collante (30 min)
+            # renverrait le même modèle.
+            logger.warning(f"Réponse inexploitable via le routeur ({routed_via}), repli sur OpenRouter direct")
         except Exception as e:
             logger.warning(f"Routeur LLM indisponible ({type(e).__name__}: {e}), repli sur OpenRouter direct")
     used_model, completion = _call_with_fallback(_get_client(api_key), model, messages, stream=False)
