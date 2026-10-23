@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import time
+import httpx
 from openai import OpenAI, RateLimitError
 
 logger = logging.getLogger(__name__)
@@ -37,31 +38,45 @@ from src.security.llm_endpoint import DEFAULT_LLM_BASE_URL, validate_llm_base_ur
 # non autorisé fait échouer l'appel au lieu d'y envoyer les questions.
 OPENROUTER_BASE_URL = os.environ.get("MISPL_LLM_BASE_URL", DEFAULT_LLM_BASE_URL)
 
-# Modèles gratuits sur OpenRouter — mis à jour 2026-06
+# Modèles gratuits sur OpenRouter — mis à jour 2026-10
 # Vérifier la liste actuelle : python scripts/list_free_models.py
+# (2026-10 : kimi-k2.6, llama-3.3-70b, llama-3.2-3b, qwen3-coder retirés de
+# l'offre gratuite ; nemotron-3-super-120b renvoie 404 côté provider Nvidia.)
 FREE_MODELS = {
-    "nemotron-super-120b":  "nvidia/nemotron-3-super-120b-a12b:free",   # testé OK
-    "kimi-k2":              "moonshotai/kimi-k2.6:free",                 # testé OK
-    "llama-3.3-70b":        "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen3-coder":          "qwen/qwen3-coder:free",                     # code spécialisé
-    "gemma-4-31b":          "google/gemma-4-31b-it:free",
-    "llama-3.2-3b":         "meta-llama/llama-3.2-3b-instruct:free",
-    "nemotron-nano-12b":    "nvidia/nemotron-nano-12b-v2-vl:free",
-    "hermes-405b":          "nousresearch/hermes-3-llama-3.1-405b:free",
+    "nemotron-ultra-550b":  "nvidia/nemotron-3-ultra-550b-a55b:free",   # testé OK 2026-10
+    "nemotron-3.5-super":   "nvidia/nemotron-3.5-super-vl:free",        # testé OK 2026-10
+    "nemotron-3.5-light":   "nvidia/nemotron-3.5-lightning:free",       # testé OK 2026-10
+    "laguna-s-2.1":         "poolside/laguna-s-2.1:free",               # testé OK 2026-10
+    "north-mini-code":      "cohere/north-mini-code:free",              # testé OK 2026-10, léger
+    "gemma-4-31b":          "google/gemma-4-31b-it:free",               # souvent rate-limité
+    "gemma-4-26b":          "google/gemma-4-26b-a4b-it:free",           # souvent rate-limité
+    "nemotron-super-120b":  "nvidia/nemotron-3-super-120b-a12b:free",   # 404 provider 2026-10
 }
 
-# Modèle par défaut — nemotron-120b, testé disponible 2026-06
-DEFAULT_MODEL = FREE_MODELS["nemotron-super-120b"]
+# Modèle par défaut — nemotron-3-ultra-550b, testé disponible 2026-10
+DEFAULT_MODEL = FREE_MODELS["nemotron-ultra-550b"]
 
 # Ordre de fallback si rate-limit ou 404 (ordre priorité décroissante)
 FALLBACK_ORDER = [
-    FREE_MODELS["nemotron-super-120b"],
-    FREE_MODELS["kimi-k2"],
-    FREE_MODELS["llama-3.3-70b"],
-    FREE_MODELS["qwen3-coder"],
+    FREE_MODELS["nemotron-ultra-550b"],
+    FREE_MODELS["nemotron-3.5-super"],
+    FREE_MODELS["nemotron-3.5-light"],
+    FREE_MODELS["laguna-s-2.1"],
+    FREE_MODELS["north-mini-code"],
     FREE_MODELS["gemma-4-31b"],
-    FREE_MODELS["llama-3.2-3b"],
 ]
+
+# Mode routeur (MISPL_LLM_MODEL défini) : MISPL_LLM_BASE_URL désigne un routeur
+# OpenAI-compatible — typiquement FreeLLMAPI en local
+# (http://localhost:3001/v1, MISPL_LLM_MODEL=auto:smart) qui choisit lui-même le
+# provider, fait tourner les clés et se replie sur 429/5xx. Les identifiants
+# « :free » ci-dessus n'y existent pas, d'où un modèle dédié. Si le routeur est
+# arrêté ou épuisé, repli automatique sur OpenRouter direct (FALLBACK_ORDER) :
+# le routeur n'est jamais un point de défaillance unique.
+# Sans MISPL_LLM_MODEL, MISPL_LLM_BASE_URL garde son sens historique (tout le
+# trafic vers cette URL, ex. banc de test local).
+LLM_ROUTER_MODEL = os.environ.get("MISPL_LLM_MODEL", "").strip()
+_OPENROUTER_DIRECT_URL = DEFAULT_LLM_BASE_URL if LLM_ROUTER_MODEL else OPENROUTER_BASE_URL
 DEFAULT_TOP_K = 6
 SESSIONS_DIR = ROOT / "outputs" / "sessions"
 CACHE_DIR = ROOT / "outputs" / "cache"
@@ -450,11 +465,27 @@ def _get_client(api_key: str | None = None) -> OpenAI:
         )
     return OpenAI(
         api_key=api_key,
-        base_url=validate_llm_base_url(OPENROUTER_BASE_URL),
+        base_url=validate_llm_base_url(_OPENROUTER_DIRECT_URL),
         default_headers={
             "HTTP-Referer": "https://mispl-agent.lab",  # obligatoire OpenRouter
             "X-Title": "MISPL Agent GLIMS",
         },
+    )
+
+
+def _get_router_client() -> OpenAI:
+    """Client du routeur (mode MISPL_LLM_MODEL). Clé propre au routeur
+    (MISPL_LLM_API_KEY) : la clé OpenRouter d'un utilisateur n'y est jamais
+    envoyée. Connexion courte et un seul retry SDK, pour basculer vite sur
+    OpenRouter direct quand le routeur est arrêté."""
+    api_key = os.environ.get("MISPL_LLM_API_KEY", "")
+    if not api_key:
+        raise ValueError("MISPL_LLM_API_KEY manquant (clé unifiée du routeur LLM)")
+    return OpenAI(
+        api_key=api_key,
+        base_url=validate_llm_base_url(OPENROUTER_BASE_URL),
+        timeout=httpx.Timeout(90, connect=3),
+        max_retries=1,
     )
 
 
@@ -531,6 +562,31 @@ def _call_with_fallback(
     raise last_error or RuntimeError("Tous les modèles OpenRouter sont indisponibles")
 
 
+def _call_llm(api_key: str | None, model: str, messages: list):
+    """Point d'entrée des appels LLM : routeur d'abord (mode MISPL_LLM_MODEL),
+    puis OpenRouter direct avec sa chaîne de fallback.
+
+    Retourne (used_model, completion, via_router). En mode routeur, used_model
+    est le provider/modèle réellement servi (en-tête X-Routed-Via), pour la
+    traçabilité des sessions.
+    """
+    if LLM_ROUTER_MODEL:
+        try:
+            raw = _get_router_client().chat.completions.with_raw_response.create(
+                model=LLM_ROUTER_MODEL,
+                messages=messages,
+                max_tokens=2048,
+                temperature=0.1,
+            )
+            completion = raw.parse()
+            routed_via = raw.headers.get("x-routed-via") or getattr(completion, "model", "") or LLM_ROUTER_MODEL
+            return f"router:{routed_via}", completion, True
+        except Exception as e:
+            logger.warning(f"Routeur LLM indisponible ({type(e).__name__}: {e}), repli sur OpenRouter direct")
+    used_model, completion = _call_with_fallback(_get_client(api_key), model, messages, stream=False)
+    return used_model, completion, False
+
+
 def _extract_usage(completion) -> dict:
     """Extrait les compteurs de tokens d'un objet completion OpenAI-compatible.
     Retourne des zéros si absent (ne devrait pas arriver hors tests, mais
@@ -582,8 +638,6 @@ def ask_mispl(
     Returns:
         Tuple (response_text, docs) — docs réutilisable sans double RAG.
     """
-    client = _get_client(api_key)
-
     # top_k adaptatif : requêtes multi-fonction → plus de chunks (Pattern complet)
     effective_top_k = _adaptive_top_k(question, top_k)
 
@@ -650,15 +704,15 @@ def ask_mispl(
         messages.extend(conversation_history[-6:])
     messages.append({"role": "user", "content": user_prompt})
 
-    # Appel non-streaming avec retry + fallback
-    used_model, completion = _call_with_fallback(client, model, messages, stream=False)
+    # Appel non-streaming : routeur éventuel, puis retry + fallback OpenRouter
+    used_model, completion, via_router = _call_llm(api_key, model, messages)
     if usage_out is not None:
         usage_out.update(_extract_usage(completion))
     response = completion.choices[0].message.content or ""
     # Filet de sécurité : strip le chain-of-thought que nemotron/autres laissent fuiter
     # (le system prompt l'interdit mais les modèles l'ignorent parfois)
     response = _strip_chain_of_thought(response)
-    if used_model != model:
+    if used_model != model and not via_router:
         response = f"*(modèle utilisé : {used_model} — {model} indisponible)*\n\n" + response
 
     # 3.5. Auto-correction (// → /* */, CascadeRequest→AddRequest, SendMailToRole→GetRole)
@@ -692,7 +746,7 @@ def ask_mispl(
 
     # 5. Session
     if save_session:
-        _save_session(question, docs, response, model, active_skills, lint_result, access_mode)
+        _save_session(question, docs, response, used_model, active_skills, lint_result, access_mode)
 
     # Mise en cache pour les 24h à venir
     _cache_set(_key, response, docs)
@@ -756,7 +810,7 @@ def interactive_mode() -> None:
     print(f"  Modele par defaut : {DEFAULT_MODEL}")
     print("=" * 65)
     print("  'exit' pour quitter")
-    print("  'model <nom>' pour changer (mistral-small, llama-3.3-70b, gemma-2-27b, qwen-2.5-72b, deepseek-r1, phi-4)")
+    print("  'model <nom>' pour changer (" + ", ".join(FREE_MODELS) + ")")
     print("  'models' pour lister les modeles gratuits disponibles\n")
 
     current_model = DEFAULT_MODEL

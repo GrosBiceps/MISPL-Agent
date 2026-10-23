@@ -622,7 +622,7 @@ if question:
                 final = (
                     "**Service temporairement indisponible** — OpenRouter ne répond pas.\n\n"
                     "- Attendre 30–60 secondes et réessayer\n"
-                    "- Changer de modèle dans Paramètres (essayer `llama-3.2-3b` — plus léger)\n"
+                    "- Changer de modèle dans Paramètres (essayer `north-mini-code` — plus léger)\n"
                     f"- Référence erreur : `{error_id}`"
                 )
             else:
